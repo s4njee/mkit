@@ -1,0 +1,17 @@
+[package]
+name = "mkit-registry-date-time-field"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+mkit-mirror = []
+
+[dependencies]
+gpui_pre.workspace = true
+mkit-core.workspace = true
+mkit-registry-date-picker = { path = "../date-picker" }
+mkit-registry-time-field = { path = "../time-field" }
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }

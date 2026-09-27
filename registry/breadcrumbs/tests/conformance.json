@@ -1,0 +1,202 @@
+{
+  "manifest_version": 1,
+  "component": "breadcrumbs",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "An enabled ancestor link owns focus.",
+      "expected_behavior": "Request navigation to that link's caller-owned target.",
+      "initial_state": "selection",
+      "load_fixture": "breadcrumbs_selection",
+      "assert": {
+        "event": "navigate"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-selection",
+      "state": "selection",
+      "load_fixture": "breadcrumbs_selection",
+      "expected_semantics": {
+        "role": "navigation",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Component label"
+          },
+          {
+            "name": "child_role",
+            "value": "list"
+          },
+          {
+            "name": "current_page_description",
+            "value": "Current page description on final non-link item"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "breadcrumbs_disabled",
+      "expected_semantics": {
+        "role": "navigation",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Component label"
+          },
+          {
+            "name": "child_role",
+            "value": "list"
+          },
+          {
+            "name": "current_page_description",
+            "value": "Current page description on final non-link item"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-selection-light-1x",
+      "state": "selection",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/light-1x.png"
+    },
+    {
+      "id": "screen-selection-light-2x",
+      "state": "selection",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/light-2x.png"
+    },
+    {
+      "id": "screen-selection-dark-1x",
+      "state": "selection",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/dark-1x.png"
+    },
+    {
+      "id": "screen-selection-dark-2x",
+      "state": "selection",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/dark-2x.png"
+    },
+    {
+      "id": "screen-selection-high-contrast-1x",
+      "state": "selection",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selection-high-contrast-2x",
+      "state": "selection",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_selection",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/selection/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "breadcrumbs_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "breadcrumbs/disabled/high-contrast-2x.png"
+    }
+  ]
+}

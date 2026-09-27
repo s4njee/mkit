@@ -1,0 +1,830 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "＋ Add URL"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "▶ Resume"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Ⅱ Pause"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "✕ Remove"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Queues"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Settings"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Capture"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Filter downloads",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "All downloads, 8"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Downloading, 3"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Paused, 1"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Completed, 2"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Failed, 1"
+                },
+                {
+                  "children" : [
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : ""
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "FILE"
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "SIZE"
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "PROGRESS"
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "SPEED"
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "ETA"
+                    },
+                    {
+                      "children" : [
+
+                      ],
+                      "enabled" : true,
+                      "role" : "AXCell",
+                      "subrole" : "AXUnknown",
+                      "title" : "STATUS"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: ubuntu-24.04.2-desktop-amd64.iso, releases.ubuntu.com"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 6.10 GB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 42 percent, 16 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: 11.4 MB\/s"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: 07:12"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Downloading"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, ubuntu-24.04.2-desktop-amd64.iso, releases.ubuntu.com, 6.10 GB, 42 percent, 16 connections, 11.4 MB\/s, 07:12, Downloading"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: Blender-4.5.0-linux-x64.tar.xz, mirror.clarkson.edu"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 341 MB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 78 percent, 16 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: 8.2 MB\/s"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: 00:09"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Downloading"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, Blender-4.5.0-linux-x64.tar.xz, mirror.clarkson.edu, 341 MB, 78 percent, 16 connections, 8.2 MB\/s, 00:09, Downloading"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: project-backup-2026-09-01.zip, s3.eu-central-1.amazonaws.com"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 1.80 GB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 63 percent, 8 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: 4.9 MB\/s"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: 02:14"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Downloading"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, project-backup-2026-09-01.zip, s3.eu-central-1.amazonaws.com, 1.80 GB, 63 percent, 8 connections, 4.9 MB\/s, 02:14, Downloading"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: imagenet-shard-03.tar, data.vision.ee.ethz.ch"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 12.4 GB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 9 percent, 8 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Paused"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, imagenet-shard-03.tar, data.vision.ee.ethz.ch, 12.4 GB, 9 percent, 8 connections, —, —, Paused"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: macos-recovery-image.dmg, swcdn.apple.com"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 4.20 GB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 0 percent, 16 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Queued"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, macos-recovery-image.dmg, swcdn.apple.com, 4.20 GB, 0 percent, 16 connections, —, —, Queued"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: nvidia-driver-580.11.run, us.download.nvidia.com"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 412 MB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 100 percent, 8 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Completed"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, nvidia-driver-580.11.run, us.download.nvidia.com, 412 MB, 100 percent, 8 connections, —, —, Completed"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: postgresql-17.2.tar.bz2, ftp.postgresql.org"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 28.4 MB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 100 percent, 4 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Completed"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, postgresql-17.2.tar.bz2, ftp.postgresql.org, 28.4 MB, 100 percent, 4 connections, —, —, Completed"
+                    },
+                    {
+                      "children" : [
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : ": Select"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "FILE: archive-photos-2019.tar.gz, cdn.fileshare.io"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SIZE: 9.02 GB"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "PROGRESS: 0 percent, 8 connections"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "SPEED: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "ETA: —"
+                        },
+                        {
+                          "children" : [
+
+                          ],
+                          "enabled" : true,
+                          "role" : "AXCell",
+                          "subrole" : "AXUnknown",
+                          "title" : "STATUS: Error"
+                        }
+                      ],
+                      "enabled" : true,
+                      "role" : "AXRow",
+                      "subrole" : "AXUnknown",
+                      "title" : "Select, archive-photos-2019.tar.gz, cdn.fileshare.io, 9.02 GB, 0 percent, 8 connections, —, —, Error"
+                    }
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTable",
+                  "subrole" : "AXUnknown",
+                  "title" : "Downloads"
+                }
+              ],
+              "enabled" : true,
+              "role" : "AXGroup",
+              "subrole" : "AXApplicationGroup"
+            }
+          ],
+          "enabled" : true,
+          "role" : "AXGroup",
+          "subrole" : "AXUnknown"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXCloseButton"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "role" : "AXGroup"
+                }
+              ],
+              "role" : "AXGroup"
+            }
+          ],
+          "enabled" : true,
+          "help" : "this button also has an action to zoom the window",
+          "role" : "AXButton",
+          "subrole" : "AXFullScreenButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXMinimizeButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXStaticText",
+          "value" : ""
+        }
+      ],
+      "role" : "AXWindow",
+      "subrole" : "AXStandardWindow",
+      "title" : ""
+    }
+  ],
+  "role" : "AXApplication",
+  "title" : "mkit-aria2-sample"
+}

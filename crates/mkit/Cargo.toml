@@ -1,0 +1,211 @@
+[package]
+name = "mkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+# Keep the current crate experience by enabling every registry component by default.
+default = [
+    "combobox", "scrubbable-number-field",
+    "button", "icon-button", "toggle-button", "toggle-group",
+    "checkbox", "radio-group", "switch", "slider", "progress",
+    "text-field", "text-area",
+    "breadcrumbs", "context-menu", "data-table", "dialog",
+    "dropdown-menu", "form-layout", "multi-select", "popover",
+    "scroll-area", "segmented-control", "select", "separator",
+    "sheet", "sidebar", "split-pane", "tabs", "toast",
+    "tooltip", "tree", "virtual-list", "viewport", "histogram",
+    "precision-slider", "command-palette", "curve-editor",
+    "colour-tools", "property-inspector", "layer-panel", "gradient-editor", "shortcut-editor", "timeline", "node-editor", "calendar", "disclosure", "accordion", "toolbar", "inline-alert", "empty-state", "date-picker", "time-field", "date-time-field", "search-field", "status-bar", "badge", "avatar", "key-hint", "link", "tag-input", "file-drop-zone", "file-field", "stepper", "menu-bar", "reorderable-list",
+]
+combobox = []
+scrubbable-number-field = []
+button = []
+icon-button = []
+toggle-button = []
+toggle-group = []
+checkbox = []
+radio-group = []
+switch = []
+slider = []
+progress = []
+text-field = []
+text-area = []
+breadcrumbs = []
+context-menu = []
+data-table = []
+dialog = []
+dropdown-menu = []
+form-layout = []
+multi-select = []
+popover = []
+scroll-area = []
+segmented-control = []
+select = []
+separator = []
+sheet = []
+sidebar = []
+split-pane = []
+tabs = []
+toast = []
+tooltip = []
+tree = []
+virtual-list = []
+viewport = []
+histogram = []
+precision-slider = []
+command-palette = []
+curve-editor = []
+colour-tools = []
+property-inspector = []
+layer-panel = []
+gradient-editor = []
+shortcut-editor = []
+timeline = []
+node-editor = []
+calendar = []
+disclosure = []
+accordion = []
+toolbar = []
+inline-alert = []
+empty-state = []
+date-picker = ["mkit-mirror", "calendar", "text-field"]
+time-field = []
+date-time-field = ["mkit-mirror", "date-picker", "time-field"]
+search-field = ["mkit-mirror", "text-field"]
+status-bar = []
+badge = []
+avatar = []
+key-hint = []
+link = []
+tag-input = ["mkit-mirror", "text-field"]
+file-drop-zone = []
+file-field = []
+stepper = []
+menu-bar = []
+reorderable-list = []
+mkit-mirror = []
+
+[dependencies]
+mkit-core.workspace = true
+gpui_pre.workspace = true
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }
+serde_json = "=1.0.151"
+mkit-registry-dropdown-menu = { path = "../../registry/dropdown-menu" }
+mkit-registry-context-menu = { path = "../../registry/context-menu" }
+
+[[test]]
+name = "menu_host_integration"
+path = "tests/menu_host_integration.rs"
+required-features = ["dropdown-menu", "context-menu"]
+
+[[test]]
+name = "number_field_conformance"
+path = "tests/number_field_conformance.rs"
+harness = false
+required-features = ["scrubbable-number-field"]
+
+[[test]]
+name = "text_area_conformance"
+path = "tests/text_area_conformance.rs"
+harness = false
+required-features = ["text-area"]
+
+[[test]]
+name = "combobox_conformance"
+path = "tests/combobox_conformance.rs"
+harness = false
+required-features = ["combobox"]
+
+[[test]]
+name = "button_conformance"
+path = "tests/button_conformance.rs"
+harness = false
+required-features = ["button"]
+
+[[test]]
+name = "icon_button_conformance"
+path = "tests/icon_button_conformance.rs"
+harness = false
+required-features = ["icon-button"]
+
+[[test]]
+name = "toggle_button_conformance"
+path = "tests/toggle_button_conformance.rs"
+harness = false
+required-features = ["toggle-button"]
+
+[[test]]
+name = "checkbox_conformance"
+path = "tests/checkbox_conformance.rs"
+harness = false
+required-features = ["checkbox"]
+
+[[test]]
+name = "select_conformance"
+path = "tests/select_conformance.rs"
+harness = false
+required-features = ["select"]
+
+[[test]]
+name = "virtual_list_conformance"
+path = "tests/virtual_list_conformance.rs"
+harness = false
+required-features = ["virtual-list"]
+
+[[test]]
+name = "scroll_area_conformance"
+path = "tests/scroll_area_conformance.rs"
+harness = false
+required-features = ["scroll-area"]
+
+[[test]]
+name = "split_pane_conformance"
+path = "tests/split_pane_conformance.rs"
+harness = false
+required-features = ["split-pane"]
+
+[[test]]
+name = "tree_conformance"
+path = "tests/tree_conformance.rs"
+harness = false
+required-features = ["tree"]
+
+[[test]]
+name = "menu_interaction"
+path = "tests/menu_interaction.rs"
+required-features = ["dropdown-menu", "context-menu"]
+
+[[test]]
+name = "dropdown_menu_conformance"
+path = "tests/dropdown_menu_conformance.rs"
+harness = false
+required-features = ["dropdown-menu"]
+
+[[test]]
+name = "context_menu_conformance"
+path = "tests/context_menu_conformance.rs"
+harness = false
+required-features = ["context-menu"]
+
+[[test]]
+name = "text_field_conformance"
+path = "tests/text_field_conformance.rs"
+harness = false
+required-features = ["text-field"]
+
+[[test]]
+name = "sidebar_conformance"
+path = "tests/sidebar_conformance.rs"
+harness = false
+required-features = ["sidebar"]
+
+[[test]]
+name = "breadcrumbs_conformance"
+path = "tests/breadcrumbs_conformance.rs"
+harness = false
+required-features = ["breadcrumbs"]

@@ -1,0 +1,202 @@
+{
+  "manifest_version": 1,
+  "component": "sidebar",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "an enabled navigation link is focused",
+      "expected_behavior": "Request navigation to the focused link; controlled state changes only when the owner applies the requested current value.",
+      "initial_state": "selection",
+      "load_fixture": "sidebar_selection",
+      "assert": {
+        "event": "value_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-selection",
+      "state": "selection",
+      "load_fixture": "sidebar_selection",
+      "expected_semantics": {
+        "role": "navigation",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Component label"
+          },
+          {
+            "name": "child_role",
+            "value": "link"
+          },
+          {
+            "name": "current_page_description",
+            "value": "Current page on the enabled link whose value is selected"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "sidebar_disabled",
+      "expected_semantics": {
+        "role": "navigation",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Component label"
+          },
+          {
+            "name": "child_role",
+            "value": "link"
+          },
+          {
+            "name": "current_page_description",
+            "value": "Current page on the enabled link whose value is selected"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-selection-light-1x",
+      "state": "selection",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/light-1x.png"
+    },
+    {
+      "id": "screen-selection-light-2x",
+      "state": "selection",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/light-2x.png"
+    },
+    {
+      "id": "screen-selection-dark-1x",
+      "state": "selection",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/dark-1x.png"
+    },
+    {
+      "id": "screen-selection-dark-2x",
+      "state": "selection",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/dark-2x.png"
+    },
+    {
+      "id": "screen-selection-high-contrast-1x",
+      "state": "selection",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selection-high-contrast-2x",
+      "state": "selection",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sidebar_selection",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/selection/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sidebar_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "sidebar/disabled/high-contrast-2x.png"
+    }
+  ]
+}

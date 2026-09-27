@@ -1,0 +1,453 @@
+{
+  "manifest_version": 1,
+  "component": "search-field",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "Search field is focused and query is non-empty.",
+      "expected_behavior": "Clear the query immediately and emit SearchChanged.",
+      "initial_state": "query",
+      "load_fixture": "query_fixture",
+      "assert": {
+        "state": "empty",
+        "event": "SearchChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "cmd-f",
+        "modifiers": []
+      },
+      "precondition": "Search field is mounted and enabled.",
+      "expected_behavior": "Focus the search input.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "focus_target": "search-input"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "Clear button is focused and enabled.",
+      "expected_behavior": "Clear the query immediately and focus the search input.",
+      "initial_state": "query",
+      "load_fixture": "query_fixture",
+      "assert": {
+        "state": "empty",
+        "event": "SearchChanged"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "Clear button is focused and enabled.",
+      "expected_behavior": "Clear the query immediately and focus the search input.",
+      "initial_state": "query",
+      "load_fixture": "query_fixture",
+      "assert": {
+        "state": "empty",
+        "event": "SearchChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Search"
+          },
+          {
+            "name": "input_role",
+            "value": "text input"
+          },
+          {
+            "name": "input_label",
+            "value": "Search"
+          },
+          {
+            "name": "clear_button",
+            "value": "named button for enabled non-empty queries, otherwise omitted"
+          },
+          {
+            "name": "result_count",
+            "value": "polite status text when provided"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-query",
+      "state": "query",
+      "load_fixture": "query_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Search"
+          },
+          {
+            "name": "input_role",
+            "value": "text input"
+          },
+          {
+            "name": "input_label",
+            "value": "Search"
+          },
+          {
+            "name": "clear_button",
+            "value": "named button for enabled non-empty queries, otherwise omitted"
+          },
+          {
+            "name": "result_count",
+            "value": "polite status text when provided"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-results",
+      "state": "results",
+      "load_fixture": "results_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Search"
+          },
+          {
+            "name": "input_role",
+            "value": "text input"
+          },
+          {
+            "name": "input_label",
+            "value": "Search"
+          },
+          {
+            "name": "clear_button",
+            "value": "named button for enabled non-empty queries, otherwise omitted"
+          },
+          {
+            "name": "result_count",
+            "value": "polite status text when provided"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Search"
+          },
+          {
+            "name": "input_role",
+            "value": "text input"
+          },
+          {
+            "name": "input_label",
+            "value": "Search"
+          },
+          {
+            "name": "clear_button",
+            "value": "named button for enabled non-empty queries, otherwise omitted"
+          },
+          {
+            "name": "result_count",
+            "value": "polite status text when provided"
+          },
+          {
+            "name": "disabled",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-query-light-1x",
+      "state": "query",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/light-1x.png"
+    },
+    {
+      "id": "screen-query-light-2x",
+      "state": "query",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/light-2x.png"
+    },
+    {
+      "id": "screen-query-dark-1x",
+      "state": "query",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/dark-1x.png"
+    },
+    {
+      "id": "screen-query-dark-2x",
+      "state": "query",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/dark-2x.png"
+    },
+    {
+      "id": "screen-query-high-contrast-1x",
+      "state": "query",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-query-high-contrast-2x",
+      "state": "query",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/query/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-results-light-1x",
+      "state": "results",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/light-1x.png"
+    },
+    {
+      "id": "screen-results-light-2x",
+      "state": "results",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/light-2x.png"
+    },
+    {
+      "id": "screen-results-dark-1x",
+      "state": "results",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/dark-1x.png"
+    },
+    {
+      "id": "screen-results-dark-2x",
+      "state": "results",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/dark-2x.png"
+    },
+    {
+      "id": "screen-results-high-contrast-1x",
+      "state": "results",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-results-high-contrast-2x",
+      "state": "results",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "results_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/results/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "search-field/disabled/high-contrast-2x.png"
+    }
+  ]
+}

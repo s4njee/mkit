@@ -1,0 +1,468 @@
+{
+  "manifest_version": 1,
+  "component": "toolbar",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "an item in a horizontal toolbar is focused",
+      "expected_behavior": "Move focus to the next enabled actionable item, wrapping at the end.",
+      "initial_state": "horizontal",
+      "load_fixture": "toolbar_horizontal",
+      "assert": {
+        "focus_target": "next_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "an item in a horizontal toolbar is focused",
+      "expected_behavior": "Move focus to the previous enabled actionable item, wrapping at the beginning.",
+      "initial_state": "horizontal",
+      "load_fixture": "toolbar_horizontal",
+      "assert": {
+        "focus_target": "previous_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "an item in a vertical toolbar is focused",
+      "expected_behavior": "Move focus to the next enabled actionable item, wrapping at the end.",
+      "initial_state": "vertical",
+      "load_fixture": "toolbar_vertical",
+      "assert": {
+        "focus_target": "next_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "an item in a vertical toolbar is focused",
+      "expected_behavior": "Move focus to the previous enabled actionable item, wrapping at the beginning.",
+      "initial_state": "vertical",
+      "load_fixture": "toolbar_vertical",
+      "assert": {
+        "focus_target": "previous_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "an item in the toolbar is focused",
+      "expected_behavior": "Move focus to the first enabled actionable item.",
+      "initial_state": "horizontal",
+      "load_fixture": "toolbar_horizontal",
+      "assert": {
+        "focus_target": "first_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "an item in the toolbar is focused",
+      "expected_behavior": "Move focus to the last enabled actionable item.",
+      "initial_state": "horizontal",
+      "load_fixture": "toolbar_horizontal",
+      "assert": {
+        "focus_target": "last_enabled_item"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "the overflow menu is open",
+      "expected_behavior": "Move the active menu item to the next overflow action, wrapping at the end.",
+      "initial_state": "overflow",
+      "load_fixture": "toolbar_overflow",
+      "assert": {
+        "focus_target": "next_overflow_item"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "the overflow menu is open",
+      "expected_behavior": "Move the active menu item to the previous overflow action, wrapping at the beginning.",
+      "initial_state": "overflow",
+      "load_fixture": "toolbar_overflow",
+      "assert": {
+        "focus_target": "previous_overflow_item"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "the overflow menu is open",
+      "expected_behavior": "Close the menu and retain the overflow trigger as the active toolbar item.",
+      "initial_state": "overflow",
+      "load_fixture": "toolbar_overflow",
+      "assert": {
+        "event": "overflow_closed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-horizontal",
+      "state": "horizontal",
+      "load_fixture": "toolbar_horizontal",
+      "expected_semantics": {
+        "role": "toolbar",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Document actions"
+          },
+          {
+            "name": "orientation",
+            "value": "horizontal"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-vertical",
+      "state": "vertical",
+      "load_fixture": "toolbar_vertical",
+      "expected_semantics": {
+        "role": "toolbar",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Document actions"
+          },
+          {
+            "name": "orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-overflow",
+      "state": "overflow",
+      "load_fixture": "toolbar_overflow",
+      "expected_semantics": {
+        "role": "toolbar",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Document actions"
+          },
+          {
+            "name": "orientation",
+            "value": "horizontal"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "toolbar_disabled",
+      "expected_semantics": {
+        "role": "toolbar",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Document actions"
+          },
+          {
+            "name": "orientation",
+            "value": "horizontal"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-horizontal-light-1x",
+      "state": "horizontal",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/light-1x.png"
+    },
+    {
+      "id": "screen-horizontal-light-2x",
+      "state": "horizontal",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/light-2x.png"
+    },
+    {
+      "id": "screen-horizontal-dark-1x",
+      "state": "horizontal",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/dark-1x.png"
+    },
+    {
+      "id": "screen-horizontal-dark-2x",
+      "state": "horizontal",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/dark-2x.png"
+    },
+    {
+      "id": "screen-horizontal-high-contrast-1x",
+      "state": "horizontal",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-horizontal-high-contrast-2x",
+      "state": "horizontal",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toolbar_horizontal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/horizontal/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-vertical-light-1x",
+      "state": "vertical",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/light-1x.png"
+    },
+    {
+      "id": "screen-vertical-light-2x",
+      "state": "vertical",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/light-2x.png"
+    },
+    {
+      "id": "screen-vertical-dark-1x",
+      "state": "vertical",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/dark-1x.png"
+    },
+    {
+      "id": "screen-vertical-dark-2x",
+      "state": "vertical",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/dark-2x.png"
+    },
+    {
+      "id": "screen-vertical-high-contrast-1x",
+      "state": "vertical",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-vertical-high-contrast-2x",
+      "state": "vertical",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toolbar_vertical",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/vertical/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-overflow-light-1x",
+      "state": "overflow",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/light-1x.png"
+    },
+    {
+      "id": "screen-overflow-light-2x",
+      "state": "overflow",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/light-2x.png"
+    },
+    {
+      "id": "screen-overflow-dark-1x",
+      "state": "overflow",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/dark-1x.png"
+    },
+    {
+      "id": "screen-overflow-dark-2x",
+      "state": "overflow",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/dark-2x.png"
+    },
+    {
+      "id": "screen-overflow-high-contrast-1x",
+      "state": "overflow",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-overflow-high-contrast-2x",
+      "state": "overflow",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toolbar_overflow",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/overflow/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toolbar_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toolbar/disabled/high-contrast-2x.png"
+    }
+  ]
+}

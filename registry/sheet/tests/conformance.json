@@ -1,0 +1,396 @@
+{
+  "manifest_version": 1,
+  "component": "sheet",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "surface is open and not busy",
+      "expected_behavior": "Request dismissal.",
+      "initial_state": "open",
+      "load_fixture": "sheet_open",
+      "assert": {
+        "state": "closed",
+        "event": "OpenChanged(false)"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": []
+      },
+      "precondition": "surface is open",
+      "expected_behavior": "Keep focus within the surface.",
+      "initial_state": "open",
+      "load_fixture": "sheet_open",
+      "assert": {
+        "focus_target": "surface"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "surface is open",
+      "expected_behavior": "Keep focus within the surface.",
+      "initial_state": "open",
+      "load_fixture": "sheet_open",
+      "assert": {
+        "focus_target": "surface"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": []
+      },
+      "precondition": "interactive surface is open with the first content control focused",
+      "expected_behavior": "Move focus to the second content control.",
+      "initial_state": "interactive",
+      "load_fixture": "sheet_interactive",
+      "assert": {
+        "focus_target": "second_control"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "interactive surface is open with the first content control focused",
+      "expected_behavior": "Wrap focus backward to the second content control.",
+      "initial_state": "interactive",
+      "load_fixture": "sheet_interactive",
+      "assert": {
+        "focus_target": "second_control"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-closed",
+      "state": "closed",
+      "load_fixture": "sheet_closed",
+      "expected_semantics": {
+        "role": "dialog",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-open",
+      "state": "open",
+      "load_fixture": "sheet_open",
+      "expected_semantics": {
+        "role": "dialog",
+        "properties": [
+          {
+            "name": "aria-label",
+            "value": "title"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-busy",
+      "state": "busy",
+      "load_fixture": "sheet_busy",
+      "expected_semantics": {
+        "role": "dialog",
+        "properties": [
+          {
+            "name": "aria-label",
+            "value": "title"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-interactive",
+      "state": "interactive",
+      "load_fixture": "sheet_interactive",
+      "expected_semantics": {
+        "role": "dialog",
+        "properties": [
+          {
+            "name": "aria-label",
+            "value": "title"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-closed-light-1x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/light-1x.png"
+    },
+    {
+      "id": "screen-closed-light-2x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/light-2x.png"
+    },
+    {
+      "id": "screen-closed-dark-1x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/dark-1x.png"
+    },
+    {
+      "id": "screen-closed-dark-2x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/dark-2x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-1x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-2x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sheet_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/closed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-open-light-1x",
+      "state": "open",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/light-1x.png"
+    },
+    {
+      "id": "screen-open-light-2x",
+      "state": "open",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/light-2x.png"
+    },
+    {
+      "id": "screen-open-dark-1x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/dark-1x.png"
+    },
+    {
+      "id": "screen-open-dark-2x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/dark-2x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-1x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-2x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sheet_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/open/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-busy-light-1x",
+      "state": "busy",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/light-1x.png"
+    },
+    {
+      "id": "screen-busy-light-2x",
+      "state": "busy",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/light-2x.png"
+    },
+    {
+      "id": "screen-busy-dark-1x",
+      "state": "busy",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/dark-1x.png"
+    },
+    {
+      "id": "screen-busy-dark-2x",
+      "state": "busy",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/dark-2x.png"
+    },
+    {
+      "id": "screen-busy-high-contrast-1x",
+      "state": "busy",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-busy-high-contrast-2x",
+      "state": "busy",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sheet_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/busy/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-interactive-light-1x",
+      "state": "interactive",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/light-1x.png"
+    },
+    {
+      "id": "screen-interactive-light-2x",
+      "state": "interactive",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/light-2x.png"
+    },
+    {
+      "id": "screen-interactive-dark-1x",
+      "state": "interactive",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/dark-1x.png"
+    },
+    {
+      "id": "screen-interactive-dark-2x",
+      "state": "interactive",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/dark-2x.png"
+    },
+    {
+      "id": "screen-interactive-high-contrast-1x",
+      "state": "interactive",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-interactive-high-contrast-2x",
+      "state": "interactive",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sheet_interactive",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "sheet/interactive/high-contrast-2x.png"
+    }
+  ]
+}

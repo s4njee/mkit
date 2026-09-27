@@ -1,0 +1,527 @@
+{
+  "manifest_version": 1,
+  "component": "multi-select",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Multi-select is focused",
+      "expected_behavior": "Open and move active row.",
+      "initial_state": "closed",
+      "load_fixture": "closed_fixture",
+      "assert": {
+        "state": "open",
+        "event": "open",
+        "focus_target": "multi_select"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "An option is active",
+      "expected_behavior": "Toggle its selected membership and keep popup open.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "open",
+        "event": "change",
+        "focus_target": "multi_select"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "Popup is open",
+      "expected_behavior": "Close and preserve current selected values.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "closed",
+        "focus_target": "multi_select"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "Popup is open",
+      "expected_behavior": "Move active row to first enabled item and scroll it into view.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "open",
+        "focus_target": "multi_select"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "Popup is open",
+      "expected_behavior": "Move active row to last enabled item and scroll it into view.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "open",
+        "focus_target": "multi_select"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": []
+      },
+      "precondition": "Multi-select is focused and popup is open",
+      "expected_behavior": "Follow normal forward focus traversal and close the popup when focus leaves the trigger.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "closed",
+        "focus_target": "next_tab_stop"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "Multi-select is focused and popup is open",
+      "expected_behavior": "Follow normal backward focus traversal and close the popup when focus leaves the trigger.",
+      "initial_state": "open",
+      "load_fixture": "open_fixture",
+      "assert": {
+        "state": "closed",
+        "focus_target": "previous_tab_stop"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Multi-select is disabled",
+      "expected_behavior": "Keep the popup closed, preserve values, and emit no event.",
+      "initial_state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "assert": {
+        "state": "disabled",
+        "event": "none",
+        "focus_target": "none"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Every option is disabled",
+      "expected_behavior": "Keep the popup closed and emit no event.",
+      "initial_state": "all_options_disabled",
+      "load_fixture": "all_options_disabled_fixture",
+      "assert": {
+        "state": "all_options_disabled",
+        "event": "none",
+        "focus_target": "multi_select"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-closed",
+      "state": "closed",
+      "load_fixture": "closed_fixture",
+      "expected_semantics": {
+        "role": "combobox",
+        "properties": [
+          {
+            "name": "aria-haspopup",
+            "value": "listbox"
+          },
+          {
+            "name": "aria-value",
+            "value": "selected option labels joined with commas or empty string"
+          },
+          {
+            "name": "aria-multiselectable",
+            "value": true
+          },
+          {
+            "name": "aria-expanded",
+            "value": false
+          },
+          {
+            "name": "active descendant",
+            "value": "active option while open"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-open",
+      "state": "open",
+      "load_fixture": "open_fixture",
+      "expected_semantics": {
+        "role": "combobox",
+        "properties": [
+          {
+            "name": "aria-haspopup",
+            "value": "listbox"
+          },
+          {
+            "name": "aria-value",
+            "value": "selected option labels joined with commas or empty string"
+          },
+          {
+            "name": "aria-multiselectable",
+            "value": true
+          },
+          {
+            "name": "aria-expanded",
+            "value": true
+          },
+          {
+            "name": "active descendant",
+            "value": "active option while open"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "combobox",
+        "properties": [
+          {
+            "name": "aria-haspopup",
+            "value": "listbox"
+          },
+          {
+            "name": "aria-value",
+            "value": "selected option labels joined with commas or empty string"
+          },
+          {
+            "name": "aria-multiselectable",
+            "value": true
+          },
+          {
+            "name": "aria-disabled",
+            "value": true
+          },
+          {
+            "name": "active descendant",
+            "value": "active option while open"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-all_options_disabled",
+      "state": "all_options_disabled",
+      "load_fixture": "all_options_disabled_fixture",
+      "expected_semantics": {
+        "role": "combobox",
+        "properties": [
+          {
+            "name": "aria-haspopup",
+            "value": "listbox"
+          },
+          {
+            "name": "aria-value",
+            "value": "selected option labels joined with commas or empty string"
+          },
+          {
+            "name": "aria-multiselectable",
+            "value": true
+          },
+          {
+            "name": "active descendant",
+            "value": "active option while open"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-closed-light-1x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/light-1x.png"
+    },
+    {
+      "id": "screen-closed-light-2x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/light-2x.png"
+    },
+    {
+      "id": "screen-closed-dark-1x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/dark-1x.png"
+    },
+    {
+      "id": "screen-closed-dark-2x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/dark-2x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-1x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-2x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "closed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/closed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-open-light-1x",
+      "state": "open",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/light-1x.png"
+    },
+    {
+      "id": "screen-open-light-2x",
+      "state": "open",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/light-2x.png"
+    },
+    {
+      "id": "screen-open-dark-1x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/dark-1x.png"
+    },
+    {
+      "id": "screen-open-dark-2x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/dark-2x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-1x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-2x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "open_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/open/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/disabled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-light-1x",
+      "state": "all_options_disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/light-1x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-light-2x",
+      "state": "all_options_disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/light-2x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-dark-1x",
+      "state": "all_options_disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-dark-2x",
+      "state": "all_options_disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-high-contrast-1x",
+      "state": "all_options_disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-all_options_disabled-high-contrast-2x",
+      "state": "all_options_disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "all_options_disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "multi-select/all_options_disabled/high-contrast-2x.png"
+    }
+  ]
+}

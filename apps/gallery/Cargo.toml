@@ -1,0 +1,257 @@
+[package]
+name = "mkit-gallery"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+mkit.workspace = true
+mkit-example-hello = { path = "../../examples/hello", version = "0.1.0" }
+mkit-example-e8-components = { path = "../../examples/e8_components", version = "0.1.0" }
+gpui_pre.workspace = true
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+gpui-kit = "=0.6.4"
+image = "=0.25.10"
+serde_json = "=1.0.151"
+mkit-harness = { path = "../../crates/mkit-harness", version = "0.1.0" }
+
+[[test]]
+name = "gallery_screenshot"
+path = "tests/gallery_screenshot.rs"
+harness = false
+
+[[test]]
+name = "e7_gallery_screenshot"
+path = "tests/e7_gallery_screenshot.rs"
+harness = false
+
+[[test]]
+name = "e7_popover_matrix"
+path = "tests/e7_popover_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_breadcrumbs_matrix"
+path = "tests/e7_breadcrumbs_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_select_matrix"
+path = "tests/e7_select_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_modal_matrix"
+path = "tests/e7_modal_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_form_layout_matrix"
+path = "tests/e7_form_layout_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_separator_matrix"
+path = "tests/e7_separator_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_scroll_area_matrix"
+path = "tests/e7_scroll_area_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_split_pane_matrix"
+path = "tests/e7_split_pane_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_progress_matrix"
+path = "tests/e7_progress_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_toggle_matrix"
+path = "tests/e7_toggle_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_button_matrix"
+path = "tests/e7_button_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_radio_matrix"
+path = "tests/e7_radio_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_choice_matrix"
+path = "tests/e7_choice_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_slider_matrix"
+path = "tests/e7_slider_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_text_field_matrix"
+path = "tests/e7_text_field_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_text_area_matrix"
+path = "tests/e7_text_area_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_combobox_matrix"
+path = "tests/e7_combobox_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_toast_matrix"
+path = "tests/e7_toast_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_tabs_segmented_matrix"
+path = "tests/e7_tabs_segmented_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_collections_matrix"
+path = "tests/e7_collections_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_menu_matrix"
+path = "tests/e7_menu_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_tooltip_sidebar_matrix"
+path = "tests/e7_tooltip_sidebar_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_data_table_matrix"
+path = "tests/e7_data_table_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_gallery_screenshot"
+path = "tests/e8_gallery_screenshot.rs"
+harness = false
+
+[[test]]
+name = "e8_timeline_matrix"
+path = "tests/e8_timeline_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_toolbar_matrix"
+path = "tests/e7_toolbar_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_disclosure_matrix"
+path = "tests/e7_disclosure_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_calendar_matrix"
+path = "tests/e7_calendar_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_inline_messages_matrix"
+path = "tests/e7_inline_messages_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_date_picker_matrix"
+path = "tests/e7_date_picker_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_search_field_matrix"
+path = "tests/e7_search_field_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_status_bar_matrix"
+path = "tests/e7_status_bar_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_time_field_matrix"
+path = "tests/e7_time_field_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_date_time_field_matrix"
+path = "tests/e7_date_time_field_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_display_primitives_matrix"
+path = "tests/e7_display_primitives_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_tag_input_matrix"
+path = "tests/e7_tag_input_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_file_inputs_matrix"
+path = "tests/e7_file_inputs_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_stepper_matrix"
+path = "tests/e7_stepper_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_menu_bar_matrix"
+path = "tests/e7_menu_bar_matrix.rs"
+harness = false
+
+[[test]]
+name = "e7_reorderable_list_matrix"
+path = "tests/e7_reorderable_list_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_histogram_matrix"
+path = "tests/e8_histogram_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_precision_slider_matrix"
+path = "tests/e8_precision_slider_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_viewport_matrix"
+path = "tests/e8_viewport_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_colour_tools_matrix"
+path = "tests/e8_colour_tools_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_gradient_editor_matrix"
+path = "tests/e8_gradient_editor_matrix.rs"
+harness = false
+
+[[test]]
+name = "e8_curve_editor_matrix"
+path = "tests/e8_curve_editor_matrix.rs"
+harness = false

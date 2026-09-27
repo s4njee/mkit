@@ -1,0 +1,356 @@
+{
+  "manifest_version": 1,
+  "component": "toast",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "surface is open and not busy",
+      "expected_behavior": "Request dismissal.",
+      "initial_state": "visible",
+      "load_fixture": "toast_visible",
+      "assert": {
+        "state": "dismissed",
+        "event": "OpenChanged(false)"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "surface is open and busy",
+      "expected_behavior": "Keep the surface open and emit no event.",
+      "initial_state": "busy",
+      "load_fixture": "toast_busy",
+      "assert": {
+        "state": "busy",
+        "event": "none"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "controlled surface is open",
+      "expected_behavior": "Request dismissal while leaving the supplied open value unchanged.",
+      "initial_state": "controlled",
+      "load_fixture": "toast_controlled",
+      "assert": {
+        "state": "controlled",
+        "event": "OpenChanged(false)"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-visible",
+      "state": "visible",
+      "load_fixture": "toast_visible",
+      "expected_semantics": {
+        "role": "status",
+        "properties": [
+          {
+            "name": "live",
+            "value": "polite"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-dismissed",
+      "state": "dismissed",
+      "load_fixture": "toast_dismissed",
+      "expected_semantics": {
+        "role": "status",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-busy",
+      "state": "busy",
+      "load_fixture": "toast_busy",
+      "expected_semantics": {
+        "role": "status",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-controlled",
+      "state": "controlled",
+      "load_fixture": "toast_controlled",
+      "expected_semantics": {
+        "role": "status",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-visible-light-1x",
+      "state": "visible",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/light-1x.png"
+    },
+    {
+      "id": "screen-visible-light-2x",
+      "state": "visible",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/light-2x.png"
+    },
+    {
+      "id": "screen-visible-dark-1x",
+      "state": "visible",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/dark-1x.png"
+    },
+    {
+      "id": "screen-visible-dark-2x",
+      "state": "visible",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/dark-2x.png"
+    },
+    {
+      "id": "screen-visible-high-contrast-1x",
+      "state": "visible",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-visible-high-contrast-2x",
+      "state": "visible",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toast_visible",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/visible/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-dismissed-light-1x",
+      "state": "dismissed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/light-1x.png"
+    },
+    {
+      "id": "screen-dismissed-light-2x",
+      "state": "dismissed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/light-2x.png"
+    },
+    {
+      "id": "screen-dismissed-dark-1x",
+      "state": "dismissed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/dark-1x.png"
+    },
+    {
+      "id": "screen-dismissed-dark-2x",
+      "state": "dismissed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/dark-2x.png"
+    },
+    {
+      "id": "screen-dismissed-high-contrast-1x",
+      "state": "dismissed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-dismissed-high-contrast-2x",
+      "state": "dismissed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toast_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/dismissed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-busy-light-1x",
+      "state": "busy",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/light-1x.png"
+    },
+    {
+      "id": "screen-busy-light-2x",
+      "state": "busy",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/light-2x.png"
+    },
+    {
+      "id": "screen-busy-dark-1x",
+      "state": "busy",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/dark-1x.png"
+    },
+    {
+      "id": "screen-busy-dark-2x",
+      "state": "busy",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/dark-2x.png"
+    },
+    {
+      "id": "screen-busy-high-contrast-1x",
+      "state": "busy",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-busy-high-contrast-2x",
+      "state": "busy",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toast_busy",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/busy/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-controlled-light-1x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/light-1x.png"
+    },
+    {
+      "id": "screen-controlled-light-2x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/light-2x.png"
+    },
+    {
+      "id": "screen-controlled-dark-1x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/dark-1x.png"
+    },
+    {
+      "id": "screen-controlled-dark-2x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/dark-2x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-1x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-2x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toast_controlled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toast/controlled/high-contrast-2x.png"
+    }
+  ]
+}

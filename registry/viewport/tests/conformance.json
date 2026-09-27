@@ -1,0 +1,462 @@
+{
+  "manifest_version": 1,
+  "component": "viewport",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Pan content left by one theme spacing step so the view moves right.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "panned",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Pan content right by one theme spacing step.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "panned",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Pan content down by one theme spacing step.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "panned",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Pan content up by one theme spacing step.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "panned",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Equal",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Zoom in around the viewport center.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "zoomed",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Minus",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Zoom out around the viewport center.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "zoomed",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "F",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus and content has a positive extent.",
+      "expected_behavior": "Fit all content with theme-token padding.",
+      "initial_state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "assert": {
+        "state": "fitted",
+        "event": "transform_changed"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "1",
+        "modifiers": []
+      },
+      "precondition": "Viewport has focus.",
+      "expected_behavior": "Show content at 100 percent, centered.",
+      "initial_state": "zoomed",
+      "load_fixture": "viewport_zoomed",
+      "assert": {
+        "state": "actual-size",
+        "event": "transform_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-actual-size",
+      "state": "actual-size",
+      "load_fixture": "viewport_actual_size",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Canvas viewport"
+          },
+          {
+            "name": "description",
+            "value": "Arrow keys pan; plus and minus zoom; F fits; 1 shows actual size."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-fitted",
+      "state": "fitted",
+      "load_fixture": "viewport_fitted",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Canvas viewport"
+          },
+          {
+            "name": "description",
+            "value": "Arrow keys pan; plus and minus zoom; F fits; 1 shows actual size."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-panned",
+      "state": "panned",
+      "load_fixture": "viewport_panned",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Canvas viewport"
+          },
+          {
+            "name": "description",
+            "value": "Arrow keys pan; plus and minus zoom; F fits; 1 shows actual size."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-zoomed",
+      "state": "zoomed",
+      "load_fixture": "viewport_zoomed",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Canvas viewport"
+          },
+          {
+            "name": "description",
+            "value": "Arrow keys pan; plus and minus zoom; F fits; 1 shows actual size."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-actual-size-light-1x",
+      "state": "actual-size",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/light-1x.png"
+    },
+    {
+      "id": "screen-actual-size-light-2x",
+      "state": "actual-size",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/light-2x.png"
+    },
+    {
+      "id": "screen-actual-size-dark-1x",
+      "state": "actual-size",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/dark-1x.png"
+    },
+    {
+      "id": "screen-actual-size-dark-2x",
+      "state": "actual-size",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/dark-2x.png"
+    },
+    {
+      "id": "screen-actual-size-high-contrast-1x",
+      "state": "actual-size",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-actual-size-high-contrast-2x",
+      "state": "actual-size",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "viewport_actual_size",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/actual-size/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-fitted-light-1x",
+      "state": "fitted",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/light-1x.png"
+    },
+    {
+      "id": "screen-fitted-light-2x",
+      "state": "fitted",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/light-2x.png"
+    },
+    {
+      "id": "screen-fitted-dark-1x",
+      "state": "fitted",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/dark-1x.png"
+    },
+    {
+      "id": "screen-fitted-dark-2x",
+      "state": "fitted",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/dark-2x.png"
+    },
+    {
+      "id": "screen-fitted-high-contrast-1x",
+      "state": "fitted",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-fitted-high-contrast-2x",
+      "state": "fitted",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "viewport_fitted",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/fitted/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-panned-light-1x",
+      "state": "panned",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/light-1x.png"
+    },
+    {
+      "id": "screen-panned-light-2x",
+      "state": "panned",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/light-2x.png"
+    },
+    {
+      "id": "screen-panned-dark-1x",
+      "state": "panned",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/dark-1x.png"
+    },
+    {
+      "id": "screen-panned-dark-2x",
+      "state": "panned",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/dark-2x.png"
+    },
+    {
+      "id": "screen-panned-high-contrast-1x",
+      "state": "panned",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-panned-high-contrast-2x",
+      "state": "panned",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "viewport_panned",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/panned/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-zoomed-light-1x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/light-1x.png"
+    },
+    {
+      "id": "screen-zoomed-light-2x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/light-2x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-1x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/dark-1x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-2x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/dark-2x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-1x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-2x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "viewport_zoomed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "viewport/zoomed/high-contrast-2x.png"
+    }
+  ]
+}

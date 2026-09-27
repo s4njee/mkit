@@ -1,0 +1,171 @@
+{
+  "manifest_version": 1,
+  "component": "separator",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [],
+  "accessibility_cases": [
+    {
+      "id": "a11y-horizontal",
+      "state": "horizontal",
+      "load_fixture": "horizontal_fixture",
+      "expected_semantics": {
+        "role": "splitter",
+        "properties": [
+          {
+            "name": "orientation",
+            "value": "horizontal"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-vertical",
+      "state": "vertical",
+      "load_fixture": "vertical_fixture",
+      "expected_semantics": {
+        "role": "splitter",
+        "properties": [
+          {
+            "name": "orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-horizontal-light-1x",
+      "state": "horizontal",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/light-1x.png"
+    },
+    {
+      "id": "screen-horizontal-light-2x",
+      "state": "horizontal",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/light-2x.png"
+    },
+    {
+      "id": "screen-horizontal-dark-1x",
+      "state": "horizontal",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/dark-1x.png"
+    },
+    {
+      "id": "screen-horizontal-dark-2x",
+      "state": "horizontal",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/dark-2x.png"
+    },
+    {
+      "id": "screen-horizontal-high-contrast-1x",
+      "state": "horizontal",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-horizontal-high-contrast-2x",
+      "state": "horizontal",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "horizontal_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/horizontal/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-vertical-light-1x",
+      "state": "vertical",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/light-1x.png"
+    },
+    {
+      "id": "screen-vertical-light-2x",
+      "state": "vertical",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/light-2x.png"
+    },
+    {
+      "id": "screen-vertical-dark-1x",
+      "state": "vertical",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/dark-1x.png"
+    },
+    {
+      "id": "screen-vertical-dark-2x",
+      "state": "vertical",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/dark-2x.png"
+    },
+    {
+      "id": "screen-vertical-high-contrast-1x",
+      "state": "vertical",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-vertical-high-contrast-2x",
+      "state": "vertical",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "vertical_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "separator/vertical/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+[package]
+name = "mkit-harness"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5", features = ["test-support"] }
+image = "=0.25.10"
+
+[dev-dependencies]
+gpui-kit = "=0.6.4"
+
+[[test]]
+name = "screenshot"
+path = "tests/screenshot.rs"
+harness = false

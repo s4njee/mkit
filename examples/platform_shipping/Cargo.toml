@@ -1,0 +1,22 @@
+[package]
+name = "mkit-example-platform-shipping"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gpui_pre.workspace = true
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+gpui-kit = "=0.6.4"
+log = "=0.4.29"
+
+[dev-dependencies]
+mkit-harness = { path = "../../crates/mkit-harness", version = "0.1.0" }
+gpui-kit = { version = "=0.6.4", features = ["test-support"] }
+image = "=0.25.10"
+
+[[test]]
+name = "screenshot"
+path = "tests/screenshot.rs"
+harness = false

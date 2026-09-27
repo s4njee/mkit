@@ -1,0 +1,341 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quality:
+    name: Build, test, lint, and book (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake clang lld llvm pkg-config \
+            libasound2-dev libfontconfig-dev libgit2-dev libglib2.0-dev \
+            libssl-dev libva-dev libvulkan1 libwayland-dev libx11-xcb-dev \
+            libxkbcommon-x11-dev libzstd-dev libsqlite3-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace-${{ matrix.os }}
+
+      - name: Install mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: '0.4.40'
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Build workspace
+        run: cargo build --workspace --locked
+
+      - name: Install documentation and spec checkers
+        run: python -m pip install codespell==2.4.3 PyYAML==6.0.3
+
+      - name: Check book sources, links, examples, screenshots, and spelling
+        run: python scripts/check_book.py --skip-cargo --spell
+
+      - name: Check pinned GPUI API inventory
+        run: |
+          python scripts/generate_gpui_inventory.py --check
+          python -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Check component specs and generated conformance cases
+        run: |
+          python scripts/check_e5_dod.py
+          python scripts/check_component_specs.py
+          python scripts/check_registry.py
+          python scripts/sync_mkit_components.py --check
+          python scripts/generate_conformance.py examples/interaction/conformance/overlay-dismissal.spec.md --output examples/interaction/conformance/conformance.json --check
+
+      - name: Run generated keyboard smoke cases
+        run: python scripts/run_conformance.py examples/interaction/conformance/conformance.json --adapter "python examples/interaction/conformance/adapter.py" --kind keyboard
+
+      - name: Run number-field keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/scrubbable-number-field/tests/conformance.json
+          --adapter "python registry/scrubbable-number-field/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run combobox keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/combobox/tests/conformance.json
+          --adapter "python registry/combobox/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run button keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/button/tests/conformance.json
+          --adapter "python registry/button/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run icon-button keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/icon-button/tests/conformance.json
+          --adapter "python registry/icon-button/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run toggle-button keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/toggle-button/tests/conformance.json
+          --adapter "python registry/toggle-button/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run toggle-group keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/toggle-group/tests/conformance.json
+          --adapter "python registry/toggle-group/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run checkbox keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/checkbox/tests/conformance.json
+          --adapter "python registry/checkbox/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run radio-group keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/radio-group/tests/conformance.json
+          --adapter "python registry/radio-group/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run switch keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/switch/tests/conformance.json
+          --adapter "python registry/switch/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run slider keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/slider/tests/conformance.json
+          --adapter "python registry/slider/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run multi-select keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/multi-select/tests/conformance.json
+          --adapter "python registry/multi-select/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run select keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/select/tests/conformance.json
+          --adapter "python registry/select/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run virtual-list keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/virtual-list/tests/conformance.json
+          --adapter "python registry/virtual-list/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run tree keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/tree/tests/conformance.json
+          --adapter "python registry/tree/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run data-table keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/data-table/tests/conformance.json
+          --adapter "python registry/data-table/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run sidebar keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/sidebar/tests/conformance.json
+          --adapter "python registry/sidebar/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run breadcrumbs keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/breadcrumbs/tests/conformance.json
+          --adapter "python registry/breadcrumbs/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run tabs keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/tabs/tests/conformance.json
+          --adapter "python registry/tabs/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run segmented-control keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/segmented-control/tests/conformance.json
+          --adapter "python registry/segmented-control/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run scroll-area keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/scroll-area/tests/conformance.json
+          --adapter "python registry/scroll-area/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run split-pane keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/split-pane/tests/conformance.json
+          --adapter "python registry/split-pane/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run dropdown-menu keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/dropdown-menu/tests/conformance.json
+          --adapter "python registry/dropdown-menu/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run context-menu keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/context-menu/tests/conformance.json
+          --adapter "python registry/context-menu/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run text-field keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/text-field/tests/conformance.json
+          --adapter "python registry/text-field/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run text-area keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/text-area/tests/conformance.json
+          --adapter "python registry/text-area/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run toast keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/toast/tests/conformance.json
+          --adapter "python registry/toast/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run dialog keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/dialog/tests/conformance.json
+          --adapter "python registry/dialog/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run sheet keyboard conformance
+        run: >-
+          python scripts/run_conformance.py registry/sheet/tests/conformance.json
+          --adapter "python registry/sheet/tests/adapter.py"
+          --kind keyboard
+
+      - name: Run generated screenshot smoke case
+        if: runner.os == 'macOS'
+        run: python scripts/run_conformance.py examples/interaction/conformance/conformance.json --adapter "python examples/interaction/conformance/adapter.py" --kind screenshot --case screen-nested_open-light-1x
+
+      - name: Run number-field screenshot conformance
+        if: runner.os == 'macOS'
+        run: >-
+          python scripts/run_conformance.py registry/scrubbable-number-field/tests/conformance.json
+          --adapter "python registry/scrubbable-number-field/tests/adapter.py"
+          --kind screenshot --case screen-idle-light-1x
+
+      - name: Test workspace
+        run: cargo test --workspace --locked
+
+      - name: Test headless screenshot baseline
+        if: runner.os == 'macOS'
+        run: cargo test -p mkit-harness --test screenshot --locked
+
+      - name: Upload screenshot diff on failure
+        if: failure() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diff-${{ runner.os }}
+          path: |
+            crates/mkit-harness/snapshots/*-diff.png
+            book/src/images/*-diff.png
+            registry/scrubbable-number-field/tests/baselines/scrubbable-number-field/idle/*-diff.png
+            apps/gallery/snapshots/*-diff.png
+          if-no-files-found: ignore
+
+      - name: Lint workspace
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Build book
+        run: mdbook build book
+
+      - name: Check rendered GPUI version banner
+        run: python scripts/check_book.py --skip-cargo --built-html
+
+  coexistence:
+    name: GPUI Kit coexistence sample
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake clang lld llvm pkg-config \
+            libasound2-dev libfontconfig-dev libgit2-dev libglib2.0-dev \
+            libssl-dev libva-dev libvulkan1 libwayland-dev libx11-xcb-dev \
+            libxkbcommon-x11-dev libzstd-dev libsqlite3-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: coexistence-linux
+
+      - name: Build coexistence sample
+        run: cargo build --manifest-path apps/coexistence/Cargo.toml --locked
+
+  deny:
+    name: Dependency licenses and advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: cargo-deny
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20.2
+
+      - name: Check licenses and advisories
+        run: cargo deny check licenses advisories

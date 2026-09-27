@@ -1,0 +1,246 @@
+{
+  "manifest_version": 1,
+  "component": "scroll-area",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "PageDown",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and content exceeds viewport.",
+      "expected_behavior": "Scroll one viewport downward.",
+      "initial_state": "idle",
+      "load_fixture": "idle_fixture",
+      "assert": {
+        "state": "scrolled"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "PageUp",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and is scrolled one line below the top.",
+      "expected_behavior": "Scroll one viewport upward, clamping at the top.",
+      "initial_state": "scrolled",
+      "load_fixture": "scrolled_fixture",
+      "assert": {
+        "state": "idle"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and content exceeds viewport.",
+      "expected_behavior": "Scroll to the end of the content.",
+      "initial_state": "idle",
+      "load_fixture": "idle_fixture",
+      "assert": {
+        "state": "scrolled"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and is scrolled one line below the top.",
+      "expected_behavior": "Scroll to the beginning of the content.",
+      "initial_state": "scrolled",
+      "load_fixture": "scrolled_fixture",
+      "assert": {
+        "state": "idle"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and content exceeds viewport.",
+      "expected_behavior": "Scroll one theme-token line downward.",
+      "initial_state": "idle",
+      "load_fixture": "idle_fixture",
+      "assert": {
+        "state": "scrolled"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Scroll area has focus and is scrolled one line below the top.",
+      "expected_behavior": "Scroll one theme-token line upward, clamping at the top.",
+      "initial_state": "scrolled",
+      "load_fixture": "scrolled_fixture",
+      "assert": {
+        "state": "idle"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-idle",
+      "state": "idle",
+      "load_fixture": "idle_fixture",
+      "expected_semantics": {
+        "role": "scroll-view",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-scrolled",
+      "state": "scrolled",
+      "load_fixture": "scrolled_fixture",
+      "expected_semantics": {
+        "role": "scroll-view",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-idle-light-1x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/light-1x.png"
+    },
+    {
+      "id": "screen-idle-light-2x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/light-2x.png"
+    },
+    {
+      "id": "screen-idle-dark-1x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/dark-1x.png"
+    },
+    {
+      "id": "screen-idle-dark-2x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/dark-2x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-1x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-2x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/idle/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-scrolled-light-1x",
+      "state": "scrolled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/light-1x.png"
+    },
+    {
+      "id": "screen-scrolled-light-2x",
+      "state": "scrolled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/light-2x.png"
+    },
+    {
+      "id": "screen-scrolled-dark-1x",
+      "state": "scrolled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/dark-1x.png"
+    },
+    {
+      "id": "screen-scrolled-dark-2x",
+      "state": "scrolled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/dark-2x.png"
+    },
+    {
+      "id": "screen-scrolled-high-contrast-1x",
+      "state": "scrolled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-scrolled-high-contrast-2x",
+      "state": "scrolled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "scroll-area/scrolled/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+[package]
+name = "mkit-registry-checkbox"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui_pre.workspace = true
+mkit-core.workspace = true

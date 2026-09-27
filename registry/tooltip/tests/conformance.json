@@ -1,0 +1,254 @@
+{
+  "manifest_version": 1,
+  "component": "tooltip",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [],
+  "accessibility_cases": [
+    {
+      "id": "a11y-visible",
+      "state": "visible",
+      "load_fixture": "tooltip_visible",
+      "expected_semantics": {
+        "role": "none",
+        "properties": [
+          {
+            "name": "description",
+            "value": "label"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyboard_focused_child",
+      "state": "keyboard_focused_child",
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "expected_semantics": {
+        "role": "none",
+        "properties": [
+          {
+            "name": "description",
+            "value": "label"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "tooltip_disabled",
+      "expected_semantics": {
+        "role": "none",
+        "properties": [
+          {
+            "name": "description",
+            "value": "label"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-visible-light-1x",
+      "state": "visible",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/light-1x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-visible-light-2x",
+      "state": "visible",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/light-2x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-visible-dark-1x",
+      "state": "visible",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/dark-1x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-visible-dark-2x",
+      "state": "visible",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/dark-2x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-visible-high-contrast-1x",
+      "state": "visible",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/high-contrast-1x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-visible-high-contrast-2x",
+      "state": "visible",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "tooltip_visible",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "tooltip/visible/high-contrast-2x.png",
+      "limitation": "GPUI 0.3.5 headless screenshots omit the native tooltip popup after a synthetic hover, deterministic timer advance, executor pump, and fresh draw; active-platform popup capture remains pending."
+    },
+    {
+      "id": "screen-keyboard_focused_child-light-1x",
+      "state": "keyboard_focused_child",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/light-1x.png"
+    },
+    {
+      "id": "screen-keyboard_focused_child-light-2x",
+      "state": "keyboard_focused_child",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/light-2x.png"
+    },
+    {
+      "id": "screen-keyboard_focused_child-dark-1x",
+      "state": "keyboard_focused_child",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/dark-1x.png"
+    },
+    {
+      "id": "screen-keyboard_focused_child-dark-2x",
+      "state": "keyboard_focused_child",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/dark-2x.png"
+    },
+    {
+      "id": "screen-keyboard_focused_child-high-contrast-1x",
+      "state": "keyboard_focused_child",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyboard_focused_child-high-contrast-2x",
+      "state": "keyboard_focused_child",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "tooltip_keyboard_focused_child",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/keyboard_focused_child/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "tooltip_disabled",
+      "platform": "macos",
+      "status": "captured_by_e7_gallery_matrix",
+      "baseline": "tooltip/disabled/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,513 @@
+{
+  "manifest_version": 1,
+  "component": "file-field",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "The Browse button is focused and enabled.",
+      "expected_behavior": "Open the platform file picker.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "browse_requested",
+        "focus_target": "same_button"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "The Browse button is focused and enabled.",
+      "expected_behavior": "Open the platform file picker.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "browse_requested",
+        "focus_target": "same_button"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "A focused Remove file button is enabled.",
+      "expected_behavior": "Remove that file from the selection proposal.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "files_change",
+        "focus_target": "browse_or_next_remove"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "A focused Remove file button is enabled.",
+      "expected_behavior": "Remove that file from the selection proposal.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "files_change",
+        "focus_target": "browse_or_next_remove"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided field label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and selection limit"
+          },
+          {
+            "name": "live",
+            "value": "polite for validation and selection updates"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided field label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and selection limit"
+          },
+          {
+            "name": "live",
+            "value": "polite for validation and selection updates"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-multiple",
+      "state": "multiple",
+      "load_fixture": "multiple_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided field label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and selection limit"
+          },
+          {
+            "name": "live",
+            "value": "polite for validation and selection updates"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided field label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and selection limit"
+          },
+          {
+            "name": "disabled",
+            "value": true
+          },
+          {
+            "name": "live",
+            "value": "polite for validation and selection updates"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-invalid",
+      "state": "invalid",
+      "load_fixture": "invalid_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided field label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and selection limit"
+          },
+          {
+            "name": "live",
+            "value": "polite for validation and selection updates"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-multiple-light-1x",
+      "state": "multiple",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/light-1x.png"
+    },
+    {
+      "id": "screen-multiple-light-2x",
+      "state": "multiple",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/light-2x.png"
+    },
+    {
+      "id": "screen-multiple-dark-1x",
+      "state": "multiple",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/dark-1x.png"
+    },
+    {
+      "id": "screen-multiple-dark-2x",
+      "state": "multiple",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/dark-2x.png"
+    },
+    {
+      "id": "screen-multiple-high-contrast-1x",
+      "state": "multiple",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-multiple-high-contrast-2x",
+      "state": "multiple",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "multiple_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/multiple/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-field/disabled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-invalid-light-1x",
+      "state": "invalid",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/light-1x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    },
+    {
+      "id": "screen-invalid-light-2x",
+      "state": "invalid",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/light-2x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    },
+    {
+      "id": "screen-invalid-dark-1x",
+      "state": "invalid",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/dark-1x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    },
+    {
+      "id": "screen-invalid-dark-2x",
+      "state": "invalid",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/dark-2x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    },
+    {
+      "id": "screen-invalid-high-contrast-1x",
+      "state": "invalid",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/high-contrast-1x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    },
+    {
+      "id": "screen-invalid-high-contrast-2x",
+      "state": "invalid",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "invalid_fixture",
+      "platform": "macos",
+      "status": "unsupported_headless_capture",
+      "baseline": "file-field/invalid/high-contrast-2x.png",
+      "limitation": "Requires a real picker result or a dedicated public validation-state API; the screenshot matrix does not fabricate picker behavior."
+    }
+  ]
+}

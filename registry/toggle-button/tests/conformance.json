@@ -1,0 +1,283 @@
+{
+  "manifest_version": 1,
+  "component": "toggle-button",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "enabled and focused",
+      "expected_behavior": "Toggle the pressed state.",
+      "initial_state": "off",
+      "load_fixture": "toggle_off",
+      "assert": {
+        "state": "on",
+        "event": "value_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "enabled and focused",
+      "expected_behavior": "Toggle the pressed state using platform button behavior.",
+      "initial_state": "off",
+      "load_fixture": "toggle_off",
+      "assert": {
+        "state": "on",
+        "event": "value_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-off",
+      "state": "off",
+      "load_fixture": "toggle_off",
+      "expected_semantics": {
+        "role": "button",
+        "properties": [
+          {
+            "name": "pressed",
+            "value": false
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-on",
+      "state": "on",
+      "load_fixture": "toggle_on",
+      "expected_semantics": {
+        "role": "button",
+        "properties": [
+          {
+            "name": "pressed",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "toggle_disabled",
+      "expected_semantics": {
+        "role": "button",
+        "properties": [
+          {
+            "name": "description",
+            "value": "Unavailable"
+          },
+          {
+            "name": "aria-disabled",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-off-light-1x",
+      "state": "off",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/light-1x.png"
+    },
+    {
+      "id": "screen-off-light-2x",
+      "state": "off",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/light-2x.png"
+    },
+    {
+      "id": "screen-off-dark-1x",
+      "state": "off",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/dark-1x.png"
+    },
+    {
+      "id": "screen-off-dark-2x",
+      "state": "off",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/dark-2x.png"
+    },
+    {
+      "id": "screen-off-high-contrast-1x",
+      "state": "off",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-off-high-contrast-2x",
+      "state": "off",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toggle_off",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/off/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-on-light-1x",
+      "state": "on",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/light-1x.png"
+    },
+    {
+      "id": "screen-on-light-2x",
+      "state": "on",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/light-2x.png"
+    },
+    {
+      "id": "screen-on-dark-1x",
+      "state": "on",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/dark-1x.png"
+    },
+    {
+      "id": "screen-on-dark-2x",
+      "state": "on",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/dark-2x.png"
+    },
+    {
+      "id": "screen-on-high-contrast-1x",
+      "state": "on",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-on-high-contrast-2x",
+      "state": "on",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toggle_on",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/on/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "toggle_disabled",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "toggle-button/disabled/high-contrast-2x.png"
+    }
+  ]
+}

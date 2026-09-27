@@ -1,0 +1,31 @@
+[package]
+name = "mkit-example-e8-components"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+mkit.workspace = true
+gpui_pre.workspace = true
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+gpui-kit = "=0.6.4"
+
+[dev-dependencies]
+mkit-harness = { path = "../../crates/mkit-harness" }
+image = "=0.25.10"
+serde_json = "=1.0.151"
+
+[[test]]
+name = "screenshots"
+path = "tests/screenshots.rs"
+harness = false
+
+[[test]]
+name = "command_palette_matrix"
+path = "tests/command_palette_matrix.rs"
+harness = false
+
+[[test]]
+name = "shortcut_editor_matrix"
+path = "tests/shortcut_editor_matrix.rs"
+harness = false

@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "registry.schema.json",
+  "title": "mkit component registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_format_version",
+    "release_version",
+    "distribution",
+    "components"
+  ],
+  "properties": {
+    "registry_format_version": {
+      "const": 1
+    },
+    "release_version": {
+      "$ref": "#/$defs/version"
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "published"
+      ],
+      "properties": {
+        "kind": {
+          "const": "repository"
+        },
+        "path": {
+          "const": "registry/"
+        },
+        "published": {
+          "type": "boolean"
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "status",
+        "spec",
+        "conformance_manifest",
+        "source_files",
+        "dependencies",
+        "component_dependencies"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "status": {
+          "enum": [
+            "draft_spec_only",
+            "implementation_in_progress",
+            "source_ready"
+          ]
+        },
+        "spec": {
+          "type": "string"
+        },
+        "conformance_manifest": {
+          "type": "string"
+        },
+        "source_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "$ref": "#/$defs/version"
+              }
+            }
+          }
+        },
+        "component_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "draft_spec_only"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_files": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "implementation_in_progress"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_files": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "source_ready"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_files": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,479 @@
+{
+  "manifest_version": 1,
+  "component": "curve-editor",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "Curve editor is focused with a selected point.",
+      "expected_behavior": "Nudge selected point right by 0.01 normalized units, preserving point order.",
+      "initial_state": "selected-point",
+      "load_fixture": "selected_point_fixture",
+      "assert": {
+        "event": "curve_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Curve editor is focused with a selected point.",
+      "expected_behavior": "Nudge selected point up by 0.01 normalized units.",
+      "initial_state": "selected-point",
+      "load_fixture": "selected_point_fixture",
+      "assert": {
+        "event": "curve_changed"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "Curve editor is focused with a selected non-endpoint.",
+      "expected_behavior": "Delete selected point.",
+      "initial_state": "selected-point",
+      "load_fixture": "selected_point_fixture",
+      "assert": {
+        "event": "curve_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": []
+      },
+      "precondition": "Curve editor has multiple channels.",
+      "expected_behavior": "Select next channel.",
+      "initial_state": "multiple-channels",
+      "load_fixture": "multiple_channels_fixture",
+      "assert": {
+        "event": "channel_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-linear",
+      "state": "linear",
+      "load_fixture": "linear_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Select a channel, add points by clicking the curve, drag points to edit, delete selected point."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-smooth",
+      "state": "smooth",
+      "load_fixture": "smooth_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Select a channel, add points by clicking the curve, drag points to edit, delete selected point."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected-point",
+      "state": "selected-point",
+      "load_fixture": "selected_point_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Select a channel, add points by clicking the curve, drag points to edit, delete selected point."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-multiple-channels",
+      "state": "multiple-channels",
+      "load_fixture": "multiple_channels_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Select a channel, add points by clicking the curve, drag points to edit, delete selected point."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Select a channel, add points by clicking the curve, drag points to edit, delete selected point."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-linear-light-1x",
+      "state": "linear",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/light-1x.png"
+    },
+    {
+      "id": "screen-linear-light-2x",
+      "state": "linear",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/light-2x.png"
+    },
+    {
+      "id": "screen-linear-dark-1x",
+      "state": "linear",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/dark-1x.png"
+    },
+    {
+      "id": "screen-linear-dark-2x",
+      "state": "linear",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/dark-2x.png"
+    },
+    {
+      "id": "screen-linear-high-contrast-1x",
+      "state": "linear",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-linear-high-contrast-2x",
+      "state": "linear",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "linear_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/linear/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-smooth-light-1x",
+      "state": "smooth",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/light-1x.png"
+    },
+    {
+      "id": "screen-smooth-light-2x",
+      "state": "smooth",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/light-2x.png"
+    },
+    {
+      "id": "screen-smooth-dark-1x",
+      "state": "smooth",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/dark-1x.png"
+    },
+    {
+      "id": "screen-smooth-dark-2x",
+      "state": "smooth",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/dark-2x.png"
+    },
+    {
+      "id": "screen-smooth-high-contrast-1x",
+      "state": "smooth",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-smooth-high-contrast-2x",
+      "state": "smooth",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "smooth_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/smooth/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-point-light-1x",
+      "state": "selected-point",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/light-1x.png"
+    },
+    {
+      "id": "screen-selected-point-light-2x",
+      "state": "selected-point",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/light-2x.png"
+    },
+    {
+      "id": "screen-selected-point-dark-1x",
+      "state": "selected-point",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-point-dark-2x",
+      "state": "selected-point",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-point-high-contrast-1x",
+      "state": "selected-point",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-point-high-contrast-2x",
+      "state": "selected-point",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_point_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/selected-point/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-multiple-channels-light-1x",
+      "state": "multiple-channels",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/light-1x.png"
+    },
+    {
+      "id": "screen-multiple-channels-light-2x",
+      "state": "multiple-channels",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/light-2x.png"
+    },
+    {
+      "id": "screen-multiple-channels-dark-1x",
+      "state": "multiple-channels",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/dark-1x.png"
+    },
+    {
+      "id": "screen-multiple-channels-dark-2x",
+      "state": "multiple-channels",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/dark-2x.png"
+    },
+    {
+      "id": "screen-multiple-channels-high-contrast-1x",
+      "state": "multiple-channels",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-multiple-channels-high-contrast-2x",
+      "state": "multiple-channels",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "multiple_channels_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/multiple-channels/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "curve-editor/disabled/high-contrast-2x.png"
+    }
+  ]
+}

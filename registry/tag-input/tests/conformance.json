@@ -1,0 +1,916 @@
+{
+  "manifest_version": 1,
+  "component": "tag-input",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "Editor is enabled and a non-empty query is present.",
+      "expected_behavior": "Add the active suggestion, or otherwise add the trimmed query as a tag; emit a typed tags-change proposal when accepted.",
+      "initial_state": "query",
+      "load_fixture": "query_fixture",
+      "assert": {
+        "state": "tags",
+        "event": "TagsChanged",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Editor query has filtered suggestions.",
+      "expected_behavior": "Activate the first enabled suggestion or advance to the next enabled suggestion without moving focus from the editor.",
+      "initial_state": "suggestions",
+      "load_fixture": "suggestions_fixture",
+      "assert": {
+        "state": "suggestions",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Editor query has filtered suggestions.",
+      "expected_behavior": "Activate the last enabled suggestion or move to the previous enabled suggestion without moving focus from the editor.",
+      "initial_state": "suggestions",
+      "load_fixture": "suggestions_fixture",
+      "assert": {
+        "state": "suggestions",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Comma",
+        "modifiers": []
+      },
+      "precondition": "Editor is enabled and a non-empty query is present.",
+      "expected_behavior": "Add the trimmed query as a tag; comma is not included in the tag value.",
+      "initial_state": "query",
+      "load_fixture": "query_fixture",
+      "assert": {
+        "state": "tags",
+        "event": "TagsChanged",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Backspace",
+        "modifiers": []
+      },
+      "precondition": "Editor is empty and tags are present.",
+      "expected_behavior": "Select the last tag, or remove the selected tag on a second Backspace; emit TagsChanged only on removal.",
+      "initial_state": "tags",
+      "load_fixture": "tags_fixture",
+      "assert": {
+        "state": "selected_tag",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "Editor is empty and tags are present or a tag is selected.",
+      "expected_behavior": "Select the last tag or move selection to the preceding tag without moving focus from the editor.",
+      "initial_state": "tags",
+      "load_fixture": "tags_fixture",
+      "assert": {
+        "state": "selected_tag",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "A tag is selected.",
+      "expected_behavior": "Move selection to the next tag; after the last tag, clear tag selection and keep focus in the editor.",
+      "initial_state": "selected_tag",
+      "load_fixture": "selected_tag_fixture",
+      "assert": {
+        "state": "tags",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "A tag is selected and the editor is enabled.",
+      "expected_behavior": "Remove the selected tag and emit TagsChanged.",
+      "initial_state": "selected_tag",
+      "load_fixture": "selected_tag_fixture",
+      "assert": {
+        "state": "tags",
+        "event": "TagsChanged",
+        "focus_target": "editor"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "A suggestion is active or a tag is selected.",
+      "expected_behavior": "Clear suggestion and tag selection without changing tags or query.",
+      "initial_state": "suggestions",
+      "load_fixture": "suggestions_fixture",
+      "assert": {
+        "state": "tags",
+        "focus_target": "editor"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-tags",
+      "state": "tags",
+      "load_fixture": "tags_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-query",
+      "state": "query",
+      "load_fixture": "query_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected_tag",
+      "state": "selected_tag",
+      "load_fixture": "selected_tag_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          },
+          {
+            "name": "selected",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-validation_error",
+      "state": "validation_error",
+      "load_fixture": "validation_error_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          },
+          {
+            "name": "invalid",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-max_reached",
+      "state": "max_reached",
+      "load_fixture": "max_reached_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-suggestions",
+      "state": "suggestions",
+      "load_fixture": "suggestions_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          },
+          {
+            "name": "suggestions",
+            "value": "listbox with active option when present"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "editor_role",
+            "value": "textbox"
+          },
+          {
+            "name": "editor_label",
+            "value": "caller-provided group name"
+          },
+          {
+            "name": "tag_collection",
+            "value": "list with each tag as list item"
+          },
+          {
+            "name": "remove_control",
+            "value": "named button for each enabled tag"
+          },
+          {
+            "name": "disabled",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-tags-light-1x",
+      "state": "tags",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/light-1x.png"
+    },
+    {
+      "id": "screen-tags-light-2x",
+      "state": "tags",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/light-2x.png"
+    },
+    {
+      "id": "screen-tags-dark-1x",
+      "state": "tags",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/dark-1x.png"
+    },
+    {
+      "id": "screen-tags-dark-2x",
+      "state": "tags",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/dark-2x.png"
+    },
+    {
+      "id": "screen-tags-high-contrast-1x",
+      "state": "tags",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-tags-high-contrast-2x",
+      "state": "tags",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "tags_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/tags/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-query-light-1x",
+      "state": "query",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/light-1x.png"
+    },
+    {
+      "id": "screen-query-light-2x",
+      "state": "query",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/light-2x.png"
+    },
+    {
+      "id": "screen-query-dark-1x",
+      "state": "query",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/dark-1x.png"
+    },
+    {
+      "id": "screen-query-dark-2x",
+      "state": "query",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/dark-2x.png"
+    },
+    {
+      "id": "screen-query-high-contrast-1x",
+      "state": "query",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-query-high-contrast-2x",
+      "state": "query",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "query_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/query/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected_tag-light-1x",
+      "state": "selected_tag",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/light-1x.png"
+    },
+    {
+      "id": "screen-selected_tag-light-2x",
+      "state": "selected_tag",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/light-2x.png"
+    },
+    {
+      "id": "screen-selected_tag-dark-1x",
+      "state": "selected_tag",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/dark-1x.png"
+    },
+    {
+      "id": "screen-selected_tag-dark-2x",
+      "state": "selected_tag",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/dark-2x.png"
+    },
+    {
+      "id": "screen-selected_tag-high-contrast-1x",
+      "state": "selected_tag",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected_tag-high-contrast-2x",
+      "state": "selected_tag",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_tag_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/selected_tag/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-validation_error-light-1x",
+      "state": "validation_error",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/light-1x.png"
+    },
+    {
+      "id": "screen-validation_error-light-2x",
+      "state": "validation_error",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/light-2x.png"
+    },
+    {
+      "id": "screen-validation_error-dark-1x",
+      "state": "validation_error",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/dark-1x.png"
+    },
+    {
+      "id": "screen-validation_error-dark-2x",
+      "state": "validation_error",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/dark-2x.png"
+    },
+    {
+      "id": "screen-validation_error-high-contrast-1x",
+      "state": "validation_error",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-validation_error-high-contrast-2x",
+      "state": "validation_error",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "validation_error_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/validation_error/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-max_reached-light-1x",
+      "state": "max_reached",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/light-1x.png"
+    },
+    {
+      "id": "screen-max_reached-light-2x",
+      "state": "max_reached",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/light-2x.png"
+    },
+    {
+      "id": "screen-max_reached-dark-1x",
+      "state": "max_reached",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/dark-1x.png"
+    },
+    {
+      "id": "screen-max_reached-dark-2x",
+      "state": "max_reached",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/dark-2x.png"
+    },
+    {
+      "id": "screen-max_reached-high-contrast-1x",
+      "state": "max_reached",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-max_reached-high-contrast-2x",
+      "state": "max_reached",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "max_reached_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/max_reached/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-suggestions-light-1x",
+      "state": "suggestions",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/light-1x.png"
+    },
+    {
+      "id": "screen-suggestions-light-2x",
+      "state": "suggestions",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/light-2x.png"
+    },
+    {
+      "id": "screen-suggestions-dark-1x",
+      "state": "suggestions",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/dark-1x.png"
+    },
+    {
+      "id": "screen-suggestions-dark-2x",
+      "state": "suggestions",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/dark-2x.png"
+    },
+    {
+      "id": "screen-suggestions-high-contrast-1x",
+      "state": "suggestions",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-suggestions-high-contrast-2x",
+      "state": "suggestions",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "suggestions_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/suggestions/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "tag-input/disabled/high-contrast-2x.png"
+    }
+  ]
+}

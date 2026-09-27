@@ -1,0 +1,390 @@
+{
+  "manifest_version": 1,
+  "component": "dropdown-menu",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "component is open",
+      "expected_behavior": "Request dismissal and return focus to the host focus target after close applies.",
+      "initial_state": "open",
+      "load_fixture": "dropdown-menu_open",
+      "assert": {
+        "event": "open_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "an enabled active item has children",
+      "expected_behavior": "Open its nested pane and move active focus to its first enabled item.",
+      "initial_state": "open",
+      "load_fixture": "dropdown-menu_open",
+      "assert": {
+        "focus_target": "submenu-first-enabled"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "a nested pane is open",
+      "expected_behavior": "Return to the parent pane and restore its parent item as active.",
+      "initial_state": "submenu",
+      "load_fixture": "dropdown-menu_submenu",
+      "assert": {
+        "focus_target": "submenu-parent"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "component is open",
+      "expected_behavior": "Move active focus to the first enabled item in the current pane.",
+      "initial_state": "open",
+      "load_fixture": "dropdown-menu_open",
+      "assert": {
+        "focus_target": "first-enabled"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "component is open",
+      "expected_behavior": "Move active focus to the last enabled item in the current pane.",
+      "initial_state": "open",
+      "load_fixture": "dropdown-menu_open",
+      "assert": {
+        "focus_target": "last-enabled"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-closed",
+      "state": "closed",
+      "load_fixture": "dropdown-menu_closed",
+      "expected_semantics": {
+        "role": "menu",
+        "properties": [
+          {
+            "name": "state",
+            "value": "closed"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-open",
+      "state": "open",
+      "load_fixture": "dropdown-menu_open",
+      "expected_semantics": {
+        "role": "menu",
+        "properties": [
+          {
+            "name": "item_names",
+            "value": "visible item labels"
+          },
+          {
+            "name": "disabled_item",
+            "value": "AccessKit disabled state"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-outside_dismissed",
+      "state": "outside_dismissed",
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "expected_semantics": {
+        "role": "menu",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-submenu",
+      "state": "submenu",
+      "load_fixture": "dropdown-menu_submenu",
+      "expected_semantics": {
+        "role": "menu",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-closed-light-1x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/light-1x.png"
+    },
+    {
+      "id": "screen-closed-light-2x",
+      "state": "closed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/light-2x.png"
+    },
+    {
+      "id": "screen-closed-dark-1x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/dark-1x.png"
+    },
+    {
+      "id": "screen-closed-dark-2x",
+      "state": "closed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/dark-2x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-1x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-closed-high-contrast-2x",
+      "state": "closed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_closed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/closed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-open-light-1x",
+      "state": "open",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/light-1x.png"
+    },
+    {
+      "id": "screen-open-light-2x",
+      "state": "open",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/light-2x.png"
+    },
+    {
+      "id": "screen-open-dark-1x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/dark-1x.png"
+    },
+    {
+      "id": "screen-open-dark-2x",
+      "state": "open",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/dark-2x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-1x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-open-high-contrast-2x",
+      "state": "open",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/open/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-light-1x",
+      "state": "outside_dismissed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/light-1x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-light-2x",
+      "state": "outside_dismissed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/light-2x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-dark-1x",
+      "state": "outside_dismissed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/dark-1x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-dark-2x",
+      "state": "outside_dismissed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/dark-2x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-high-contrast-1x",
+      "state": "outside_dismissed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-outside_dismissed-high-contrast-2x",
+      "state": "outside_dismissed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_outside_dismissed",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/outside_dismissed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-submenu-light-1x",
+      "state": "submenu",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/light-1x.png"
+    },
+    {
+      "id": "screen-submenu-light-2x",
+      "state": "submenu",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/light-2x.png"
+    },
+    {
+      "id": "screen-submenu-dark-1x",
+      "state": "submenu",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/dark-1x.png"
+    },
+    {
+      "id": "screen-submenu-dark-2x",
+      "state": "submenu",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/dark-2x.png"
+    },
+    {
+      "id": "screen-submenu-high-contrast-1x",
+      "state": "submenu",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-submenu-high-contrast-2x",
+      "state": "submenu",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dropdown-menu_submenu",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "dropdown-menu/submenu/high-contrast-2x.png"
+    }
+  ]
+}

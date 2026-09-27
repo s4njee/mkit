@@ -1,0 +1,1 @@
+Sample workspace notes for the GPUI async file-browser example.

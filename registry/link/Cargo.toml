@@ -1,0 +1,12 @@
+[package]
+name = "mkit-registry-link"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui_pre.workspace = true
+mkit-core.workspace = true
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }

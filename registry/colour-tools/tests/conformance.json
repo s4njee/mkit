@@ -1,0 +1,349 @@
+{
+  "manifest_version": 1,
+  "component": "colour-tools",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Increase saturation by one percent.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Decrease saturation by one percent.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Increase hue by one degree.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Decrease hue by one degree.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Shift-ArrowUp",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Increase lightness by one percent.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Shift-ArrowDown",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "The hue-saturation wheel has focus.",
+      "expected_behavior": "Decrease lightness by one percent.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "colour_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided colour tools label"
+          },
+          {
+            "name": "description",
+            "value": "Hue and saturation wheel with lightness control, sRGB, HSL and OKLCH values, and shadows, midtones and highlights grading wheels."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-eyedropper-unavailable",
+      "state": "eyedropper-unavailable",
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided colour tools label"
+          },
+          {
+            "name": "description",
+            "value": "Hue and saturation wheel with lightness control, sRGB, HSL and OKLCH values, and shadows, midtones and highlights grading wheels."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-grading",
+      "state": "grading",
+      "load_fixture": "grading_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided colour tools label"
+          },
+          {
+            "name": "description",
+            "value": "Hue and saturation wheel with lightness control, sRGB, HSL and OKLCH values, and shadows, midtones and highlights grading wheels."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-light-1x",
+      "state": "eyedropper-unavailable",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/light-1x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-light-2x",
+      "state": "eyedropper-unavailable",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/light-2x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-dark-1x",
+      "state": "eyedropper-unavailable",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/dark-1x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-dark-2x",
+      "state": "eyedropper-unavailable",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/dark-2x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-high-contrast-1x",
+      "state": "eyedropper-unavailable",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-eyedropper-unavailable-high-contrast-2x",
+      "state": "eyedropper-unavailable",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "eyedropper_unavailable_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/eyedropper-unavailable/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-grading-light-1x",
+      "state": "grading",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/light-1x.png"
+    },
+    {
+      "id": "screen-grading-light-2x",
+      "state": "grading",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/light-2x.png"
+    },
+    {
+      "id": "screen-grading-dark-1x",
+      "state": "grading",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/dark-1x.png"
+    },
+    {
+      "id": "screen-grading-dark-2x",
+      "state": "grading",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/dark-2x.png"
+    },
+    {
+      "id": "screen-grading-high-contrast-1x",
+      "state": "grading",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-grading-high-contrast-2x",
+      "state": "grading",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "grading_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "colour-tools/grading/high-contrast-2x.png"
+    }
+  ]
+}

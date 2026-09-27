@@ -1,0 +1,158 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Download URL",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Save to",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXPopUpButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Queue",
+                  "value" : "Main"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXSlider",
+                  "subrole" : "AXUnknown",
+                  "title" : "Connections",
+                  "value" : "16"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "▾ Advanced (aria2 options)"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Split count",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Minimum split size",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Cancel"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Start download"
+                }
+              ],
+              "enabled" : true,
+              "role" : "AXWindow",
+              "subrole" : "AXDialog",
+              "title" : "Add download"
+            }
+          ],
+          "enabled" : true,
+          "role" : "AXGroup",
+          "subrole" : "AXUnknown"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXCloseButton"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "role" : "AXGroup"
+                }
+              ],
+              "role" : "AXGroup"
+            }
+          ],
+          "enabled" : true,
+          "help" : "this button also has an action to zoom the window",
+          "role" : "AXButton",
+          "subrole" : "AXFullScreenButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXMinimizeButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXStaticText",
+          "value" : ""
+        }
+      ],
+      "role" : "AXWindow",
+      "subrole" : "AXStandardWindow",
+      "title" : ""
+    }
+  ],
+  "role" : "AXApplication",
+  "title" : "mkit-aria2-sample"
+}

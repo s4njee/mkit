@@ -1,0 +1,21 @@
+# Cookbook recipe requests
+
+Internal intake for E2.13. Reviewed 2026-09-24. A source report identifies a reader problem; it does not prove that a proposed solution works with this workspace's pinned `gpui-pre =0.3.5`. Check the pinned API, write a compiling example and focused test, and review native behavior before publishing a recipe. This repository has no configured Git remote, so the issue candidates below are from the public Zed repository, not mkit issue reports.
+
+## Candidates from official Zed reports
+
+| ID and source | Exact request or reported need | Current Cookbook coverage and gap | Intake status |
+| --- | --- | --- | --- |
+| Z-1 · [Zed discussion #57205](https://github.com/zed-industries/zed/discussions/57205), opened 2026-05-20 | Move focus from a newly opened dialog container to its first eligible child after that child exists, without a delayed callback acting after the dialog closes or focus moves. The proposed API names in the discussion are illustrative. | [Modal focus](src/cookbook/input/modal-focus.md) tests a controlled two-target trap and explicit first target. It does not discover the first eligible descendant in a general container or cover fast open/close races. | **Candidate; API-dependent.** Audit pinned GPUI for a safe pattern before drafting. Do not present the discussion's suggested API as available. |
+| Z-2 · [Zed issue #52110](https://github.com/zed-industries/zed/issues/52110), opened 2026-03-21 | Receive a URL dragged from a browser into a standalone GPUI window. The report names macOS, Linux, and Windows. GitHub currently marks it closed as not planned and “needs repro.” | [Drag reorder](src/cookbook/input/drag-reorder.md) covers an in-app list operation. The book's interaction drag chapter covers GPUI drag concepts, but no Cookbook recipe receives an external browser URL. | **Candidate; needs reproduction and pinned API check.** This report alone cannot support a working cross-platform recipe. |
+| Z-3 · [Zed discussion #40922](https://github.com/zed-industries/zed/discussions/40922), opened 2025-10-22 | Use an OS notification that follows the user's system settings instead of an in-app Zed notification. A 2026-09-01 reply notes that later Zed platform notification APIs landed. | [System notification](src/cookbook/windows/system-notification.md) sends a tagged request in the test platform. It does not verify permission, native delivery, action handling, or the user's OS settings. The later Zed change does not by itself establish behavior in pinned GPUI. | **Candidate for native verification or a recipe extension.** Check the pinned API and OS delivery before claiming more than request dispatch. |
+| Z-4 · [Zed issue #12811](https://github.com/zed-industries/zed/issues/12811), opened 2024-06-08 | On Windows with a British ISO keyboard, character-key shortcuts were reported to invoke different bindings from the keys typed. GitHub currently marks the old report closed as not planned. | [Rebind navigation](src/cookbook/input/rebind-navigation.md) tests one Ctrl-J binding in a rendered view. It does not test a non-US physical keyboard or distinguish typed characters from shortcut matching across layouts. | **Candidate for a test recipe, pending fresh reproduction.** Do not generalize the old Zed revision to pinned GPUI or claim a keyboard mapping fix. |
+
+## Future E3 book-evaluation findings
+
+No book-evaluation feedback has been collected. `evals/README.md` describes a scaffold; E3 benchmark tasks and runners are not implemented. Add actual findings here only after a recorded evaluation run. Keep them separate from issue-derived candidates.
+
+| Evaluation ID and date | Benchmark task and failure point | Reader's requested recipe | Evidence link or run artifact | Existing coverage and gap | Status or decision |
+| --- | --- | --- | --- | --- | --- |
+
+For each new intake item, record the source date and exact need, map it to an existing page, and decide whether to extend that page, add a one-page recipe, defer for missing API or native evidence, or close as already covered. A published recipe needs an anchored compiling example, focused behavior check, and a screenshot when rendered, following `book/STYLE.md`.

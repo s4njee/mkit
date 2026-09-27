@@ -1,0 +1,25 @@
+[package]
+name = "mkit-aria2-sample"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+# This is deliberately a separate Cargo project. It consumes mkit through a
+# path dependency, as an application outside the mkit workspace would.
+[workspace]
+
+[dependencies]
+mkit = { path = "../../crates/mkit", version = "0.1.0", default-features = false, features = ["button", "text-field", "dialog", "progress", "data-table", "select", "slider"] }
+gpui_pre = { package = "gpui-pre", version = "=0.3.5" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+gpui-kit = "=0.6.4"
+
+[dev-dependencies]
+mkit-harness = { path = "../../crates/mkit-harness", version = "0.1.0" }
+image = "=0.25.10"
+gpui_pre = { package = "gpui-pre", version = "=0.3.5", features = ["test-support"] }
+
+[[test]]
+name = "screenshots"
+path = "tests/screenshots.rs"
+harness = false

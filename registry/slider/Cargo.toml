@@ -1,0 +1,9 @@
+[package]
+name = "mkit-registry-slider"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }
+mkit-core.workspace = true

@@ -1,0 +1,629 @@
+{
+  "manifest_version": 1,
+  "component": "gradient-editor",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Move selected stop left by one percent, clamped between neighbouring stops.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Move selected stop right by one percent, clamped between neighbouring stops.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Shift-ArrowLeft",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Move selected stop left by one tenth percent, clamped between neighbouring stops.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Shift-ArrowRight",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Move selected stop right by one tenth percent, clamped between neighbouring stops.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "A non-endpoint stop is selected.",
+      "expected_behavior": "Delete the selected stop.",
+      "initial_state": "many-stops",
+      "load_fixture": "many_stops_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "An interior stop is selected.",
+      "expected_behavior": "Move the selected stop as far left as neighbouring-stop spacing allows.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "An interior stop is selected.",
+      "expected_behavior": "Move the selected stop as far right as neighbouring-stop spacing allows.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "Tab",
+        "modifiers": []
+      },
+      "precondition": "The gradient editor has focus.",
+      "expected_behavior": "Select the next stop.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "stop_selected"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "r",
+        "modifiers": []
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Increase its red channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-10",
+      "dispatch": {
+        "key": "Shift-R",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Decrease its red channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-11",
+      "dispatch": {
+        "key": "g",
+        "modifiers": []
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Increase its green channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-12",
+      "dispatch": {
+        "key": "Shift-G",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Decrease its green channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-13",
+      "dispatch": {
+        "key": "b",
+        "modifiers": []
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Increase its blue channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    },
+    {
+      "id": "keyboard-14",
+      "dispatch": {
+        "key": "Shift-B",
+        "modifiers": [
+          "shift"
+        ]
+      },
+      "precondition": "A stop is selected.",
+      "expected_behavior": "Decrease its blue channel by one byte step.",
+      "initial_state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "assert": {
+        "event": "gradient_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-default",
+      "state": "default",
+      "load_fixture": "default_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected-stop",
+      "state": "selected-stop",
+      "load_fixture": "selected_stop_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-many-stops",
+      "state": "many-stops",
+      "load_fixture": "many_stops_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-controlled",
+      "state": "controlled",
+      "load_fixture": "controlled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided label"
+          },
+          {
+            "name": "description",
+            "value": "Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-default-light-1x",
+      "state": "default",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/light-1x.png"
+    },
+    {
+      "id": "screen-default-light-2x",
+      "state": "default",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/light-2x.png"
+    },
+    {
+      "id": "screen-default-dark-1x",
+      "state": "default",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/dark-1x.png"
+    },
+    {
+      "id": "screen-default-dark-2x",
+      "state": "default",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/dark-2x.png"
+    },
+    {
+      "id": "screen-default-high-contrast-1x",
+      "state": "default",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-default-high-contrast-2x",
+      "state": "default",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "default_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/default/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-stop-light-1x",
+      "state": "selected-stop",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/light-1x.png"
+    },
+    {
+      "id": "screen-selected-stop-light-2x",
+      "state": "selected-stop",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/light-2x.png"
+    },
+    {
+      "id": "screen-selected-stop-dark-1x",
+      "state": "selected-stop",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-stop-dark-2x",
+      "state": "selected-stop",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-stop-high-contrast-1x",
+      "state": "selected-stop",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-stop-high-contrast-2x",
+      "state": "selected-stop",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_stop_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/selected-stop/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-many-stops-light-1x",
+      "state": "many-stops",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/light-1x.png"
+    },
+    {
+      "id": "screen-many-stops-light-2x",
+      "state": "many-stops",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/light-2x.png"
+    },
+    {
+      "id": "screen-many-stops-dark-1x",
+      "state": "many-stops",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/dark-1x.png"
+    },
+    {
+      "id": "screen-many-stops-dark-2x",
+      "state": "many-stops",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/dark-2x.png"
+    },
+    {
+      "id": "screen-many-stops-high-contrast-1x",
+      "state": "many-stops",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-many-stops-high-contrast-2x",
+      "state": "many-stops",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "many_stops_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/many-stops/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-controlled-light-1x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/light-1x.png"
+    },
+    {
+      "id": "screen-controlled-light-2x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/light-2x.png"
+    },
+    {
+      "id": "screen-controlled-dark-1x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/dark-1x.png"
+    },
+    {
+      "id": "screen-controlled-dark-2x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/dark-2x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-1x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-2x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/controlled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "gradient-editor/disabled/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,1139 @@
+{
+  "registry_format_version": 1,
+  "release_version": "0.1.0",
+  "distribution": {
+    "kind": "repository",
+    "path": "registry/",
+    "published": false
+  },
+  "components": [
+    {
+      "name": "combobox",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/combobox/spec.md",
+      "conformance_manifest": "registry/combobox/tests/conformance.json",
+      "source_files": [
+        "registry/combobox/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "scrubbable-number-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/scrubbable-number-field/spec.md",
+      "conformance_manifest": "registry/scrubbable-number-field/tests/conformance.json",
+      "source_files": [
+        "registry/scrubbable-number-field/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "button",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/button/spec.md",
+      "conformance_manifest": "registry/button/tests/conformance.json",
+      "source_files": [
+        "registry/button/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "icon-button",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/icon-button/spec.md",
+      "conformance_manifest": "registry/icon-button/tests/conformance.json",
+      "source_files": [
+        "registry/icon-button/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "toggle-button",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/toggle-button/spec.md",
+      "conformance_manifest": "registry/toggle-button/tests/conformance.json",
+      "source_files": [
+        "registry/toggle-button/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "toggle-group",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/toggle-group/spec.md",
+      "conformance_manifest": "registry/toggle-group/tests/conformance.json",
+      "source_files": [
+        "registry/toggle-group/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "checkbox",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/checkbox/spec.md",
+      "conformance_manifest": "registry/checkbox/tests/conformance.json",
+      "source_files": [
+        "registry/checkbox/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "radio-group",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/radio-group/spec.md",
+      "conformance_manifest": "registry/radio-group/tests/conformance.json",
+      "source_files": [
+        "registry/radio-group/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "switch",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/switch/spec.md",
+      "conformance_manifest": "registry/switch/tests/conformance.json",
+      "source_files": [
+        "registry/switch/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "slider",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/slider/spec.md",
+      "conformance_manifest": "registry/slider/tests/conformance.json",
+      "source_files": [
+        "registry/slider/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "progress",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/progress/spec.md",
+      "conformance_manifest": "registry/progress/tests/conformance.json",
+      "source_files": [
+        "registry/progress/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "text-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/text-field/spec.md",
+      "conformance_manifest": "registry/text-field/tests/conformance.json",
+      "source_files": [
+        "registry/text-field/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "text-area",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/text-area/spec.md",
+      "conformance_manifest": "registry/text-area/tests/conformance.json",
+      "source_files": [
+        "registry/text-area/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "breadcrumbs",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/breadcrumbs/spec.md",
+      "conformance_manifest": "registry/breadcrumbs/tests/conformance.json",
+      "source_files": [
+        "registry/breadcrumbs/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "context-menu",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/context-menu/spec.md",
+      "conformance_manifest": "registry/context-menu/tests/conformance.json",
+      "source_files": [
+        "registry/context-menu/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "data-table",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/data-table/spec.md",
+      "conformance_manifest": "registry/data-table/tests/conformance.json",
+      "source_files": [
+        "registry/data-table/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "dialog",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/dialog/spec.md",
+      "conformance_manifest": "registry/dialog/tests/conformance.json",
+      "source_files": [
+        "registry/dialog/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "dropdown-menu",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/dropdown-menu/spec.md",
+      "conformance_manifest": "registry/dropdown-menu/tests/conformance.json",
+      "source_files": [
+        "registry/dropdown-menu/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "form-layout",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/form-layout/spec.md",
+      "conformance_manifest": "registry/form-layout/tests/conformance.json",
+      "source_files": [
+        "registry/form-layout/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "multi-select",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/multi-select/spec.md",
+      "conformance_manifest": "registry/multi-select/tests/conformance.json",
+      "source_files": [
+        "registry/multi-select/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "popover",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/popover/spec.md",
+      "conformance_manifest": "registry/popover/tests/conformance.json",
+      "source_files": [
+        "registry/popover/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "scroll-area",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/scroll-area/spec.md",
+      "conformance_manifest": "registry/scroll-area/tests/conformance.json",
+      "source_files": [
+        "registry/scroll-area/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "segmented-control",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/segmented-control/spec.md",
+      "conformance_manifest": "registry/segmented-control/tests/conformance.json",
+      "source_files": [
+        "registry/segmented-control/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "select",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/select/spec.md",
+      "conformance_manifest": "registry/select/tests/conformance.json",
+      "source_files": [
+        "registry/select/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "separator",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/separator/spec.md",
+      "conformance_manifest": "registry/separator/tests/conformance.json",
+      "source_files": [
+        "registry/separator/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "sheet",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/sheet/spec.md",
+      "conformance_manifest": "registry/sheet/tests/conformance.json",
+      "source_files": [
+        "registry/sheet/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "sidebar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/sidebar/spec.md",
+      "conformance_manifest": "registry/sidebar/tests/conformance.json",
+      "source_files": [
+        "registry/sidebar/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "split-pane",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/split-pane/spec.md",
+      "conformance_manifest": "registry/split-pane/tests/conformance.json",
+      "source_files": [
+        "registry/split-pane/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "tabs",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/tabs/spec.md",
+      "conformance_manifest": "registry/tabs/tests/conformance.json",
+      "source_files": [
+        "registry/tabs/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "toast",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/toast/spec.md",
+      "conformance_manifest": "registry/toast/tests/conformance.json",
+      "source_files": [
+        "registry/toast/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "tooltip",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/tooltip/spec.md",
+      "conformance_manifest": "registry/tooltip/tests/conformance.json",
+      "source_files": [
+        "registry/tooltip/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "tree",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/tree/spec.md",
+      "conformance_manifest": "registry/tree/tests/conformance.json",
+      "source_files": [
+        "registry/tree/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "virtual-list",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/virtual-list/spec.md",
+      "conformance_manifest": "registry/virtual-list/tests/conformance.json",
+      "source_files": [
+        "registry/virtual-list/src/lib.rs"
+      ],
+      "dependencies": [
+        {
+          "name": "mkit-core",
+          "version": "0.1.0"
+        },
+        {
+          "name": "gpui-pre",
+          "version": "0.3.5"
+        }
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "viewport",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/viewport/spec.md",
+      "conformance_manifest": "registry/viewport/tests/conformance.json",
+      "source_files": ["registry/viewport/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "histogram",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/histogram/spec.md",
+      "conformance_manifest": "registry/histogram/tests/conformance.json",
+      "source_files": ["registry/histogram/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "precision-slider",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/precision-slider/spec.md",
+      "conformance_manifest": "registry/precision-slider/tests/conformance.json",
+      "source_files": ["registry/precision-slider/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "command-palette",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/command-palette/spec.md",
+      "conformance_manifest": "registry/command-palette/tests/conformance.json",
+      "source_files": ["registry/command-palette/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "curve-editor",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/curve-editor/spec.md",
+      "conformance_manifest": "registry/curve-editor/tests/conformance.json",
+      "source_files": ["registry/curve-editor/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "colour-tools",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/colour-tools/spec.md",
+      "conformance_manifest": "registry/colour-tools/tests/conformance.json",
+      "source_files": ["registry/colour-tools/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "property-inspector",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/property-inspector/spec.md",
+      "conformance_manifest": "registry/property-inspector/tests/conformance.json",
+      "source_files": ["registry/property-inspector/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "gradient-editor",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/gradient-editor/spec.md",
+      "conformance_manifest": "registry/gradient-editor/tests/conformance.json",
+      "source_files": ["registry/gradient-editor/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "shortcut-editor",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/shortcut-editor/spec.md",
+      "conformance_manifest": "registry/shortcut-editor/tests/conformance.json",
+      "source_files": ["registry/shortcut-editor/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "timeline",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/timeline/spec.md",
+      "conformance_manifest": "registry/timeline/tests/conformance.json",
+      "source_files": ["registry/timeline/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "node-editor",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/node-editor/spec.md",
+      "conformance_manifest": "registry/node-editor/tests/conformance.json",
+      "source_files": ["registry/node-editor/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "layer-panel",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/layer-panel/spec.md",
+      "conformance_manifest": "registry/layer-panel/tests/conformance.json",
+      "source_files": ["registry/layer-panel/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "calendar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/calendar/spec.md",
+      "conformance_manifest": "registry/calendar/tests/conformance.json",
+      "source_files": ["registry/calendar/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "disclosure",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/disclosure/spec.md",
+      "conformance_manifest": "registry/disclosure/tests/conformance.json",
+      "source_files": ["registry/disclosure/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "accordion",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/accordion/spec.md",
+      "conformance_manifest": "registry/accordion/tests/conformance.json",
+      "source_files": ["registry/accordion/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "toolbar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/toolbar/spec.md",
+      "conformance_manifest": "registry/toolbar/tests/conformance.json",
+      "source_files": ["registry/toolbar/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "inline-alert",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/inline-alert/spec.md",
+      "conformance_manifest": "registry/inline-alert/tests/conformance.json",
+      "source_files": ["registry/inline-alert/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "empty-state",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/empty-state/spec.md",
+      "conformance_manifest": "registry/empty-state/tests/conformance.json",
+      "source_files": ["registry/empty-state/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "date-picker",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/date-picker/spec.md",
+      "conformance_manifest": "registry/date-picker/tests/conformance.json",
+      "source_files": ["registry/date-picker/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-calendar", "version": "0.1.0"},
+        {"name": "mkit-registry-text_field", "version": "0.1.0"}
+      ],
+      "component_dependencies": ["calendar", "text-field"]
+    },
+    {
+      "name": "search-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/search-field/spec.md",
+      "conformance_manifest": "registry/search-field/tests/conformance.json",
+      "source_files": ["registry/search-field/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-text_field", "version": "0.1.0"}
+      ],
+      "component_dependencies": ["text-field"]
+    },
+    {
+      "name": "time-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/time-field/spec.md",
+      "conformance_manifest": "registry/time-field/tests/conformance.json",
+      "source_files": ["registry/time-field/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "date-time-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/date-time-field/spec.md",
+      "conformance_manifest": "registry/date-time-field/tests/conformance.json",
+      "source_files": ["registry/date-time-field/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-date-picker", "version": "0.1.0"},
+        {"name": "mkit-registry-time-field", "version": "0.1.0"}
+      ],
+      "component_dependencies": ["date-picker", "time-field"]
+    },
+    {
+      "name": "status-bar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/status-bar/spec.md",
+      "conformance_manifest": "registry/status-bar/tests/conformance.json",
+      "source_files": ["registry/status-bar/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "badge",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/badge/spec.md",
+      "conformance_manifest": "registry/badge/tests/conformance.json",
+      "source_files": ["registry/badge/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "avatar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/avatar/spec.md",
+      "conformance_manifest": "registry/avatar/tests/conformance.json",
+      "source_files": ["registry/avatar/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "key-hint",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/key-hint/spec.md",
+      "conformance_manifest": "registry/key-hint/tests/conformance.json",
+      "source_files": ["registry/key-hint/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "link",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/link/spec.md",
+      "conformance_manifest": "registry/link/tests/conformance.json",
+      "source_files": ["registry/link/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "tag-input",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/tag-input/spec.md",
+      "conformance_manifest": "registry/tag-input/tests/conformance.json",
+      "source_files": ["registry/tag-input/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-text_field", "version": "0.1.0"}
+      ],
+      "component_dependencies": ["text-field"]
+    },
+    {
+      "name": "file-drop-zone",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/file-drop-zone/spec.md",
+      "conformance_manifest": "registry/file-drop-zone/tests/conformance.json",
+      "source_files": ["registry/file-drop-zone/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "file-field",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/file-field/spec.md",
+      "conformance_manifest": "registry/file-field/tests/conformance.json",
+      "source_files": ["registry/file-field/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "stepper",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/stepper/spec.md",
+      "conformance_manifest": "registry/stepper/tests/conformance.json",
+      "source_files": ["registry/stepper/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "menu-bar",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/menu-bar/spec.md",
+      "conformance_manifest": "registry/menu-bar/tests/conformance.json",
+      "source_files": ["registry/menu-bar/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    },
+    {
+      "name": "reorderable-list",
+      "version": "0.1.0",
+      "status": "implementation_in_progress",
+      "spec": "registry/reorderable-list/spec.md",
+      "conformance_manifest": "registry/reorderable-list/tests/conformance.json",
+      "source_files": ["registry/reorderable-list/src/lib.rs"],
+      "dependencies": [
+        {"name": "mkit-core", "version": "0.1.0"},
+        {"name": "gpui-pre", "version": "0.3.5"}
+      ],
+      "component_dependencies": []
+    }
+  ]
+}

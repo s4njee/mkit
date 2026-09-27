@@ -1,0 +1,1768 @@
+{
+  "manifest_version": 1,
+  "component": "node-editor",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "editor is focused and port navigation is inactive",
+      "expected_behavior": "Focus the next node in deterministic reading order.",
+      "initial_state": "disconnected",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "editor is focused and port navigation is inactive",
+      "expected_behavior": "Focus the previous node in deterministic reading order.",
+      "initial_state": "disconnected",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Select the focused node.",
+      "initial_state": "disconnected",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Enter that node's port navigation path.",
+      "initial_state": "disconnected",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "state": "port_navigation"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "port navigation is active",
+      "expected_behavior": "Focus the next port in the current node.",
+      "initial_state": "port_navigation",
+      "load_fixture": "port_navigation_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "port navigation is active",
+      "expected_behavior": "Return focus to the node.",
+      "initial_state": "port_navigation",
+      "load_fixture": "port_navigation_fixture",
+      "assert": {
+        "state": "disconnected"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": [
+          "Alt"
+        ]
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Pan the graph viewport to the left.",
+      "initial_state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "=",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Zoom in at the viewport center.",
+      "initial_state": "connected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "state": "zoomed"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "-",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Zoom out at the viewport center.",
+      "initial_state": "connected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "state": "zoomed"
+      }
+    },
+    {
+      "id": "keyboard-10",
+      "dispatch": {
+        "key": "f",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Fit all finite graph bounds into the viewport.",
+      "initial_state": "connected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-11",
+      "dispatch": {
+        "key": "1",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Set actual-size scale and center the graph bounds.",
+      "initial_state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-12",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Add the focused node to selection.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    },
+    {
+      "id": "keyboard-13",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": [
+          "Platform"
+        ]
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Toggle the focused node in selection.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    },
+    {
+      "id": "keyboard-14",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": [
+          "Shift",
+          "Alt"
+        ]
+      },
+      "precondition": "one or more nodes are selected",
+      "expected_behavior": "Propose moving selected nodes one graph unit to the right.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "NodesMoveRequested"
+      }
+    },
+    {
+      "id": "keyboard-15",
+      "dispatch": {
+        "key": "b",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Begin keyboard box selection around the focused node.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "state": "box_preview"
+      }
+    },
+    {
+      "id": "keyboard-16",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "keyboard box selection is active",
+      "expected_behavior": "Move the active selection corner one graph unit to the right.",
+      "initial_state": "box_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "state": "box_preview"
+      }
+    },
+    {
+      "id": "keyboard-17",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "keyboard box selection is active",
+      "expected_behavior": "Commit the full-containment selection.",
+      "initial_state": "box_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    },
+    {
+      "id": "keyboard-18",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "a movement or box preview is active",
+      "expected_behavior": "Cancel the preview without emitting a graph edit.",
+      "initial_state": "drag_preview",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "none"
+      }
+    },
+    {
+      "id": "keyboard-19",
+      "dispatch": {
+        "key": "c",
+        "modifiers": []
+      },
+      "precondition": "a port is focused",
+      "expected_behavior": "Choose the focused output as connection source.",
+      "initial_state": "port_navigation",
+      "load_fixture": "port_navigation_fixture",
+      "assert": {
+        "state": "connection_preview"
+      }
+    },
+    {
+      "id": "keyboard-20",
+      "dispatch": {
+        "key": "]",
+        "modifiers": []
+      },
+      "precondition": "a connection source is chosen",
+      "expected_behavior": "Focus the next compatible input candidate in reading order.",
+      "initial_state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-21",
+      "dispatch": {
+        "key": "[",
+        "modifiers": []
+      },
+      "precondition": "a source is chosen",
+      "expected_behavior": "Focus the previous compatible input candidate.",
+      "initial_state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-22",
+      "dispatch": {
+        "key": "Ctrl+Enter",
+        "modifiers": [
+          "Control"
+        ]
+      },
+      "precondition": "a valid input candidate is focused",
+      "expected_behavior": "Request the connection and clear the preview.",
+      "initial_state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "ConnectionCreateRequested"
+      }
+    },
+    {
+      "id": "keyboard-23",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "a connection is focused",
+      "expected_behavior": "Request removal of the focused connection.",
+      "initial_state": "connection_selected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "event": "ConnectionRemoveRequested"
+      }
+    },
+    {
+      "id": "keyboard-24",
+      "dispatch": {
+        "key": "m",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Toggle the minimap visibility.",
+      "initial_state": "minimap_hidden",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "state": "minimap_visible"
+      }
+    },
+    {
+      "id": "keyboard-25",
+      "dispatch": {
+        "key": "g",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Focus the next existing connection.",
+      "initial_state": "connection_selected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "event": "ConnectionFocusChanged"
+      }
+    },
+    {
+      "id": "keyboard-26",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "a connection is focused",
+      "expected_behavior": "Request removal of that connection.",
+      "initial_state": "connection_selected",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "event": "ConnectionRemoveRequested"
+      }
+    },
+    {
+      "id": "keyboard-27",
+      "dispatch": {
+        "key": "v",
+        "modifiers": []
+      },
+      "precondition": "a node is focused",
+      "expected_behavior": "Center the viewport on that node.",
+      "initial_state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-28",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "connection creation preview is active",
+      "expected_behavior": "Cancel the source preview without a graph edit.",
+      "initial_state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "none"
+      }
+    },
+    {
+      "id": "keyboard-29",
+      "dispatch": {
+        "key": "m",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Toggle minimap visibility.",
+      "initial_state": "minimap_visible",
+      "load_fixture": "connected_fixture",
+      "assert": {
+        "state": "minimap_hidden"
+      }
+    },
+    {
+      "id": "keyboard-30",
+      "dispatch": {
+        "key": "]",
+        "modifiers": []
+      },
+      "precondition": "a source is chosen",
+      "expected_behavior": "Focus the next compatible input candidate.",
+      "initial_state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "assert": {
+        "event": "FocusChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disconnected",
+      "state": "disconnected",
+      "load_fixture": "disconnected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-connected",
+      "state": "connected",
+      "load_fixture": "connected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-port_navigation",
+      "state": "port_navigation",
+      "load_fixture": "port_navigation_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-zoomed",
+      "state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-drag_preview",
+      "state": "drag_preview",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-box_preview",
+      "state": "box_preview",
+      "load_fixture": "disconnected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-connection_preview",
+      "state": "connection_preview",
+      "load_fixture": "disconnected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-connection_selected",
+      "state": "connection_selected",
+      "load_fixture": "connected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-invalid_connection_target",
+      "state": "invalid_connection_target",
+      "load_fixture": "disconnected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-minimap_visible",
+      "state": "minimap_visible",
+      "load_fixture": "connected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-minimap_hidden",
+      "state": "minimap_hidden",
+      "load_fixture": "connected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided graph label"
+          },
+          {
+            "name": "node",
+            "value": "Each node is named by its title and has a stable accessible identifier."
+          },
+          {
+            "name": "port",
+            "value": "Each port exposes its label, input/output direction, and declared type."
+          },
+          {
+            "name": "connection",
+            "value": "Each existing connection exposes source and target node and port names."
+          },
+          {
+            "name": "selected",
+            "value": "Selected nodes expose selected state independently from focus."
+          },
+          {
+            "name": "focused",
+            "value": "The keyboard-focused node or port has visible focus treatment and is identified to assistive technology."
+          },
+          {
+            "name": "invalid_target",
+            "value": "Rejected connection targets expose a textual reason through the editor description."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disconnected-light-1x",
+      "state": "disconnected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/light-1x.png"
+    },
+    {
+      "id": "screen-disconnected-light-2x",
+      "state": "disconnected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/light-2x.png"
+    },
+    {
+      "id": "screen-disconnected-dark-1x",
+      "state": "disconnected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/dark-1x.png"
+    },
+    {
+      "id": "screen-disconnected-dark-2x",
+      "state": "disconnected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/dark-2x.png"
+    },
+    {
+      "id": "screen-disconnected-high-contrast-1x",
+      "state": "disconnected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disconnected-high-contrast-2x",
+      "state": "disconnected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/disconnected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-connected-light-1x",
+      "state": "connected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/light-1x.png"
+    },
+    {
+      "id": "screen-connected-light-2x",
+      "state": "connected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/light-2x.png"
+    },
+    {
+      "id": "screen-connected-dark-1x",
+      "state": "connected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/dark-1x.png"
+    },
+    {
+      "id": "screen-connected-dark-2x",
+      "state": "connected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/dark-2x.png"
+    },
+    {
+      "id": "screen-connected-high-contrast-1x",
+      "state": "connected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-connected-high-contrast-2x",
+      "state": "connected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-port_navigation-light-1x",
+      "state": "port_navigation",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/light-1x.png"
+    },
+    {
+      "id": "screen-port_navigation-light-2x",
+      "state": "port_navigation",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/light-2x.png"
+    },
+    {
+      "id": "screen-port_navigation-dark-1x",
+      "state": "port_navigation",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/dark-1x.png"
+    },
+    {
+      "id": "screen-port_navigation-dark-2x",
+      "state": "port_navigation",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/dark-2x.png"
+    },
+    {
+      "id": "screen-port_navigation-high-contrast-1x",
+      "state": "port_navigation",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-port_navigation-high-contrast-2x",
+      "state": "port_navigation",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "port_navigation_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/port_navigation/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-zoomed-light-1x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/light-1x.png"
+    },
+    {
+      "id": "screen-zoomed-light-2x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/light-2x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-1x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/dark-1x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-2x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/dark-2x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-1x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-2x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/zoomed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-drag_preview-light-1x",
+      "state": "drag_preview",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/light-1x.png"
+    },
+    {
+      "id": "screen-drag_preview-light-2x",
+      "state": "drag_preview",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/light-2x.png"
+    },
+    {
+      "id": "screen-drag_preview-dark-1x",
+      "state": "drag_preview",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/dark-1x.png"
+    },
+    {
+      "id": "screen-drag_preview-dark-2x",
+      "state": "drag_preview",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/dark-2x.png"
+    },
+    {
+      "id": "screen-drag_preview-high-contrast-1x",
+      "state": "drag_preview",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-drag_preview-high-contrast-2x",
+      "state": "drag_preview",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/drag_preview/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-box_preview-light-1x",
+      "state": "box_preview",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/light-1x.png"
+    },
+    {
+      "id": "screen-box_preview-light-2x",
+      "state": "box_preview",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/light-2x.png"
+    },
+    {
+      "id": "screen-box_preview-dark-1x",
+      "state": "box_preview",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/dark-1x.png"
+    },
+    {
+      "id": "screen-box_preview-dark-2x",
+      "state": "box_preview",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/dark-2x.png"
+    },
+    {
+      "id": "screen-box_preview-high-contrast-1x",
+      "state": "box_preview",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-box_preview-high-contrast-2x",
+      "state": "box_preview",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/box_preview/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-connection_preview-light-1x",
+      "state": "connection_preview",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/light-1x.png"
+    },
+    {
+      "id": "screen-connection_preview-light-2x",
+      "state": "connection_preview",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/light-2x.png"
+    },
+    {
+      "id": "screen-connection_preview-dark-1x",
+      "state": "connection_preview",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/dark-1x.png"
+    },
+    {
+      "id": "screen-connection_preview-dark-2x",
+      "state": "connection_preview",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/dark-2x.png"
+    },
+    {
+      "id": "screen-connection_preview-high-contrast-1x",
+      "state": "connection_preview",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-connection_preview-high-contrast-2x",
+      "state": "connection_preview",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_preview/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-connection_selected-light-1x",
+      "state": "connection_selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/light-1x.png"
+    },
+    {
+      "id": "screen-connection_selected-light-2x",
+      "state": "connection_selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/light-2x.png"
+    },
+    {
+      "id": "screen-connection_selected-dark-1x",
+      "state": "connection_selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/dark-1x.png"
+    },
+    {
+      "id": "screen-connection_selected-dark-2x",
+      "state": "connection_selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/dark-2x.png"
+    },
+    {
+      "id": "screen-connection_selected-high-contrast-1x",
+      "state": "connection_selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-connection_selected-high-contrast-2x",
+      "state": "connection_selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/connection_selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-light-1x",
+      "state": "invalid_connection_target",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/light-1x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-light-2x",
+      "state": "invalid_connection_target",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/light-2x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-dark-1x",
+      "state": "invalid_connection_target",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/dark-1x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-dark-2x",
+      "state": "invalid_connection_target",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/dark-2x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-high-contrast-1x",
+      "state": "invalid_connection_target",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-invalid_connection_target-high-contrast-2x",
+      "state": "invalid_connection_target",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disconnected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/invalid_connection_target/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-minimap_visible-light-1x",
+      "state": "minimap_visible",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/light-1x.png"
+    },
+    {
+      "id": "screen-minimap_visible-light-2x",
+      "state": "minimap_visible",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/light-2x.png"
+    },
+    {
+      "id": "screen-minimap_visible-dark-1x",
+      "state": "minimap_visible",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/dark-1x.png"
+    },
+    {
+      "id": "screen-minimap_visible-dark-2x",
+      "state": "minimap_visible",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/dark-2x.png"
+    },
+    {
+      "id": "screen-minimap_visible-high-contrast-1x",
+      "state": "minimap_visible",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-minimap_visible-high-contrast-2x",
+      "state": "minimap_visible",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_visible/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-light-1x",
+      "state": "minimap_hidden",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/light-1x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-light-2x",
+      "state": "minimap_hidden",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/light-2x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-dark-1x",
+      "state": "minimap_hidden",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/dark-1x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-dark-2x",
+      "state": "minimap_hidden",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/dark-2x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-high-contrast-1x",
+      "state": "minimap_hidden",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-minimap_hidden-high-contrast-2x",
+      "state": "minimap_hidden",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "connected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "node-editor/minimap_hidden/high-contrast-2x.png"
+    }
+  ]
+}

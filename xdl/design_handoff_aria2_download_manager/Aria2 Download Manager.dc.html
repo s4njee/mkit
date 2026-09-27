@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eceeef;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#007AFF}a:hover{color:#0060DF}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px 'IBM Plex Mono',monospace;padding:3px 7px;background:#14181B;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'IBM Plex Sans',sans-serif;color:#14181B}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px 'IBM Plex Mono',monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#14181B;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'IBM Plex Sans',sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden}
+.dv-opt:target .dv-oid{background:#007AFF;color:#fff}
+.dv-next{margin:24px 0 0;font:12px/1.6 'IBM Plex Sans',sans-serif;color:rgba(0,0,0,.5)}
+</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Aria2 Manager — first pass: shell, dialogs, three segment-progress treatments, two style skins</span></div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Main window — sidebar + download grid, live speed footer</div>
+<div class="dv-card" style="width:1080px">
+  <div style="display:flex;align-items:center;height:38px;padding:0 12px;background:#F2F4F5;border-bottom:1px solid #E3E6E8;gap:10px">
+    <div style="display:flex;gap:7px"><span style="width:11px;height:11px;border-radius:50%;background:#D8DCDF;display:block"></span><span style="width:11px;height:11px;border-radius:50%;background:#D8DCDF;display:block"></span><span style="width:11px;height:11px;border-radius:50%;background:#D8DCDF;display:block"></span></div>
+    <div style="flex:1;text-align:center;font:500 12px 'IBM Plex Sans',sans-serif;color:#6B7580;letter-spacing:.02em">Aria2 Manager</div>
+    <div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#007AFF;background:#E5F0FF;padding:3px 8px;border-radius:20px">RPC connected</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #E3E6E8">
+    <div style="display:flex;align-items:center;gap:7px;padding:7px 13px;background:#007AFF;border-radius:7px;color:#fff;font:600 12.5px 'IBM Plex Sans',sans-serif;cursor:default">
+      <span style="font-size:14px;line-height:1">＋</span>Add URL
+    </div>
+    <div style="width:1px;height:22px;background:#E3E6E8;margin:0 3px"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #DCE0E3;border-radius:7px;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">▶ Resume</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #DCE0E3;border-radius:7px;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">❙❙ Pause</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #DCE0E3;border-radius:7px;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">✕ Remove</div>
+    <div style="width:1px;height:22px;background:#E3E6E8;margin:0 3px"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #DCE0E3;border-radius:7px;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">⌗ Queues</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #DCE0E3;border-radius:7px;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">◴ Scheduler</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:7px;width:210px;padding:7px 10px;background:#F4F6F7;border:1px solid #E3E6E8;border-radius:7px">
+      <span style="color:#9AA5AE;font-size:12px">⌕</span><span style="font:400 12px 'IBM Plex Sans',sans-serif;color:#9AA5AE">Filter downloads</span>
+    </div>
+  </div>
+
+  <div style="display:flex;min-height:430px">
+    <div style="width:196px;flex:none;background:#FAFBFB;border-right:1px solid #E3E6E8;padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.09em;color:#9AA5AE;padding:0 8px 8px">CATEGORIES</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;background:#E5F0FF;font:600 12.5px 'IBM Plex Sans',sans-serif;color:#0A4C9E"><span>≡</span>All downloads<span style="margin-left:auto;font:500 11px 'IBM Plex Mono',monospace;color:#007AFF">8</span></div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="color:#007AFF">↓</span>Downloading<span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:#9AA5AE">3</span></div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="color:#9AA5AE">❙❙</span>Paused<span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:#9AA5AE">1</span></div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="color:#0E9F6E">✓</span>Completed<span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:#9AA5AE">2</span></div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="color:#DC2626">!</span>Failed<span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:#9AA5AE">1</span></div>
+
+      <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.09em;color:#9AA5AE;padding:20px 8px 8px">QUEUES</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="width:7px;height:7px;border-radius:2px;background:#007AFF;display:block"></span>Main queue</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="width:7px;height:7px;border-radius:2px;background:#D97706;display:block"></span>Overnight</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;font:400 12.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="width:7px;height:7px;border-radius:2px;background:#7C3AED;display:block"></span>Datasets</div>
+
+      <div style="margin-top:auto;padding:12px;background:#fff;border:1px solid #E3E6E8;border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+          <span style="font:600 11px 'IBM Plex Sans',sans-serif;color:#3D464E">Speed limiter</span>
+          <span style="font:500 10.5px 'IBM Plex Mono',monospace;color:#007AFF">ON</span>
+        </div>
+        <div style="height:5px;border-radius:3px;background:#E7EBED;position:relative;margin-bottom:7px">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:62%;background:#007AFF;border-radius:3px"></div>
+          <div style="position:absolute;left:62%;top:-4px;width:13px;height:13px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid #007AFF"></div>
+        </div>
+        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#6B7580">25 MB/s max · 16 conn/file</div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 82px 168px 92px 74px 96px;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid #E3E6E8;background:#FAFBFB;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D">
+        <div></div><div>FILE</div><div style="text-align:right">SIZE</div><div>PROGRESS</div><div style="text-align:right">SPEED</div><div style="text-align:right">ETA</div><div>STATUS</div>
+      </div>
+
+      <sc-for list="{{ downloads }}" as="d" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 82px 168px 92px 74px 96px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid #F0F2F3">
+          <div style="width:16px;height:16px;border-radius:4px;border:1px solid #D3D8DC;background:#fff"></div>
+          <div style="min-width:0">
+            <div style="font:500 12.5px 'IBM Plex Sans',sans-serif;color:#14181B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</div>
+            <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#9AA5AE;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">{{ d.host }}</div>
+          </div>
+          <div style="text-align:right;font:400 11.5px 'IBM Plex Mono',monospace;color:#3D464E">{{ d.size }}</div>
+          <div>
+            <div style="display:flex;height:6px;gap:1px;border-radius:3px;overflow:hidden;background:#EBEEF0">
+              <sc-for list="{{ d.conns }}" as="c" hint-placeholder-count="8">
+                <div style="flex:1;background:{{ c.bg }}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE">
+              <span>{{ d.pctLabel }}</span><span>{{ d.connLabel }}</span>
+            </div>
+          </div>
+          <div style="text-align:right;font:500 11.5px 'IBM Plex Mono',monospace;color:{{ d.speedColor }}">{{ d.speed }}</div>
+          <div style="text-align:right;font:400 11.5px 'IBM Plex Mono',monospace;color:#6B7580">{{ d.eta }}</div>
+          <div><span style="display:inline-block;padding:3px 8px;border-radius:5px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.04em;background:{{ d.statusBg }};color:{{ d.statusFg }}">{{ d.status }}</span></div>
+        </div>
+      </sc-for>
+
+      <div style="margin-top:auto;display:flex;align-items:center;gap:16px;padding:9px 14px;border-top:1px solid #E3E6E8;background:#FAFBFB">
+        <div style="display:flex;align-items:baseline;gap:6px"><span style="font:600 13px 'IBM Plex Mono',monospace;color:#007AFF">24.5</span><span style="font:400 10.5px 'IBM Plex Mono',monospace;color:#6B7580">MB/s down</span></div>
+        <svg width="150" height="24" viewBox="0 0 150 24" style="display:block">
+          <polyline points="0,20 10,17 20,19 30,12 40,14 50,8 60,10 70,5 80,9 90,6 100,11 110,7 120,4 130,8 140,6 150,9" fill="none" stroke="#007AFF" stroke-width="1.5"></polyline>
+          <polyline points="0,20 10,17 20,19 30,12 40,14 50,8 60,10 70,5 80,9 90,6 100,11 110,7 120,4 130,8 140,6 150,9 150,24 0,24" fill="#007AFF" fill-opacity="0.1" stroke="none"></polyline>
+        </svg>
+        <div style="flex:1"></div>
+        <div style="font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">3 active · 48 connections · 12.1 GB remaining</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Add download dialog — aria2 options behind a disclosure</div>
+<div class="dv-card" style="width:520px">
+  <div style="padding:18px 20px 14px;border-bottom:1px solid #E3E6E8">
+    <div style="font:600 15px 'IBM Plex Sans',sans-serif;color:#14181B">Add download</div>
+    <div style="font:400 11.5px 'IBM Plex Sans',sans-serif;color:#6B7580;margin-top:3px">Paste one or more URLs. Mirrors on separate lines download in parallel.</div>
+  </div>
+  <div style="padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+    <div>
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:6px">URL</div>
+      <div style="padding:10px 11px;border:1.5px solid #007AFF;border-radius:7px;background:#fff;box-shadow:0 0 0 3px rgba(8,145,178,.12);font:400 11.5px/1.6 'IBM Plex Mono',monospace;color:#14181B;word-break:break-all">https://releases.ubuntu.com/24.04/ubuntu-24.04.2-desktop-amd64.iso</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:7px;font:400 11px 'IBM Plex Sans',sans-serif;color:#0E9F6E">✓ Resolved · 6.1 GB · server supports ranges</div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:12px">
+      <div>
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:6px">SAVE TO</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #DCE0E3;border-radius:7px;background:#fff">
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#3D464E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">~/Downloads/ISO</span>
+          <span style="font:500 11px 'IBM Plex Sans',sans-serif;color:#007AFF">Browse</span>
+        </div>
+      </div>
+      <div>
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:6px">QUEUE</div>
+        <div style="display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid #DCE0E3;border-radius:7px;background:#fff;font:400 11.5px 'IBM Plex Sans',sans-serif;color:#3D464E">Main <span style="margin-left:auto;color:#9AA5AE">⌄</span></div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D">CONNECTIONS</span>
+        <span style="font:600 11.5px 'IBM Plex Mono',monospace;color:#007AFF">16</span>
+      </div>
+      <div style="display:flex;gap:3px;align-items:flex-end;height:26px">
+        <sc-for list="{{ connPicker }}" as="p" hint-placeholder-count="16">
+          <div style="flex:1;border-radius:2px;height:{{ p.h }}px;background:{{ p.bg }}"></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE"><span>1</span><span>32 max (server-limited)</span></div>
+    </div>
+    <div style="border-top:1px solid #EEF0F1;padding-top:14px">
+      <div style="display:flex;align-items:center;gap:8px;font:500 11.5px 'IBM Plex Sans',sans-serif;color:#3D464E"><span style="color:#9AA5AE">⌄</span>Advanced (aria2 options)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-top:12px">
+        <div style="display:flex;justify-content:space-between;padding-bottom:7px;border-bottom:1px dashed #E9ECEE"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">--split</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#14181B">16</span></div>
+        <div style="display:flex;justify-content:space-between;padding-bottom:7px;border-bottom:1px dashed #E9ECEE"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">--min-split-size</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#14181B">10M</span></div>
+        <div style="display:flex;justify-content:space-between;padding-bottom:7px;border-bottom:1px dashed #E9ECEE"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">--max-tries</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#14181B">5</span></div>
+        <div style="display:flex;justify-content:space-between;padding-bottom:7px;border-bottom:1px dashed #E9ECEE"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">--file-allocation</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#14181B">falloc</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#FAFBFB;border-top:1px solid #E3E6E8">
+    <div style="font:400 11px 'IBM Plex Sans',sans-serif;color:#6B7580">Start later ◴</div>
+    <div style="flex:1"></div>
+    <div style="padding:8px 14px;border:1px solid #DCE0E3;border-radius:7px;background:#fff;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Cancel</div>
+    <div style="padding:8px 16px;border-radius:7px;background:#007AFF;font:600 12px 'IBM Plex Sans',sans-serif;color:#fff">Start download</div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Detail view · segments as per-connection lanes</div>
+<div class="dv-card" style="width:560px">
+  <div style="padding:16px 20px 14px;border-bottom:1px solid #E3E6E8">
+    <div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#14181B;word-break:break-all">ubuntu-24.04.2-desktop-amd64.iso</div>
+    <div style="display:flex;gap:14px;margin-top:8px;font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">
+      <span>2.56 / 6.10 GB</span><span style="color:#007AFF">11.4 MB/s</span><span>ETA 07:12</span><span>16 lanes</span>
+    </div>
+  </div>
+  <div style="padding:18px 20px">
+    <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:12px">CONNECTION LANES</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <sc-for list="{{ lanes }}" as="l" hint-placeholder-count="16">
+        <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 62px;gap:10px;align-items:center">
+          <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:#B4BCC2;text-align:right">{{ l.n }}</div>
+          <div style="height:9px;border-radius:2px;background:#F0F2F3;position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;bottom:0;left:{{ l.start }}%;width:{{ l.done }}%;background:{{ l.bg }};border-radius:2px"></div>
+            <div style="position:absolute;top:0;bottom:0;left:{{ l.headLeft }}%;width:2px;background:#14181B;opacity:.35"></div>
+          </div>
+          <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:{{ l.rateColor }};text-align:right">{{ l.rate }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid #EEF0F1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div><div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#9AA5AE;letter-spacing:.06em">FASTEST LANE</div><div style="font:500 12px 'IBM Plex Mono',monospace;color:#14181B;margin-top:4px">1.4 MB/s</div></div>
+      <div><div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#9AA5AE;letter-spacing:.06em">STALLED</div><div style="font:500 12px 'IBM Plex Mono',monospace;color:#D97706;margin-top:4px">2 lanes</div></div>
+      <div><div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#9AA5AE;letter-spacing:.06em">RETRIES</div><div style="font:500 12px 'IBM Plex Mono',monospace;color:#14181B;margin-top:4px">3</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Detail view · segments as a block map (IDM-style)</div>
+<div class="dv-card" style="width:560px">
+  <div style="padding:16px 20px 14px;border-bottom:1px solid #E3E6E8">
+    <div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#14181B;word-break:break-all">ubuntu-24.04.2-desktop-amd64.iso</div>
+    <div style="display:flex;gap:14px;margin-top:8px;font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">
+      <span>2.56 / 6.10 GB</span><span style="color:#007AFF">11.4 MB/s</span><span>ETA 07:12</span><span>1024 blocks · 6 MB each</span>
+    </div>
+  </div>
+  <div style="padding:18px 20px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px">
+      <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D">BLOCK MAP</span>
+      <div style="display:flex;gap:12px;font:400 9.5px 'IBM Plex Mono',monospace;color:#9AA5AE">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:#007AFF;border-radius:1px;display:block"></span>done</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:#7FB4FF;border-radius:1px;display:block"></span>active</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:#E7EBED;border-radius:1px;display:block"></span>pending</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(32,1fr);gap:2px;padding:10px;background:#FAFBFB;border:1px solid #EDF0F1;border-radius:6px">
+      <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="256">
+        <div style="aspect-ratio:1;border-radius:1px;background:{{ b.bg }}"></div>
+      </sc-for>
+    </div>
+    <div style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;font:400 10.5px 'IBM Plex Mono',monospace;color:#6B7580;margin-bottom:6px"><span>42% complete</span><span>430 / 1024 blocks</span></div>
+      <div style="height:8px;border-radius:4px;background:#E7EBED;overflow:hidden"><div style="width:42%;height:100%;background:#007AFF"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Detail view · single ribbon + throughput chart</div>
+<div class="dv-card" style="width:560px">
+  <div style="padding:16px 20px 14px;border-bottom:1px solid #E3E6E8">
+    <div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#14181B;word-break:break-all">ubuntu-24.04.2-desktop-amd64.iso</div>
+    <div style="display:flex;gap:14px;margin-top:8px;font:400 11px 'IBM Plex Mono',monospace;color:#6B7580">
+      <span>2.56 / 6.10 GB</span><span style="color:#007AFF">11.4 MB/s</span><span>ETA 07:12</span>
+    </div>
+  </div>
+  <div style="padding:18px 20px">
+    <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:11px">FILE RANGE 0 → 6.10 GB</div>
+    <div style="display:flex;height:34px;border-radius:5px;overflow:hidden;background:#F0F2F3;border:1px solid #E7EBED">
+      <sc-for list="{{ ribbon }}" as="r" hint-placeholder-count="16">
+        <div style="flex:{{ r.flex }};border-right:1px solid #fff;position:relative;background:#F5F7F8">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:{{ r.fill }}%;background:{{ r.bg }}"></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE"><span>16 segments</span><span>each segment ≈ 390 MB</span></div>
+
+    <div style="margin-top:22px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:10px">THROUGHPUT · LAST 60 s</div>
+    <svg width="100%" height="88" viewBox="0 0 500 88" preserveAspectRatio="none" style="display:block;background:#FAFBFB;border:1px solid #EDF0F1;border-radius:6px">
+      <line x1="0" y1="22" x2="500" y2="22" stroke="#E7EBED" stroke-width="1"></line>
+      <line x1="0" y1="44" x2="500" y2="44" stroke="#E7EBED" stroke-width="1"></line>
+      <line x1="0" y1="66" x2="500" y2="66" stroke="#E7EBED" stroke-width="1"></line>
+      <polyline points="0,70 25,62 50,66 75,48 100,52 125,34 150,40 175,26 200,32 225,20 250,28 275,18 300,24 325,14 350,22 375,16 400,26 425,18 450,22 475,15 500,20 500,88 0,88" fill="#007AFF" fill-opacity=".12" stroke="none"></polyline>
+      <polyline points="0,70 25,62 50,66 75,48 100,52 125,34 150,40 175,26 200,32 225,20 250,28 275,18 300,24 325,14 350,22 375,16 400,26 425,18 450,22 475,15 500,20" fill="none" stroke="#007AFF" stroke-width="2"></polyline>
+    </svg>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE"><span>peak 14.8 MB/s</span><span>avg 9.6 MB/s</span></div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Browser capture popup</div>
+<div class="dv-card" style="width:360px">
+  <div style="display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid #E3E6E8">
+    <div style="width:22px;height:22px;border-radius:6px;background:#007AFF;color:#fff;font:700 11px 'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">a2</div>
+    <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#14181B">4 links captured</div>
+    <div style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:#9AA5AE">✕</div>
+  </div>
+  <div style="padding:6px 0">
+    <sc-for list="{{ captured }}" as="c" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 15px">
+        <div style="width:15px;height:15px;border-radius:4px;background:{{ c.boxBg }};border:1px solid {{ c.boxBorder }};color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center">{{ c.tick }}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#14181B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+          <div style="font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE">{{ c.meta }}</div>
+        </div>
+        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#6B7580">{{ c.size }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 15px;background:#FAFBFB;border-top:1px solid #E3E6E8">
+    <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#9AA5AE">→ Main queue</div>
+    <div style="flex:1"></div>
+    <div style="padding:7px 12px;border:1px solid #DCE0E3;border-radius:6px;background:#fff;font:500 11.5px 'IBM Plex Sans',sans-serif;color:#3D464E">Options</div>
+    <div style="padding:7px 13px;border-radius:6px;background:#007AFF;font:600 11.5px 'IBM Plex Sans',sans-serif;color:#fff">Download 3</div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Queues &amp; scheduler</div>
+<div class="dv-card" style="width:660px">
+  <div style="padding:16px 20px 14px;border-bottom:1px solid #E3E6E8">
+    <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#14181B">Queues &amp; scheduler</div>
+    <div style="font:400 11.5px 'IBM Plex Sans',sans-serif;color:#6B7580;margin-top:3px">Queues run one at a time within their window. Bandwidth is shared across active queues.</div>
+  </div>
+  <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{ queues }}" as="q" hint-placeholder-count="3">
+      <div style="display:grid;grid-template-columns:12px minmax(0,1fr) 96px 120px 74px;gap:14px;align-items:center;padding:12px 14px;border:1px solid #E7EBED;border-radius:8px;background:#fff">
+        <div style="width:9px;height:9px;border-radius:3px;background:{{ q.color }}"></div>
+        <div>
+          <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#14181B">{{ q.name }}</div>
+          <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#9AA5AE;margin-top:2px">{{ q.detail }}</div>
+        </div>
+        <div style="font:400 11px 'IBM Plex Mono',monospace;color:#3D464E">{{ q.window }}</div>
+        <div>
+          <div style="height:5px;border-radius:3px;background:#EDF0F1;overflow:hidden"><div style="height:100%;width:{{ q.pct }}%;background:{{ q.color }}"></div></div>
+          <div style="font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE;margin-top:4px">{{ q.pct }}% of queue</div>
+        </div>
+        <div style="text-align:right"><span style="display:inline-block;padding:3px 8px;border-radius:5px;font:600 10px 'IBM Plex Mono',monospace;background:{{ q.stateBg }};color:{{ q.stateFg }}">{{ q.state }}</span></div>
+      </div>
+    </sc-for>
+
+    <div style="margin-top:8px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D">WEEKLY WINDOW · OVERNIGHT</div>
+    <div style="display:grid;grid-template-columns:34px repeat(24,1fr);gap:2px;align-items:center">
+      <div></div>
+      <sc-for list="{{ hourLabels }}" as="h" hint-placeholder-count="24">
+        <div style="font:400 8px 'IBM Plex Mono',monospace;color:#B4BCC2;text-align:center">{{ h.t }}</div>
+      </sc-for>
+      <sc-for list="{{ scheduleRows }}" as="row" hint-placeholder-count="7">
+        <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:#8B959D">{{ row.day }}</div>
+        <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="24">
+          <div style="height:14px;border-radius:2px;background:{{ cell.bg }}"></div>
+        </sc-for>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:14px;font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE;margin-top:2px">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;background:#007AFF;border-radius:2px;display:block"></span>full speed</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;background:#B3D4FF;border-radius:2px;display:block"></span>throttled 5 MB/s</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;background:#EDF0F1;border-radius:2px;display:block"></span>paused</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1h">
+<div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Settings · aria2 RPC &amp; limits</div>
+<div class="dv-card" style="width:660px">
+  <div style="display:flex;min-height:400px">
+    <div style="width:168px;flex:none;background:#FAFBFB;border-right:1px solid #E3E6E8;padding:16px 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.09em;color:#9AA5AE;padding:0 8px 8px">SETTINGS</div>
+      <div style="padding:7px 9px;border-radius:6px;font:400 12px 'IBM Plex Sans',sans-serif;color:#3D464E">General</div>
+      <div style="padding:7px 9px;border-radius:6px;font:400 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Downloads &amp; folders</div>
+      <div style="padding:7px 9px;border-radius:6px;font:400 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Browser integration</div>
+      <div style="padding:7px 9px;border-radius:6px;background:#E5F0FF;font:600 12px 'IBM Plex Sans',sans-serif;color:#0A4C9E">Engine (aria2)</div>
+      <div style="padding:7px 9px;border-radius:6px;font:400 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Proxies</div>
+      <div style="padding:7px 9px;border-radius:6px;font:400 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Notifications</div>
+    </div>
+    <div style="flex:1;min-width:0;padding:18px 20px">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:#F0FAF6;border:1px solid #CBEBDD;border-radius:8px;margin-bottom:20px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#0E9F6E;display:block"></span>
+        <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#0B6B4B">Connected to aria2 1.37.0</div>
+        <div style="margin-left:auto;font:400 10.5px 'IBM Plex Mono',monospace;color:#3F8E72">local · pid 4821</div>
+      </div>
+
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:12px">RPC ENDPOINT</div>
+      <div style="display:grid;grid-template-columns:1fr 108px;gap:12px;margin-bottom:12px">
+        <div>
+          <div style="font:400 10.5px 'IBM Plex Sans',sans-serif;color:#6B7580;margin-bottom:5px">Host</div>
+          <div style="padding:8px 10px;border:1px solid #DCE0E3;border-radius:6px;font:400 11.5px 'IBM Plex Mono',monospace;color:#14181B;background:#fff">127.0.0.1</div>
+        </div>
+        <div>
+          <div style="font:400 10.5px 'IBM Plex Sans',sans-serif;color:#6B7580;margin-bottom:5px">Port</div>
+          <div style="padding:8px 10px;border:1px solid #DCE0E3;border-radius:6px;font:400 11.5px 'IBM Plex Mono',monospace;color:#14181B;background:#fff">6800</div>
+        </div>
+      </div>
+      <div style="margin-bottom:22px">
+        <div style="font:400 10.5px 'IBM Plex Sans',sans-serif;color:#6B7580;margin-bottom:5px">Secret token</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #DCE0E3;border-radius:6px;background:#fff">
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#14181B;flex:1">••••••••••••••••</span>
+          <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#007AFF">Reveal</span>
+        </div>
+      </div>
+
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#8B959D;margin-bottom:4px">LIMITS</div>
+      <sc-for list="{{ engineOpts }}" as="o" hint-placeholder-count="6">
+        <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F0F2F3">
+          <div style="min-width:0;flex:1">
+            <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#14181B">{{ o.label }}</div>
+            <div style="font:400 10px 'IBM Plex Mono',monospace;color:#9AA5AE;margin-top:2px">{{ o.flag }}</div>
+          </div>
+          <div style="padding:5px 10px;border:1px solid #DCE0E3;border-radius:6px;font:500 11px 'IBM Plex Mono',monospace;color:#14181B;background:#fff;min-width:64px;text-align:right">{{ o.value }}</div>
+        </div>
+      </sc-for>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:18px">
+        <div style="padding:8px 14px;border-radius:7px;background:#007AFF;font:600 12px 'IBM Plex Sans',sans-serif;color:#fff">Apply</div>
+        <div style="padding:8px 14px;border:1px solid #DCE0E3;border-radius:7px;background:#fff;font:500 12px 'IBM Plex Sans',sans-serif;color:#3D464E">Restart engine</div>
+        <div style="margin-left:auto;font:400 10.5px 'IBM Plex Mono',monospace;color:#9AA5AE">aria2.changeGlobalOption</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1i">
+<div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Style skin · dark engine-room</div>
+<div class="dv-card" style="width:660px;background:#12171A;border-color:#000">
+  <div style="display:flex;align-items:center;height:36px;padding:0 12px;background:#171D21;border-bottom:1px solid #262F35;gap:10px">
+    <div style="display:flex;gap:7px"><span style="width:10px;height:10px;border-radius:50%;background:#2C363C;display:block"></span><span style="width:10px;height:10px;border-radius:50%;background:#2C363C;display:block"></span><span style="width:10px;height:10px;border-radius:50%;background:#2C363C;display:block"></span></div>
+    <div style="flex:1;text-align:center;font:500 11.5px 'IBM Plex Sans',sans-serif;color:#7C8A93">Aria2 Manager</div>
+    <div style="font:500 10px 'IBM Plex Mono',monospace;color:#0A84FF;background:rgba(10,132,255,.13);padding:3px 8px;border-radius:20px">24.5 MB/s</div>
+  </div>
+  <div style="display:grid;grid-template-columns:24px minmax(0,1fr) 76px 150px 84px 88px;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid #262F35;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#67757E">
+    <div></div><div>FILE</div><div style="text-align:right">SIZE</div><div>PROGRESS</div><div style="text-align:right">SPEED</div><div>STATUS</div>
+  </div>
+  <sc-for list="{{ darkRows }}" as="d" hint-placeholder-count="5">
+    <div style="display:grid;grid-template-columns:24px minmax(0,1fr) 76px 150px 84px 88px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid #1D2429">
+      <div style="width:15px;height:15px;border-radius:4px;border:1px solid #333E45"></div>
+      <div style="min-width:0">
+        <div style="font:500 12px 'IBM Plex Sans',sans-serif;color:#DEE5E9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</div>
+        <div style="font:400 10px 'IBM Plex Mono',monospace;color:#67757E;margin-top:2px">{{ d.host }}</div>
+      </div>
+      <div style="text-align:right;font:400 11px 'IBM Plex Mono',monospace;color:#9FADB6">{{ d.size }}</div>
+      <div>
+        <div style="display:flex;height:6px;gap:1px;border-radius:3px;overflow:hidden;background:#212A2F">
+          <sc-for list="{{ d.conns }}" as="c" hint-placeholder-count="8">
+            <div style="flex:1;background:{{ c.bg }}"></div>
+          </sc-for>
+        </div>
+        <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:#67757E;margin-top:4px">{{ d.pctLabel }}</div>
+      </div>
+      <div style="text-align:right;font:500 11px 'IBM Plex Mono',monospace;color:{{ d.speedColor }}">{{ d.speed }}</div>
+      <div><span style="display:inline-block;padding:3px 8px;border-radius:5px;font:600 9.5px 'IBM Plex Mono',monospace;background:{{ d.statusBg }};color:{{ d.statusFg }}">{{ d.status }}</span></div>
+    </div>
+  </sc-for>
+  <div style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:#171D21;border-top:1px solid #262F35;font:400 10.5px 'IBM Plex Mono',monospace;color:#7C8A93">
+    <span>3 active · 48 connections</span><span style="margin-left:auto;color:#0A84FF">aria2 1.37.0</span>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1j">
+<div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Style skin · paper &amp; amber, near-monochrome</div>
+<div class="dv-card" style="width:660px;background:#FBF9F5;border-color:#DFD8CB">
+  <div style="display:flex;align-items:center;height:36px;padding:0 14px;background:#F4F0E8;border-bottom:1px solid #E2DACB;gap:10px">
+    <div style="font:600 11.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#5C5347">ARIA2 MANAGER</div>
+    <div style="margin-left:auto;font:500 10.5px 'IBM Plex Mono',monospace;color:#8A5A11;background:#F6E7CB;padding:3px 8px;border-radius:3px">24.5 MB/s</div>
+  </div>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 76px 150px 84px 88px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1.5px solid #2B2621;font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#2B2621">
+    <div>FILE</div><div style="text-align:right">SIZE</div><div>PROGRESS</div><div style="text-align:right">SPEED</div><div>STATUS</div>
+  </div>
+  <sc-for list="{{ paperRows }}" as="d" hint-placeholder-count="5">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 76px 150px 84px 88px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid #EBE4D7">
+      <div style="min-width:0">
+        <div style="font:500 12px 'IBM Plex Sans',sans-serif;color:#2B2621;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</div>
+        <div style="font:400 10px 'IBM Plex Mono',monospace;color:#9C9280;margin-top:2px">{{ d.host }}</div>
+      </div>
+      <div style="text-align:right;font:400 11px 'IBM Plex Mono',monospace;color:#5C5347">{{ d.size }}</div>
+      <div>
+        <div style="display:flex;height:12px;gap:2px;align-items:flex-end">
+          <sc-for list="{{ d.conns }}" as="c" hint-placeholder-count="8">
+            <div style="flex:1;height:{{ c.h }}px;background:{{ c.bg }}"></div>
+          </sc-for>
+        </div>
+        <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:#9C9280;margin-top:3px">{{ d.pctLabel }}</div>
+      </div>
+      <div style="text-align:right;font:500 11px 'IBM Plex Mono',monospace;color:{{ d.speedColor }}">{{ d.speed }}</div>
+      <div><span style="display:inline-block;padding:2px 7px;font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.05em;border:1px solid {{ d.statusFg }};color:{{ d.statusFg }}">{{ d.status }}</span></div>
+    </div>
+  </sc-for>
+  <div style="display:flex;align-items:center;padding:10px 14px;border-top:1.5px solid #2B2621;font:400 10.5px 'IBM Plex Mono',monospace;color:#5C5347">
+    <span>3 active · 48 connections · 12.1 GB remaining</span>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "build out <a class="dv-oid" href="#1a">1a</a> with the <a class="dv-oid" href="#1d">1d</a> block map in a detail pane" · "make <a class="dv-oid" href="#1a">1a</a> use the <a class="dv-oid" href="#1i">1i</a> dark skin" · "add a media sniffer and history screen"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  conns(pct, n, palette) {
+    const a = [];
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n * 100;
+      let bg;
+      if (t < pct - 100 / n) bg = palette.done;
+      else if (t < pct + 100 / n) bg = palette.active;
+      else bg = palette.pending;
+      a.push({ bg, h: t < pct ? 12 : 4 });
+    }
+    return a;
+  }
+
+  renderVals() {
+    const P = { done: '#007AFF', active: '#7FB4FF', pending: '#EBEEF0' };
+    const PD = { done: '#0A84FF', active: 'rgba(10,132,255,.35)', pending: '#212A2F' };
+    const PP = { done: '#2B2621', active: '#C98A21', pending: '#DFD8CB' };
+    const badge = {
+      Downloading: ['#E5F0FF', '#0A4C9E'],
+      Paused: ['#F0F2F3', '#6B7580'],
+      Completed: ['#E8F7F0', '#0B6B4B'],
+      Queued: ['#F4F1FB', '#5B32B8'],
+      Error: ['#FDECEC', '#B21D1D']
+    };
+
+    const raw = [
+      ['ubuntu-24.04.2-desktop-amd64.iso', 'releases.ubuntu.com', '6.10 GB', 42, '11.4 MB/s', '07:12', 'Downloading', 16],
+      ['Blender-4.5.0-linux-x64.tar.xz', 'mirror.clarkson.edu', '341 MB', 78, '8.2 MB/s', '00:09', 'Downloading', 16],
+      ['project-backup-2026-09-01.zip', 's3.eu-central-1.amazonaws.com', '1.80 GB', 63, '4.9 MB/s', '02:14', 'Downloading', 8],
+      ['imagenet-shard-03.tar', 'data.vision.ee.ethz.ch', '12.4 GB', 9, '—', '—', 'Paused', 8],
+      ['macos-recovery-image.dmg', 'swcdn.apple.com', '4.20 GB', 0, '—', '—', 'Queued', 16],
+      ['nvidia-driver-580.11.run', 'us.download.nvidia.com', '412 MB', 100, '—', '—', 'Completed', 8],
+      ['postgresql-17.2.tar.bz2', 'ftp.postgresql.org', '28.4 MB', 100, '—', '—', 'Completed', 4],
+      ['archive-photos-2019.tar.gz', 'cdn.fileshare.io', '9.02 GB', 0, '—', '—', 'Error', 8]
+    ];
+
+    const mk = (r, palette) => {
+      const [name, host, size, pct, speed, eta, status, n] = r;
+      const [bg, fg] = badge[status];
+      return {
+        name, host, size, speed, eta, status,
+        pctLabel: pct + '%',
+        connLabel: status === 'Downloading' ? n + ' conn' : '',
+        conns: this.conns(status === 'Completed' ? 100 : pct, n, palette),
+        speedColor: speed === '—' ? '#B4BCC2' : (palette === PP ? '#8A5A11' : (palette === PD ? '#0A84FF' : '#007AFF')),
+        statusBg: bg, statusFg: fg
+      };
+    };
+
+    const darkBadge = {
+      Downloading: ['rgba(10,132,255,.14)', '#6FB4FF'],
+      Paused: ['#212A2F', '#8A97A1'],
+      Completed: ['rgba(14,159,110,.15)', '#3FCF96'],
+      Queued: ['rgba(124,58,237,.16)', '#A98BF5'],
+      Error: ['rgba(220,38,38,.15)', '#F07575']
+    };
+
+    const lanes = [];
+    for (let i = 0; i < 16; i++) {
+      const start = i * 6.25;
+      const done = 2 + (i * 2.7) % 4.4;
+      const stalled = i === 4 || i === 11;
+      lanes.push({
+        n: String(i + 1).padStart(2, '0'),
+        start: start.toFixed(2),
+        done: done.toFixed(2),
+        headLeft: (start + done).toFixed(2),
+        bg: stalled ? '#E8B04B' : '#007AFF',
+        rate: stalled ? 'stalled' : (0.4 + (i * 0.19) % 1.0).toFixed(1) + ' MB/s',
+        rateColor: stalled ? '#D97706' : '#6B7580'
+      });
+    }
+
+    const blocks = [];
+    for (let i = 0; i < 512; i++) {
+      const lane = i % 16;
+      const posInLane = Math.floor(i / 16);
+      const filled = posInLane < 13 + (lane * 3) % 7;
+      const active = posInLane === 13 + (lane * 3) % 7;
+      blocks.push({ bg: filled ? '#007AFF' : active ? '#7FB4FF' : '#E7EBED' });
+    }
+
+    const ribbon = [];
+    for (let i = 0; i < 16; i++) {
+      const fill = 30 + (i * 37) % 55;
+      ribbon.push({ flex: 1, fill, bg: (i === 4 || i === 11) ? '#E8B04B' : '#007AFF' });
+    }
+
+    const connPicker = [];
+    for (let i = 0; i < 32; i++) {
+      connPicker.push({ h: 8 + Math.round(i * 0.55), bg: i < 16 ? '#007AFF' : '#E7EBED' });
+    }
+
+    const captured = [
+      ['ubuntu-24.04.2-desktop-amd64.iso', 'application/octet-stream · ranges ok', '6.10 GB', true],
+      ['ubuntu-24.04.2-desktop-amd64.iso.torrent', 'application/x-bittorrent', '312 KB', false],
+      ['SHA256SUMS', 'text/plain', '1.4 KB', true],
+      ['SHA256SUMS.gpg', 'application/pgp-signature', '833 B', true]
+    ].map(([name, meta, size, on]) => ({
+      name, meta, size,
+      boxBg: on ? '#007AFF' : '#fff',
+      boxBorder: on ? '#007AFF' : '#D3D8DC',
+      tick: on ? '✓' : ''
+    }));
+
+    const queues = [
+      { name: 'Main queue', detail: '3 running · 2 waiting · no limit', window: 'Always on', pct: 47, color: '#007AFF', state: 'RUNNING', stateBg: '#E5F0FF', stateFg: '#0A4C9E' },
+      { name: 'Overnight', detail: '4 waiting · 5 MB/s cap', window: '01:00 – 07:00', pct: 0, color: '#D97706', state: 'WAITING', stateBg: '#FDF3E4', stateFg: '#8A5A11' },
+      { name: 'Datasets', detail: '1 running · 12 waiting · 2 at a time', window: 'Weekends', pct: 22, color: '#7C3AED', state: 'PAUSED', stateBg: '#F4F1FB', stateFg: '#5B32B8' }
+    ];
+
+    const hourLabels = [];
+    for (let h = 0; h < 24; h++) hourLabels.push({ t: h % 3 === 0 ? String(h) : '' });
+
+    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const scheduleRows = days.map((day, di) => ({
+      day,
+      cells: Array.from({ length: 24 }, (_, h) => {
+        const weekend = di > 4;
+        let bg = '#EDF0F1';
+        if (h >= 1 && h < 7) bg = '#007AFF';
+        else if (weekend) bg = '#B3D4FF';
+        else if (h >= 19) bg = '#B3D4FF';
+        return { bg };
+      })
+    }));
+
+    const engineOpts = [
+      { label: 'Max concurrent downloads', flag: '--max-concurrent-downloads', value: '3' },
+      { label: 'Connections per server', flag: '--max-connection-per-server', value: '16' },
+      { label: 'Minimum split size', flag: '--min-split-size', value: '10M' },
+      { label: 'Global download limit', flag: '--max-overall-download-limit', value: '25M' },
+      { label: 'Disk cache', flag: '--disk-cache', value: '64M' },
+      { label: 'File allocation', flag: '--file-allocation', value: 'falloc' }
+    ];
+
+    const shortRaw = raw.slice(0, 5);
+    const darkRows = shortRaw.map(r => {
+      const o = mk(r, PD);
+      const [bg, fg] = darkBadge[r[6]];
+      return Object.assign(o, { statusBg: bg, statusFg: fg, status: r[6].toUpperCase() });
+    });
+    const paperRows = shortRaw.map(r => {
+      const o = mk(r, PP);
+      const fg = r[6] === 'Error' ? '#B21D1D' : r[6] === 'Downloading' ? '#8A5A11' : '#5C5347';
+      return Object.assign(o, { statusFg: fg, status: r[6].toUpperCase() });
+    });
+
+    return {
+      downloads: raw.map(r => mk(r, P)),
+      darkRows, paperRows, lanes, blocks, ribbon, connPicker,
+      captured, queues, hourLabels, scheduleRows, engineOpts
+    };
+  }
+}
+</script>
+</body>
+</html>

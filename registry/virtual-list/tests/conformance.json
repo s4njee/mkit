@@ -1,0 +1,301 @@
+{
+  "manifest_version": 1,
+  "component": "virtual-list",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "list is focused",
+      "expected_behavior": "Move active row to the next item.",
+      "initial_state": "idle",
+      "load_fixture": "idle_fixture",
+      "assert": {
+        "event": "ActiveChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "list is focused",
+      "expected_behavior": "Toggle the active row's selection.",
+      "initial_state": "idle",
+      "load_fixture": "idle_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "listbox",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "options",
+            "value": "each rendered option has listbox-option role, its item label as accessible name, selection state, set position, and set size"
+          },
+          {
+            "name": "active-descendant",
+            "value": "active rendered option is exposed as the root's active descendant where supported"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-idle",
+      "state": "idle",
+      "load_fixture": "idle_fixture",
+      "expected_semantics": {
+        "role": "listbox",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "options",
+            "value": "each rendered option has listbox-option role, its item label as accessible name, selection state, set position, and set size"
+          },
+          {
+            "name": "active-descendant",
+            "value": "active rendered option is exposed as the root's active descendant where supported"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "listbox",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "options",
+            "value": "each rendered option has listbox-option role, its item label as accessible name, selection state, set position, and set size"
+          },
+          {
+            "name": "active-descendant",
+            "value": "active rendered option is exposed as the root's active descendant where supported"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-idle-light-1x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/light-1x.png"
+    },
+    {
+      "id": "screen-idle-light-2x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/light-2x.png"
+    },
+    {
+      "id": "screen-idle-dark-1x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/dark-1x.png"
+    },
+    {
+      "id": "screen-idle-dark-2x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/dark-2x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-1x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-2x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/idle/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "virtual-list/selected/high-contrast-2x.png"
+    }
+  ]
+}

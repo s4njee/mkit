@@ -1,0 +1,1590 @@
+{
+  "manifest_version": 1,
+  "component": "timeline",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Equal",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Zoom in by 25 percent around the visible-range center.",
+      "initial_state": "sparse",
+      "load_fixture": "sparse_fixture",
+      "assert": {
+        "event": "visible_range_changed"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Minus",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Zoom out by 25 percent around the visible-range center.",
+      "initial_state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "assert": {
+        "event": "visible_range_changed"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Pan earlier by ten percent of the visible duration.",
+      "initial_state": "sparse",
+      "load_fixture": "sparse_fixture",
+      "assert": {
+        "event": "visible_range_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Pan later by ten percent of the visible duration.",
+      "initial_state": "sparse",
+      "load_fixture": "sparse_fixture",
+      "assert": {
+        "event": "visible_range_changed"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "f",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has focus and at least one valid clip exists.",
+      "expected_behavior": "Fit the full clip extent with five percent padding on each side.",
+      "initial_state": "sparse",
+      "load_fixture": "sparse_fixture",
+      "assert": {
+        "event": "visible_range_changed"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": ",",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Step the playhead earlier by 0.1 seconds, clamped to the visible range.",
+      "initial_state": "playhead",
+      "load_fixture": "playhead_fixture",
+      "assert": {
+        "event": "playhead_changed"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": ".",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus.",
+      "expected_behavior": "Step the playhead later by 0.1 seconds, clamped to the visible range.",
+      "initial_state": "playhead",
+      "load_fixture": "playhead_fixture",
+      "assert": {
+        "event": "playhead_changed"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus and objects exist.",
+      "expected_behavior": "Select the previous object in track order then clip time/id order.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "selection_changed"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "The labeled timeline group has keyboard focus and objects exist.",
+      "expected_behavior": "Select the next object in track order then clip time/id order.",
+      "initial_state": "selected",
+      "load_fixture": "selected_fixture",
+      "assert": {
+        "event": "selection_changed"
+      }
+    },
+    {
+      "id": "keyboard-10",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "A clip or keyframe move is active.",
+      "expected_behavior": "Commit the edit and emit its typed move request when changed.",
+      "initial_state": "clip_move",
+      "load_fixture": "clip_move_fixture",
+      "assert": {
+        "event": "clip_move_requested"
+      }
+    },
+    {
+      "id": "keyboard-11",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "A clip or keyframe move is active.",
+      "expected_behavior": "Cancel the reversible edit preview.",
+      "initial_state": "keyframe_move",
+      "load_fixture": "keyframe_move_fixture",
+      "assert": {
+        "state": "keyframe_selection"
+      }
+    },
+    {
+      "id": "keyboard-12",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "A move preview is active.",
+      "expected_behavior": "Nudge the selected clip or keyframe later by one ruler tick step.",
+      "initial_state": "keyframe_move",
+      "load_fixture": "keyframe_move_fixture",
+      "assert": {
+        "state": "keyframe_move"
+      }
+    },
+    {
+      "id": "keyboard-13",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": [
+          "Control",
+          "Shift"
+        ]
+      },
+      "precondition": "The timeline has focus and keyframes exist.",
+      "expected_behavior": "Select the next keyframe in time/id order.",
+      "initial_state": "keyframe_selection",
+      "load_fixture": "keyframe_selection_fixture",
+      "assert": {
+        "event": "keyframe_selection_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-sparse",
+      "state": "sparse",
+      "load_fixture": "sparse_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-dense",
+      "state": "dense",
+      "load_fixture": "dense_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-zoomed",
+      "state": "zoomed",
+      "load_fixture": "zoomed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-scrolled",
+      "state": "scrolled",
+      "load_fixture": "scrolled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-controlled",
+      "state": "controlled",
+      "load_fixture": "controlled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-playhead",
+      "state": "playhead",
+      "load_fixture": "playhead_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-controlled_playhead",
+      "state": "controlled_playhead",
+      "load_fixture": "controlled_playhead_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-clip_move",
+      "state": "clip_move",
+      "load_fixture": "clip_move_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          },
+          {
+            "name": "edit_preview",
+            "value": "Proposed clip/keyframe target and time; absent outside an edit"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-clip_move_committed",
+      "state": "clip_move_committed",
+      "load_fixture": "clip_move_committed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-clip_move_cancelled",
+      "state": "clip_move_cancelled",
+      "load_fixture": "clip_move_cancelled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyframe_move",
+      "state": "keyframe_move",
+      "load_fixture": "keyframe_move_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyframe_move_committed",
+      "state": "keyframe_move_committed",
+      "load_fixture": "keyframe_move_committed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyframe_move_cancelled",
+      "state": "keyframe_move_cancelled",
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyframe_selection",
+      "state": "keyframe_selection",
+      "load_fixture": "keyframe_selection_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          },
+          {
+            "name": "keyframe_name",
+            "value": "Keyframe label, owner relationship, formatted time, and selection state"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-keyframe_density",
+      "state": "keyframe_density",
+      "load_fixture": "keyframe_density_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided timeline label"
+          },
+          {
+            "name": "description",
+            "value": "Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-sparse-light-1x",
+      "state": "sparse",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/light-1x.png"
+    },
+    {
+      "id": "screen-sparse-light-2x",
+      "state": "sparse",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/light-2x.png"
+    },
+    {
+      "id": "screen-sparse-dark-1x",
+      "state": "sparse",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/dark-1x.png"
+    },
+    {
+      "id": "screen-sparse-dark-2x",
+      "state": "sparse",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/dark-2x.png"
+    },
+    {
+      "id": "screen-sparse-high-contrast-1x",
+      "state": "sparse",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-sparse-high-contrast-2x",
+      "state": "sparse",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sparse_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/sparse/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-dense-light-1x",
+      "state": "dense",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/light-1x.png"
+    },
+    {
+      "id": "screen-dense-light-2x",
+      "state": "dense",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/light-2x.png"
+    },
+    {
+      "id": "screen-dense-dark-1x",
+      "state": "dense",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/dark-1x.png"
+    },
+    {
+      "id": "screen-dense-dark-2x",
+      "state": "dense",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/dark-2x.png"
+    },
+    {
+      "id": "screen-dense-high-contrast-1x",
+      "state": "dense",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-dense-high-contrast-2x",
+      "state": "dense",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dense_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/dense/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-zoomed-light-1x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/light-1x.png"
+    },
+    {
+      "id": "screen-zoomed-light-2x",
+      "state": "zoomed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/light-2x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-1x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/dark-1x.png"
+    },
+    {
+      "id": "screen-zoomed-dark-2x",
+      "state": "zoomed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/dark-2x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-1x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-zoomed-high-contrast-2x",
+      "state": "zoomed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "zoomed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/zoomed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-scrolled-light-1x",
+      "state": "scrolled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/light-1x.png"
+    },
+    {
+      "id": "screen-scrolled-light-2x",
+      "state": "scrolled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/light-2x.png"
+    },
+    {
+      "id": "screen-scrolled-dark-1x",
+      "state": "scrolled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/dark-1x.png"
+    },
+    {
+      "id": "screen-scrolled-dark-2x",
+      "state": "scrolled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/dark-2x.png"
+    },
+    {
+      "id": "screen-scrolled-high-contrast-1x",
+      "state": "scrolled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-scrolled-high-contrast-2x",
+      "state": "scrolled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "scrolled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/scrolled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-controlled-light-1x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/light-1x.png"
+    },
+    {
+      "id": "screen-controlled-light-2x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/light-2x.png"
+    },
+    {
+      "id": "screen-controlled-dark-1x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/dark-1x.png"
+    },
+    {
+      "id": "screen-controlled-dark-2x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/dark-2x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-1x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-2x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-playhead-light-1x",
+      "state": "playhead",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/light-1x.png"
+    },
+    {
+      "id": "screen-playhead-light-2x",
+      "state": "playhead",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/light-2x.png"
+    },
+    {
+      "id": "screen-playhead-dark-1x",
+      "state": "playhead",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/dark-1x.png"
+    },
+    {
+      "id": "screen-playhead-dark-2x",
+      "state": "playhead",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/dark-2x.png"
+    },
+    {
+      "id": "screen-playhead-high-contrast-1x",
+      "state": "playhead",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-playhead-high-contrast-2x",
+      "state": "playhead",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/playhead/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-light-1x",
+      "state": "controlled_playhead",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/light-1x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-light-2x",
+      "state": "controlled_playhead",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/light-2x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-dark-1x",
+      "state": "controlled_playhead",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/dark-1x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-dark-2x",
+      "state": "controlled_playhead",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/dark-2x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-high-contrast-1x",
+      "state": "controlled_playhead",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-controlled_playhead-high-contrast-2x",
+      "state": "controlled_playhead",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "controlled_playhead_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/controlled_playhead/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-clip_move-light-1x",
+      "state": "clip_move",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/light-1x.png"
+    },
+    {
+      "id": "screen-clip_move-light-2x",
+      "state": "clip_move",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/light-2x.png"
+    },
+    {
+      "id": "screen-clip_move-dark-1x",
+      "state": "clip_move",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/dark-1x.png"
+    },
+    {
+      "id": "screen-clip_move-dark-2x",
+      "state": "clip_move",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/dark-2x.png"
+    },
+    {
+      "id": "screen-clip_move-high-contrast-1x",
+      "state": "clip_move",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-clip_move-high-contrast-2x",
+      "state": "clip_move",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "clip_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-light-1x",
+      "state": "clip_move_committed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/light-1x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-light-2x",
+      "state": "clip_move_committed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/light-2x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-dark-1x",
+      "state": "clip_move_committed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/dark-1x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-dark-2x",
+      "state": "clip_move_committed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/dark-2x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-high-contrast-1x",
+      "state": "clip_move_committed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-clip_move_committed-high-contrast-2x",
+      "state": "clip_move_committed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "clip_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_committed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-light-1x",
+      "state": "clip_move_cancelled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/light-1x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-light-2x",
+      "state": "clip_move_cancelled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/light-2x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-dark-1x",
+      "state": "clip_move_cancelled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/dark-1x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-dark-2x",
+      "state": "clip_move_cancelled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/dark-2x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-high-contrast-1x",
+      "state": "clip_move_cancelled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-clip_move_cancelled-high-contrast-2x",
+      "state": "clip_move_cancelled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "clip_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/clip_move_cancelled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move-light-1x",
+      "state": "keyframe_move",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/light-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move-light-2x",
+      "state": "keyframe_move",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/light-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move-dark-1x",
+      "state": "keyframe_move",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/dark-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move-dark-2x",
+      "state": "keyframe_move",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/dark-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move-high-contrast-1x",
+      "state": "keyframe_move",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move-high-contrast-2x",
+      "state": "keyframe_move",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "keyframe_move_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-light-1x",
+      "state": "keyframe_move_committed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/light-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-light-2x",
+      "state": "keyframe_move_committed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/light-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-dark-1x",
+      "state": "keyframe_move_committed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/dark-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-dark-2x",
+      "state": "keyframe_move_committed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/dark-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-high-contrast-1x",
+      "state": "keyframe_move_committed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_committed-high-contrast-2x",
+      "state": "keyframe_move_committed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "keyframe_move_committed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_committed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-light-1x",
+      "state": "keyframe_move_cancelled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/light-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-light-2x",
+      "state": "keyframe_move_cancelled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/light-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-dark-1x",
+      "state": "keyframe_move_cancelled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/dark-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-dark-2x",
+      "state": "keyframe_move_cancelled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/dark-2x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-high-contrast-1x",
+      "state": "keyframe_move_cancelled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyframe_move_cancelled-high-contrast-2x",
+      "state": "keyframe_move_cancelled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "keyframe_move_cancelled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_move_cancelled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-light-1x",
+      "state": "keyframe_selection",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/light-1x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-light-2x",
+      "state": "keyframe_selection",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/light-2x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-dark-1x",
+      "state": "keyframe_selection",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/dark-1x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-dark-2x",
+      "state": "keyframe_selection",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/dark-2x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-high-contrast-1x",
+      "state": "keyframe_selection",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyframe_selection-high-contrast-2x",
+      "state": "keyframe_selection",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "keyframe_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_selection/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-keyframe_density-light-1x",
+      "state": "keyframe_density",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/light-1x.png"
+    },
+    {
+      "id": "screen-keyframe_density-light-2x",
+      "state": "keyframe_density",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/light-2x.png"
+    },
+    {
+      "id": "screen-keyframe_density-dark-1x",
+      "state": "keyframe_density",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/dark-1x.png"
+    },
+    {
+      "id": "screen-keyframe_density-dark-2x",
+      "state": "keyframe_density",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/dark-2x.png"
+    },
+    {
+      "id": "screen-keyframe_density-high-contrast-1x",
+      "state": "keyframe_density",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-keyframe_density-high-contrast-2x",
+      "state": "keyframe_density",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "keyframe_density_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "timeline/keyframe_density/high-contrast-2x.png"
+    }
+  ]
+}

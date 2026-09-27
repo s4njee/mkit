@@ -1,0 +1,345 @@
+{
+  "manifest_version": 1,
+  "component": "checkbox",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "Checkbox has focus and is enabled.",
+      "expected_behavior": "Toggle checked state.",
+      "initial_state": "unchecked",
+      "load_fixture": "unchecked_fixture",
+      "assert": {
+        "state": "checked",
+        "event": "change"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-unchecked",
+      "state": "unchecked",
+      "load_fixture": "unchecked_fixture",
+      "expected_semantics": {
+        "role": "checkbox",
+        "properties": [
+          {
+            "name": "aria-checked",
+            "value": false
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-checked",
+      "state": "checked",
+      "load_fixture": "checked_fixture",
+      "expected_semantics": {
+        "role": "checkbox",
+        "properties": [
+          {
+            "name": "aria-checked",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-indeterminate",
+      "state": "indeterminate",
+      "load_fixture": "indeterminate_fixture",
+      "expected_semantics": {
+        "role": "checkbox",
+        "properties": [
+          {
+            "name": "aria-checked",
+            "value": "mixed"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "checkbox",
+        "properties": [
+          {
+            "name": "aria-disabled",
+            "value": true
+          },
+          {
+            "name": "description",
+            "value": "Unavailable"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-unchecked-light-1x",
+      "state": "unchecked",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/light-1x.png"
+    },
+    {
+      "id": "screen-unchecked-light-2x",
+      "state": "unchecked",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/light-2x.png"
+    },
+    {
+      "id": "screen-unchecked-dark-1x",
+      "state": "unchecked",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/dark-1x.png"
+    },
+    {
+      "id": "screen-unchecked-dark-2x",
+      "state": "unchecked",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/dark-2x.png"
+    },
+    {
+      "id": "screen-unchecked-high-contrast-1x",
+      "state": "unchecked",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-unchecked-high-contrast-2x",
+      "state": "unchecked",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "unchecked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/unchecked/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-checked-light-1x",
+      "state": "checked",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/light-1x.png"
+    },
+    {
+      "id": "screen-checked-light-2x",
+      "state": "checked",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/light-2x.png"
+    },
+    {
+      "id": "screen-checked-dark-1x",
+      "state": "checked",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/dark-1x.png"
+    },
+    {
+      "id": "screen-checked-dark-2x",
+      "state": "checked",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/dark-2x.png"
+    },
+    {
+      "id": "screen-checked-high-contrast-1x",
+      "state": "checked",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-checked-high-contrast-2x",
+      "state": "checked",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "checked_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/checked/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-indeterminate-light-1x",
+      "state": "indeterminate",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/light-1x.png"
+    },
+    {
+      "id": "screen-indeterminate-light-2x",
+      "state": "indeterminate",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/light-2x.png"
+    },
+    {
+      "id": "screen-indeterminate-dark-1x",
+      "state": "indeterminate",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/dark-1x.png"
+    },
+    {
+      "id": "screen-indeterminate-dark-2x",
+      "state": "indeterminate",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/dark-2x.png"
+    },
+    {
+      "id": "screen-indeterminate-high-contrast-1x",
+      "state": "indeterminate",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-indeterminate-high-contrast-2x",
+      "state": "indeterminate",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "indeterminate_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/indeterminate/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "checkbox/disabled/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,650 @@
+{
+  "manifest_version": 1,
+  "component": "shortcut-editor",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Select the next binding row, wrapping at the end.",
+      "initial_state": "viewing",
+      "load_fixture": "viewing_fixture",
+      "assert": {
+        "state": "viewing"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "editor is focused",
+      "expected_behavior": "Select the previous binding row, wrapping at the start.",
+      "initial_state": "viewing",
+      "load_fixture": "viewing_fixture",
+      "assert": {
+        "state": "viewing"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "a binding row is selected",
+      "expected_behavior": "Begin capturing a replacement chord.",
+      "initial_state": "viewing",
+      "load_fixture": "viewing_fixture",
+      "assert": {
+        "state": "capturing"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "capturing or a conflict is pending",
+      "expected_behavior": "Cancel capture and keep the existing binding.",
+      "initial_state": "capturing",
+      "load_fixture": "capturing_fixture",
+      "assert": {
+        "state": "viewing"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "capturing or a conflict is pending",
+      "expected_behavior": "Cancel capture and keep the existing binding.",
+      "initial_state": "conflict",
+      "load_fixture": "conflict_fixture",
+      "assert": {
+        "state": "viewing"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "a conflicting chord is pending",
+      "expected_behavior": "Move the chord from the conflicting action to the selected action.",
+      "initial_state": "conflict",
+      "load_fixture": "conflict_fixture",
+      "assert": {
+        "state": "dirty"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "Delete",
+        "modifiers": []
+      },
+      "precondition": "a binding row is selected and not capturing",
+      "expected_behavior": "Clear the selected binding.",
+      "initial_state": "viewing",
+      "load_fixture": "viewing_fixture",
+      "assert": {
+        "state": "dirty"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-viewing",
+      "state": "viewing",
+      "load_fixture": "viewing_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-capturing",
+      "state": "capturing",
+      "load_fixture": "capturing_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-conflict",
+      "state": "conflict",
+      "load_fixture": "conflict_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-dirty",
+      "state": "dirty",
+      "load_fixture": "dirty_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-saved",
+      "state": "saved",
+      "load_fixture": "saved_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-save_error",
+      "state": "save_error",
+      "load_fixture": "save_error_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Keyboard shortcuts"
+          },
+          {
+            "name": "row",
+            "value": "Each action row exposes its label, current chord, and conflict status."
+          },
+          {
+            "name": "selected",
+            "value": "The selected row is exposed as selected."
+          },
+          {
+            "name": "live-status",
+            "value": "Capture, conflict, save success, and save errors are announced as status text."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-viewing-light-1x",
+      "state": "viewing",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/light-1x.png"
+    },
+    {
+      "id": "screen-viewing-light-2x",
+      "state": "viewing",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/light-2x.png"
+    },
+    {
+      "id": "screen-viewing-dark-1x",
+      "state": "viewing",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/dark-1x.png"
+    },
+    {
+      "id": "screen-viewing-dark-2x",
+      "state": "viewing",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/dark-2x.png"
+    },
+    {
+      "id": "screen-viewing-high-contrast-1x",
+      "state": "viewing",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-viewing-high-contrast-2x",
+      "state": "viewing",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "viewing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/viewing/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-capturing-light-1x",
+      "state": "capturing",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/light-1x.png"
+    },
+    {
+      "id": "screen-capturing-light-2x",
+      "state": "capturing",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/light-2x.png"
+    },
+    {
+      "id": "screen-capturing-dark-1x",
+      "state": "capturing",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/dark-1x.png"
+    },
+    {
+      "id": "screen-capturing-dark-2x",
+      "state": "capturing",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/dark-2x.png"
+    },
+    {
+      "id": "screen-capturing-high-contrast-1x",
+      "state": "capturing",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-capturing-high-contrast-2x",
+      "state": "capturing",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "capturing_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/capturing/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-conflict-light-1x",
+      "state": "conflict",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/light-1x.png"
+    },
+    {
+      "id": "screen-conflict-light-2x",
+      "state": "conflict",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/light-2x.png"
+    },
+    {
+      "id": "screen-conflict-dark-1x",
+      "state": "conflict",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/dark-1x.png"
+    },
+    {
+      "id": "screen-conflict-dark-2x",
+      "state": "conflict",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/dark-2x.png"
+    },
+    {
+      "id": "screen-conflict-high-contrast-1x",
+      "state": "conflict",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-conflict-high-contrast-2x",
+      "state": "conflict",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "conflict_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/conflict/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-dirty-light-1x",
+      "state": "dirty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/light-1x.png"
+    },
+    {
+      "id": "screen-dirty-light-2x",
+      "state": "dirty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/light-2x.png"
+    },
+    {
+      "id": "screen-dirty-dark-1x",
+      "state": "dirty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/dark-1x.png"
+    },
+    {
+      "id": "screen-dirty-dark-2x",
+      "state": "dirty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/dark-2x.png"
+    },
+    {
+      "id": "screen-dirty-high-contrast-1x",
+      "state": "dirty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-dirty-high-contrast-2x",
+      "state": "dirty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dirty_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/dirty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-saved-light-1x",
+      "state": "saved",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/light-1x.png"
+    },
+    {
+      "id": "screen-saved-light-2x",
+      "state": "saved",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/light-2x.png"
+    },
+    {
+      "id": "screen-saved-dark-1x",
+      "state": "saved",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/dark-1x.png"
+    },
+    {
+      "id": "screen-saved-dark-2x",
+      "state": "saved",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/dark-2x.png"
+    },
+    {
+      "id": "screen-saved-high-contrast-1x",
+      "state": "saved",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-saved-high-contrast-2x",
+      "state": "saved",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "saved_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/saved/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-save_error-light-1x",
+      "state": "save_error",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/light-1x.png"
+    },
+    {
+      "id": "screen-save_error-light-2x",
+      "state": "save_error",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/light-2x.png"
+    },
+    {
+      "id": "screen-save_error-dark-1x",
+      "state": "save_error",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/dark-1x.png"
+    },
+    {
+      "id": "screen-save_error-dark-2x",
+      "state": "save_error",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/dark-2x.png"
+    },
+    {
+      "id": "screen-save_error-high-contrast-1x",
+      "state": "save_error",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-save_error-high-contrast-2x",
+      "state": "save_error",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "save_error_fixture",
+      "platform": "macos",
+      "status": "captured_by_shortcut_editor_matrix",
+      "baseline": "shortcut-editor/save_error/high-contrast-2x.png"
+    }
+  ]
+}

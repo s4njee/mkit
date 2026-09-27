@@ -1,0 +1,16 @@
+[package]
+name = "mkit-registry-search-field"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+mkit-mirror = []
+
+[dependencies]
+gpui_pre.workspace = true
+mkit-core.workspace = true
+mkit-registry-text_field = { path = "../text-field" }
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }

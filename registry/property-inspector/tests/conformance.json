@@ -1,0 +1,545 @@
+{
+  "manifest_version": 1,
+  "component": "property-inspector",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Inspector is focused and a property row is active.",
+      "expected_behavior": "Move active property to the next visible enabled row, skipping collapsed groups and wrapping.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "state": "expanded",
+        "focus_target": "next_property"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Inspector is focused and a property row is active.",
+      "expected_behavior": "Move active property to the previous visible enabled row, skipping collapsed groups and wrapping.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "state": "expanded",
+        "focus_target": "previous_property"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "A boolean property row is active.",
+      "expected_behavior": "Request the opposite boolean value.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "event": "value_changed"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "r",
+        "modifiers": []
+      },
+      "precondition": "A property row is active and has a default value.",
+      "expected_behavior": "Request its default value.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "event": "value_changed"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-expanded",
+      "state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Property inspector"
+          },
+          {
+            "name": "row-role",
+            "value": "named group"
+          },
+          {
+            "name": "mixed-value",
+            "value": "represented by a mixed label and empty editor value"
+          },
+          {
+            "name": "collapsed",
+            "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "focus",
+            "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-collapsed",
+      "state": "collapsed",
+      "load_fixture": "collapsed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Property inspector"
+          },
+          {
+            "name": "row-role",
+            "value": "named group"
+          },
+          {
+            "name": "mixed-value",
+            "value": "represented by a mixed label and empty editor value"
+          },
+          {
+            "name": "collapsed",
+            "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "focus",
+            "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-mixed",
+      "state": "mixed",
+      "load_fixture": "mixed_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Property inspector"
+          },
+          {
+            "name": "row-role",
+            "value": "named group"
+          },
+          {
+            "name": "mixed-value",
+            "value": "represented by a mixed label and empty editor value"
+          },
+          {
+            "name": "collapsed",
+            "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "focus",
+            "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-edited",
+      "state": "edited",
+      "load_fixture": "edited_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Property inspector"
+          },
+          {
+            "name": "row-role",
+            "value": "named group"
+          },
+          {
+            "name": "mixed-value",
+            "value": "represented by a mixed label and empty editor value"
+          },
+          {
+            "name": "collapsed",
+            "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "focus",
+            "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "Property inspector"
+          },
+          {
+            "name": "row-role",
+            "value": "named group"
+          },
+          {
+            "name": "mixed-value",
+            "value": "represented by a mixed label and empty editor value"
+          },
+          {
+            "name": "disabled",
+            "value": true
+          },
+          {
+            "name": "collapsed",
+            "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "focus",
+            "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-expanded-light-1x",
+      "state": "expanded",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/light-1x.png"
+    },
+    {
+      "id": "screen-expanded-light-2x",
+      "state": "expanded",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/light-2x.png"
+    },
+    {
+      "id": "screen-expanded-dark-1x",
+      "state": "expanded",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/dark-1x.png"
+    },
+    {
+      "id": "screen-expanded-dark-2x",
+      "state": "expanded",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/dark-2x.png"
+    },
+    {
+      "id": "screen-expanded-high-contrast-1x",
+      "state": "expanded",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-expanded-high-contrast-2x",
+      "state": "expanded",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "expanded_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/expanded/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-collapsed-light-1x",
+      "state": "collapsed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/light-1x.png"
+    },
+    {
+      "id": "screen-collapsed-light-2x",
+      "state": "collapsed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/light-2x.png"
+    },
+    {
+      "id": "screen-collapsed-dark-1x",
+      "state": "collapsed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/dark-1x.png"
+    },
+    {
+      "id": "screen-collapsed-dark-2x",
+      "state": "collapsed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/dark-2x.png"
+    },
+    {
+      "id": "screen-collapsed-high-contrast-1x",
+      "state": "collapsed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-collapsed-high-contrast-2x",
+      "state": "collapsed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "collapsed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/collapsed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-mixed-light-1x",
+      "state": "mixed",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/light-1x.png"
+    },
+    {
+      "id": "screen-mixed-light-2x",
+      "state": "mixed",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/light-2x.png"
+    },
+    {
+      "id": "screen-mixed-dark-1x",
+      "state": "mixed",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/dark-1x.png"
+    },
+    {
+      "id": "screen-mixed-dark-2x",
+      "state": "mixed",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/dark-2x.png"
+    },
+    {
+      "id": "screen-mixed-high-contrast-1x",
+      "state": "mixed",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-mixed-high-contrast-2x",
+      "state": "mixed",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "mixed_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/mixed/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-edited-light-1x",
+      "state": "edited",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/light-1x.png"
+    },
+    {
+      "id": "screen-edited-light-2x",
+      "state": "edited",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/light-2x.png"
+    },
+    {
+      "id": "screen-edited-dark-1x",
+      "state": "edited",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/dark-1x.png"
+    },
+    {
+      "id": "screen-edited-dark-2x",
+      "state": "edited",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/dark-2x.png"
+    },
+    {
+      "id": "screen-edited-high-contrast-1x",
+      "state": "edited",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-edited-high-contrast-2x",
+      "state": "edited",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "edited_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/edited/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "property-inspector/disabled/high-contrast-2x.png"
+    }
+  ]
+}

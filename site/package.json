@@ -1,0 +1,22 @@
+{
+  "name": "mkit-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "content": "node scripts/generate-content.mjs && node scripts/generate-theme.mjs",
+    "predev": "npm run content",
+    "dev": "vite",
+    "prebuild": "npm run content",
+    "build": "vite build",
+    "preview": "vite preview",
+    "pretypecheck": "npm run content",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "highlight.js": "^11.12.0",
+    "marked": "^18.0.14",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  }
+}

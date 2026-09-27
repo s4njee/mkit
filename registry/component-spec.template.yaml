@@ -1,0 +1,22 @@
+# Canonical machine-readable front block for a component spec.
+# Keep in sync with docs/component-spec-template.md. E5.3 supplies the fixed theme/scale matrix.
+spec_version: 1
+component: component-name
+states:
+  - id: idle
+    description: Ready for interaction.
+    fixture: idle_fixture
+keys:
+  - key: Enter
+    modifiers: []
+    when: component is focused
+    action: Activate the component.
+    initial_state: idle
+    expect:
+      event: activate
+accessibility:
+  role: button
+  properties:
+    - name: aria-pressed
+      value: false
+      when: idle

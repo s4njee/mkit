@@ -1,0 +1,326 @@
+{
+  "children" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "＋ Add URL"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "▶ Resume"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Ⅱ Pause"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : false,
+                  "help" : "Unavailable",
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "✕ Remove"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Queues"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Settings"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Capture"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Filter downloads",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "All downloads, 8"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Downloading, 3"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Paused, 1"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Completed, 2"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Failed, 1"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "RPC host",
+                  "value" : "127.0.0.1"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "RPC port",
+                  "value" : "6800"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXSecureTextField",
+                  "title" : "RPC secret token",
+                  "value" : ""
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Max concurrent downloads",
+                  "value" : "3"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Connections per server",
+                  "value" : "16"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Minimum split size",
+                  "value" : "10M"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Global download limit",
+                  "value" : "25M"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "Disk cache",
+                  "value" : "64M"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXTextField",
+                  "subrole" : "AXUnknown",
+                  "title" : "File allocation",
+                  "value" : "falloc"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Apply"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Restart engine"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Light"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Dark"
+                },
+                {
+                  "children" : [
+
+                  ],
+                  "enabled" : true,
+                  "role" : "AXButton",
+                  "subrole" : "AXUnknown",
+                  "title" : "Paper"
+                }
+              ],
+              "enabled" : true,
+              "role" : "AXGroup",
+              "subrole" : "AXApplicationGroup"
+            }
+          ],
+          "enabled" : true,
+          "role" : "AXGroup",
+          "subrole" : "AXUnknown"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXCloseButton"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "children" : [
+
+                  ],
+                  "role" : "AXGroup"
+                }
+              ],
+              "role" : "AXGroup"
+            }
+          ],
+          "enabled" : true,
+          "help" : "this button also has an action to zoom the window",
+          "role" : "AXButton",
+          "subrole" : "AXFullScreenButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXButton",
+          "subrole" : "AXMinimizeButton"
+        },
+        {
+          "children" : [
+
+          ],
+          "enabled" : true,
+          "role" : "AXStaticText",
+          "value" : ""
+        }
+      ],
+      "role" : "AXWindow",
+      "subrole" : "AXStandardWindow",
+      "title" : ""
+    }
+  ],
+  "role" : "AXApplication",
+  "title" : "mkit-aria2-sample"
+}

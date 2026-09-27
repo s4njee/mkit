@@ -1,0 +1,16 @@
+[book]
+title = "The GPUI Book"
+authors = ["mkit contributors"]
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+additional-css = ["theme/version-banner.css"]
+
+[output.html.search]
+enable = true
+
+[preprocessor.version-banner]
+command = "node -e \"import(process.cwd().endsWith('book') ? './theme/version_banner.mjs' : './book/theme/version_banner.mjs')\""

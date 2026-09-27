@@ -1,0 +1,612 @@
+{
+  "manifest_version": 1,
+  "component": "radio-group",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "An enabled radio option is focused.",
+      "expected_behavior": "Select and focus the next enabled option, wrapping.",
+      "initial_state": "first_selected",
+      "load_fixture": "first_selected_fixture",
+      "assert": {
+        "state": "second_selected",
+        "event": "ChangeRequested(second)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "An enabled radio option is focused.",
+      "expected_behavior": "Select and focus the first enabled option.",
+      "initial_state": "second_selected",
+      "load_fixture": "second_selected_fixture",
+      "assert": {
+        "state": "first_selected",
+        "event": "ChangeRequested(first)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "An enabled radio option is focused.",
+      "expected_behavior": "Select and focus the last enabled option.",
+      "initial_state": "first_selected",
+      "load_fixture": "first_selected_fixture",
+      "assert": {
+        "state": "second_selected",
+        "event": "ChangeRequested(second)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "The group is disabled.",
+      "expected_behavior": "Keep selection and focus unchanged and emit no event.",
+      "initial_state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "assert": {
+        "state": "disabled",
+        "event": "none",
+        "focus_target": "none"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "A controlled group has its first option selected.",
+      "expected_behavior": "Request the second value and focus it without changing the controlled value.",
+      "initial_state": "controlled",
+      "load_fixture": "controlled_fixture",
+      "assert": {
+        "state": "first_selected",
+        "event": "ChangeRequested(second)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "The first enabled option is focused in a vertical group.",
+      "expected_behavior": "Wrap to the last enabled option, skipping the disabled option.",
+      "initial_state": "first_selected",
+      "load_fixture": "first_selected_fixture",
+      "assert": {
+        "state": "second_selected",
+        "event": "ChangeRequested(second)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "The group has no selection and its first enabled option is focused.",
+      "expected_behavior": "Select the focused option.",
+      "initial_state": "no_selection",
+      "load_fixture": "no_selection_fixture",
+      "assert": {
+        "state": "first_selected",
+        "event": "ChangeRequested(first)",
+        "focus_target": "radio"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "The first enabled option is focused in a horizontal group.",
+      "expected_behavior": "Select and focus the next enabled option, skipping the disabled option.",
+      "initial_state": "horizontal_first_selected",
+      "load_fixture": "horizontal_first_selected_fixture",
+      "assert": {
+        "state": "second_selected",
+        "event": "ChangeRequested(second)",
+        "focus_target": "radio"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-first_selected",
+      "state": "first_selected",
+      "load_fixture": "first_selected_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-second_selected",
+      "state": "second_selected",
+      "load_fixture": "second_selected_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled",
+      "state": "disabled",
+      "load_fixture": "disabled_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          },
+          {
+            "name": "aria-disabled",
+            "value": true
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-controlled",
+      "state": "controlled",
+      "load_fixture": "controlled_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-no_selection",
+      "state": "no_selection",
+      "load_fixture": "no_selection_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-horizontal_first_selected",
+      "state": "horizontal_first_selected",
+      "load_fixture": "horizontal_first_selected_fixture",
+      "expected_semantics": {
+        "role": "radiogroup",
+        "properties": [
+          {
+            "name": "aria-orientation",
+            "value": "vertical"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-first_selected-light-1x",
+      "state": "first_selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/light-1x.png"
+    },
+    {
+      "id": "screen-first_selected-light-2x",
+      "state": "first_selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/light-2x.png"
+    },
+    {
+      "id": "screen-first_selected-dark-1x",
+      "state": "first_selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/dark-1x.png"
+    },
+    {
+      "id": "screen-first_selected-dark-2x",
+      "state": "first_selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/dark-2x.png"
+    },
+    {
+      "id": "screen-first_selected-high-contrast-1x",
+      "state": "first_selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-first_selected-high-contrast-2x",
+      "state": "first_selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/first_selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-second_selected-light-1x",
+      "state": "second_selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/light-1x.png"
+    },
+    {
+      "id": "screen-second_selected-light-2x",
+      "state": "second_selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/light-2x.png"
+    },
+    {
+      "id": "screen-second_selected-dark-1x",
+      "state": "second_selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/dark-1x.png"
+    },
+    {
+      "id": "screen-second_selected-dark-2x",
+      "state": "second_selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/dark-2x.png"
+    },
+    {
+      "id": "screen-second_selected-high-contrast-1x",
+      "state": "second_selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-second_selected-high-contrast-2x",
+      "state": "second_selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "second_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/second_selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled-light-1x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/light-1x.png"
+    },
+    {
+      "id": "screen-disabled-light-2x",
+      "state": "disabled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/light-2x.png"
+    },
+    {
+      "id": "screen-disabled-dark-1x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled-dark-2x",
+      "state": "disabled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-1x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled-high-contrast-2x",
+      "state": "disabled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/disabled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-controlled-light-1x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/light-1x.png"
+    },
+    {
+      "id": "screen-controlled-light-2x",
+      "state": "controlled",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/light-2x.png"
+    },
+    {
+      "id": "screen-controlled-dark-1x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/dark-1x.png"
+    },
+    {
+      "id": "screen-controlled-dark-2x",
+      "state": "controlled",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/dark-2x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-1x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-controlled-high-contrast-2x",
+      "state": "controlled",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "controlled_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/controlled/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-no_selection-light-1x",
+      "state": "no_selection",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/light-1x.png"
+    },
+    {
+      "id": "screen-no_selection-light-2x",
+      "state": "no_selection",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/light-2x.png"
+    },
+    {
+      "id": "screen-no_selection-dark-1x",
+      "state": "no_selection",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/dark-1x.png"
+    },
+    {
+      "id": "screen-no_selection-dark-2x",
+      "state": "no_selection",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/dark-2x.png"
+    },
+    {
+      "id": "screen-no_selection-high-contrast-1x",
+      "state": "no_selection",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-no_selection-high-contrast-2x",
+      "state": "no_selection",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "no_selection_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/no_selection/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-light-1x",
+      "state": "horizontal_first_selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/light-1x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-light-2x",
+      "state": "horizontal_first_selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/light-2x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-dark-1x",
+      "state": "horizontal_first_selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/dark-1x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-dark-2x",
+      "state": "horizontal_first_selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/dark-2x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-high-contrast-1x",
+      "state": "horizontal_first_selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-horizontal_first_selected-high-contrast-2x",
+      "state": "horizontal_first_selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "horizontal_first_selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "radio-group/horizontal_first_selected/high-contrast-2x.png"
+    }
+  ]
+}

@@ -1,0 +1,619 @@
+{
+  "manifest_version": 1,
+  "component": "layer-panel",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "layer panel is focused",
+      "expected_behavior": "Move active row to the next visible row.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "ActiveChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "layer panel is focused",
+      "expected_behavior": "Move active row to the previous visible row.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "ActiveChanged"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "active row is a collapsed group",
+      "expected_behavior": "Expand the active group.",
+      "initial_state": "collapsed-group",
+      "load_fixture": "collapsed_group_fixture",
+      "assert": {
+        "event": "GroupExpandedChanged"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "active row is an expanded group",
+      "expected_behavior": "Collapse the active group.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "GroupExpandedChanged"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": [
+          "Alt"
+        ]
+      },
+      "precondition": "active row has a preceding sibling",
+      "expected_behavior": "Move the active row before its preceding sibling.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "ReorderRequested"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": [
+          "Alt"
+        ]
+      },
+      "precondition": "active row has a following sibling",
+      "expected_behavior": "Move the active row after its following sibling.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "ReorderRequested"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "a layer row is active",
+      "expected_behavior": "Toggle layer visibility.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "VisibilityChanged"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "l",
+        "modifiers": []
+      },
+      "precondition": "a layer row is active",
+      "expected_behavior": "Toggle layer lock.",
+      "initial_state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "assert": {
+        "event": "LockChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-mixed-tree",
+      "state": "mixed-tree",
+      "load_fixture": "mixed_tree_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected-layer",
+      "state": "selected-layer",
+      "load_fixture": "selected_layer_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-collapsed-group",
+      "state": "collapsed-group",
+      "load_fixture": "collapsed_group_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-reordered",
+      "state": "reordered",
+      "load_fixture": "reordered_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-dragging",
+      "state": "dragging",
+      "load_fixture": "dragging_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-mixed-tree-light-1x",
+      "state": "mixed-tree",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/light-1x.png"
+    },
+    {
+      "id": "screen-mixed-tree-light-2x",
+      "state": "mixed-tree",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/light-2x.png"
+    },
+    {
+      "id": "screen-mixed-tree-dark-1x",
+      "state": "mixed-tree",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/dark-1x.png"
+    },
+    {
+      "id": "screen-mixed-tree-dark-2x",
+      "state": "mixed-tree",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/dark-2x.png"
+    },
+    {
+      "id": "screen-mixed-tree-high-contrast-1x",
+      "state": "mixed-tree",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-mixed-tree-high-contrast-2x",
+      "state": "mixed-tree",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "mixed_tree_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/mixed-tree/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-layer-light-1x",
+      "state": "selected-layer",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/light-1x.png"
+    },
+    {
+      "id": "screen-selected-layer-light-2x",
+      "state": "selected-layer",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/light-2x.png"
+    },
+    {
+      "id": "screen-selected-layer-dark-1x",
+      "state": "selected-layer",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-layer-dark-2x",
+      "state": "selected-layer",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-layer-high-contrast-1x",
+      "state": "selected-layer",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-layer-high-contrast-2x",
+      "state": "selected-layer",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_layer_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/selected-layer/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-collapsed-group-light-1x",
+      "state": "collapsed-group",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/light-1x.png"
+    },
+    {
+      "id": "screen-collapsed-group-light-2x",
+      "state": "collapsed-group",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/light-2x.png"
+    },
+    {
+      "id": "screen-collapsed-group-dark-1x",
+      "state": "collapsed-group",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/dark-1x.png"
+    },
+    {
+      "id": "screen-collapsed-group-dark-2x",
+      "state": "collapsed-group",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/dark-2x.png"
+    },
+    {
+      "id": "screen-collapsed-group-high-contrast-1x",
+      "state": "collapsed-group",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-collapsed-group-high-contrast-2x",
+      "state": "collapsed-group",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "collapsed_group_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/collapsed-group/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-reordered-light-1x",
+      "state": "reordered",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/light-1x.png"
+    },
+    {
+      "id": "screen-reordered-light-2x",
+      "state": "reordered",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/light-2x.png"
+    },
+    {
+      "id": "screen-reordered-dark-1x",
+      "state": "reordered",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/dark-1x.png"
+    },
+    {
+      "id": "screen-reordered-dark-2x",
+      "state": "reordered",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/dark-2x.png"
+    },
+    {
+      "id": "screen-reordered-high-contrast-1x",
+      "state": "reordered",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-reordered-high-contrast-2x",
+      "state": "reordered",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "reordered_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/reordered/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-dragging-light-1x",
+      "state": "dragging",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/light-1x.png"
+    },
+    {
+      "id": "screen-dragging-light-2x",
+      "state": "dragging",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/light-2x.png"
+    },
+    {
+      "id": "screen-dragging-dark-1x",
+      "state": "dragging",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/dark-1x.png"
+    },
+    {
+      "id": "screen-dragging-dark-2x",
+      "state": "dragging",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/dark-2x.png"
+    },
+    {
+      "id": "screen-dragging-high-contrast-1x",
+      "state": "dragging",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-dragging-high-contrast-2x",
+      "state": "dragging",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "dragging_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/dragging/high-contrast-2x.png"
+    }
+  ]
+}

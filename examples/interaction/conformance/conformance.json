@@ -1,0 +1,194 @@
+{
+  "manifest_version": 1,
+  "component": "overlay-dismissal-smoke",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "Escape",
+        "modifiers": []
+      },
+      "precondition": "Nested overlays are open.",
+      "expected_behavior": "Dismiss only the topmost overlay.",
+      "initial_state": "nested_open",
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "assert": {
+        "state": "outer_open",
+        "event": "dismiss_top"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "E",
+        "modifiers": [
+          "Control"
+        ]
+      },
+      "precondition": "Nested overlays are open and the app has rebound dismissal to Ctrl+E.",
+      "expected_behavior": "Dismiss only the topmost overlay.",
+      "initial_state": "nested_open",
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "assert": {
+        "state": "outer_open",
+        "event": "dismiss_top"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-nested_open",
+      "state": "nested_open",
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "expected_semantics": {
+        "role": "GenericContainer",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-outer_open",
+      "state": "outer_open",
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "expected_semantics": {
+        "role": "GenericContainer",
+        "properties": []
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-nested_open-light-1x",
+      "state": "nested_open",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/light-1x.png"
+    },
+    {
+      "id": "screen-nested_open-light-2x",
+      "state": "nested_open",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/light-2x.png"
+    },
+    {
+      "id": "screen-nested_open-dark-1x",
+      "state": "nested_open",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/dark-1x.png"
+    },
+    {
+      "id": "screen-nested_open-dark-2x",
+      "state": "nested_open",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/dark-2x.png"
+    },
+    {
+      "id": "screen-nested_open-high-contrast-1x",
+      "state": "nested_open",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-nested_open-high-contrast-2x",
+      "state": "nested_open",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture::nested_open",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/nested_open/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-outer_open-light-1x",
+      "state": "outer_open",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/light-1x.png"
+    },
+    {
+      "id": "screen-outer_open-light-2x",
+      "state": "outer_open",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/light-2x.png"
+    },
+    {
+      "id": "screen-outer_open-dark-1x",
+      "state": "outer_open",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/dark-1x.png"
+    },
+    {
+      "id": "screen-outer_open-dark-2x",
+      "state": "outer_open",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/dark-2x.png"
+    },
+    {
+      "id": "screen-outer_open-high-contrast-1x",
+      "state": "outer_open",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-outer_open-high-contrast-2x",
+      "state": "outer_open",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "OverlayDismissalFixture after one top-layer dismissal",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "overlay-dismissal-smoke/outer_open/high-contrast-2x.png"
+    }
+  ]
+}

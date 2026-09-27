@@ -1,0 +1,589 @@
+{
+  "manifest_version": 1,
+  "component": "data-table",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move active cell down one data row, retaining its column and clamping at the last row.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move active cell up one data row, retaining its column and clamping at the first row.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move right one column in the current row, clamped at the last column.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move left one column in the current row, clamped at the first column.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move to the first column in the active row.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Move to the last column in the active row.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "ActiveCellChanged"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "table is focused",
+      "expected_behavior": "Sort the active sortable header or toggle selection of the active data row.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "table is focused on an active sortable header",
+      "expected_behavior": "Sort that column in ascending order on first activation.",
+      "initial_state": "active-header",
+      "load_fixture": "active_header_fixture",
+      "assert": {
+        "event": "SortChanged"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "table is focused on an active data row",
+      "expected_behavior": "Toggle the active data row selection regardless of activation mode.",
+      "initial_state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "assert": {
+        "event": "SelectionChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-idle",
+      "state": "idle",
+      "load_fixture": "idle_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "aria-rowcount",
+            "value": "row count plus header"
+          },
+          {
+            "name": "aria-columncount",
+            "value": "column count"
+          },
+          {
+            "name": "rows-and-cells",
+            "value": "data rows have row role, a name formed from their cell values, and selection state; each cell has gridcell role and a name combining its column label and cell value"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-sorted",
+      "state": "sorted",
+      "load_fixture": "sorted_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "aria-rowcount",
+            "value": "row count plus header"
+          },
+          {
+            "name": "aria-columncount",
+            "value": "column count"
+          },
+          {
+            "name": "rows-and-cells",
+            "value": "data rows have row role, a name formed from their cell values, and selection state; each cell has gridcell role and a name combining its column label and cell value"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-selected",
+      "state": "selected",
+      "load_fixture": "selected_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "aria-rowcount",
+            "value": "row count plus header"
+          },
+          {
+            "name": "aria-columncount",
+            "value": "column count"
+          },
+          {
+            "name": "rows-and-cells",
+            "value": "data rows have row role, a name formed from their cell values, and selection state; each cell has gridcell role and a name combining its column label and cell value"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-active-cell",
+      "state": "active-cell",
+      "load_fixture": "active_cell_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "aria-rowcount",
+            "value": "row count plus header"
+          },
+          {
+            "name": "aria-columncount",
+            "value": "column count"
+          },
+          {
+            "name": "rows-and-cells",
+            "value": "data rows have row role, a name formed from their cell values, and selection state; each cell has gridcell role and a name combining its column label and cell value"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-active-header",
+      "state": "active-header",
+      "load_fixture": "active_header_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "accessible-name",
+            "value": "component label"
+          },
+          {
+            "name": "aria-rowcount",
+            "value": "row count plus header"
+          },
+          {
+            "name": "aria-columncount",
+            "value": "column count"
+          },
+          {
+            "name": "rows-and-cells",
+            "value": "data rows have row role, a name formed from their cell values, and selection state; each cell has gridcell role and a name combining its column label and cell value"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-idle-light-1x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/light-1x.png"
+    },
+    {
+      "id": "screen-idle-light-2x",
+      "state": "idle",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/light-2x.png"
+    },
+    {
+      "id": "screen-idle-dark-1x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/dark-1x.png"
+    },
+    {
+      "id": "screen-idle-dark-2x",
+      "state": "idle",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/dark-2x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-1x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-idle-high-contrast-2x",
+      "state": "idle",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "idle_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/idle/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-sorted-light-1x",
+      "state": "sorted",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/light-1x.png"
+    },
+    {
+      "id": "screen-sorted-light-2x",
+      "state": "sorted",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/light-2x.png"
+    },
+    {
+      "id": "screen-sorted-dark-1x",
+      "state": "sorted",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/dark-1x.png"
+    },
+    {
+      "id": "screen-sorted-dark-2x",
+      "state": "sorted",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/dark-2x.png"
+    },
+    {
+      "id": "screen-sorted-high-contrast-1x",
+      "state": "sorted",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-sorted-high-contrast-2x",
+      "state": "sorted",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "sorted_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/sorted/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-selected-light-1x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/light-1x.png"
+    },
+    {
+      "id": "screen-selected-light-2x",
+      "state": "selected",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/light-2x.png"
+    },
+    {
+      "id": "screen-selected-dark-1x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/dark-1x.png"
+    },
+    {
+      "id": "screen-selected-dark-2x",
+      "state": "selected",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/dark-2x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-1x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-selected-high-contrast-2x",
+      "state": "selected",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "selected_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/selected/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-active-cell-light-1x",
+      "state": "active-cell",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/light-1x.png"
+    },
+    {
+      "id": "screen-active-cell-light-2x",
+      "state": "active-cell",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/light-2x.png"
+    },
+    {
+      "id": "screen-active-cell-dark-1x",
+      "state": "active-cell",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/dark-1x.png"
+    },
+    {
+      "id": "screen-active-cell-dark-2x",
+      "state": "active-cell",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/dark-2x.png"
+    },
+    {
+      "id": "screen-active-cell-high-contrast-1x",
+      "state": "active-cell",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-active-cell-high-contrast-2x",
+      "state": "active-cell",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "active_cell_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-cell/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-active-header-light-1x",
+      "state": "active-header",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/light-1x.png"
+    },
+    {
+      "id": "screen-active-header-light-2x",
+      "state": "active-header",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/light-2x.png"
+    },
+    {
+      "id": "screen-active-header-dark-1x",
+      "state": "active-header",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/dark-1x.png"
+    },
+    {
+      "id": "screen-active-header-dark-2x",
+      "state": "active-header",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/dark-2x.png"
+    },
+    {
+      "id": "screen-active-header-high-contrast-1x",
+      "state": "active-header",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-active-header-high-contrast-2x",
+      "state": "active-header",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "active_header_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "data-table/active-header/high-contrast-2x.png"
+    }
+  ]
+}

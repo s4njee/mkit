@@ -1,0 +1,607 @@
+{
+  "manifest_version": 1,
+  "component": "calendar",
+  "source_spec_version": 1,
+  "adapter_contract": {
+    "fixture": "Provide each declared state fixture; load the initial_state fixture before dispatch.",
+    "keyboard": "Dispatch the key with modifiers, then assert every field in the case's assert mapping.",
+    "accessibility": "Capture the actual platform accessibility tree and compare declared semantics.",
+    "screenshots": "Render each state/theme/scale case and compare its named baseline.",
+    "custom_tests": null
+  },
+  "keyboard_cases": [
+    {
+      "id": "keyboard-01",
+      "dispatch": {
+        "key": "ArrowRight",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move active day forward one civil day, skipping unavailable dates.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    },
+    {
+      "id": "keyboard-02",
+      "dispatch": {
+        "key": "ArrowLeft",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move active day backward one civil day, skipping unavailable dates.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    },
+    {
+      "id": "keyboard-03",
+      "dispatch": {
+        "key": "ArrowDown",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move active day forward one week, skipping unavailable dates.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    },
+    {
+      "id": "keyboard-04",
+      "dispatch": {
+        "key": "ArrowUp",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move active day backward one week, skipping unavailable dates.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "PageDown",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move displayed month forward, clamping day to month length.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "PageUp",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move displayed month backward, clamping day to month length.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-07",
+      "dispatch": {
+        "key": "PageDown",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move displayed year forward, clamping day to month length.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-08",
+      "dispatch": {
+        "key": "PageUp",
+        "modifiers": [
+          "Shift"
+        ]
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move displayed year backward, clamping day to month length.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ViewChanged"
+      }
+    },
+    {
+      "id": "keyboard-09",
+      "dispatch": {
+        "key": "Home",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move to first selectable date in the current locale-defined week.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    },
+    {
+      "id": "keyboard-10",
+      "dispatch": {
+        "key": "End",
+        "modifiers": []
+      },
+      "precondition": "Calendar grid has focus.",
+      "expected_behavior": "Move to last selectable date in the current locale-defined week.",
+      "initial_state": "empty",
+      "load_fixture": "empty_fixture",
+      "assert": {
+        "event": "ActiveDateChanged"
+      }
+    }
+  ],
+  "accessibility_cases": [
+    {
+      "id": "a11y-single",
+      "state": "single",
+      "load_fixture": "single_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Caller-supplied calendar label"
+          },
+          {
+            "name": "selected",
+            "value": "true on selected date cells"
+          },
+          {
+            "name": "disabled",
+            "value": "true on out-of-bounds or app-disabled dates"
+          },
+          {
+            "name": "focused",
+            "value": "Exactly the active date cell"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-range_start",
+      "state": "range_start",
+      "load_fixture": "range_start_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Caller-supplied calendar label"
+          },
+          {
+            "name": "selected",
+            "value": "true on selected date cells"
+          },
+          {
+            "name": "disabled",
+            "value": "true on out-of-bounds or app-disabled dates"
+          },
+          {
+            "name": "focused",
+            "value": "Exactly the active date cell"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-range_complete",
+      "state": "range_complete",
+      "load_fixture": "range_complete_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Caller-supplied calendar label"
+          },
+          {
+            "name": "selected",
+            "value": "true on selected date cells"
+          },
+          {
+            "name": "disabled",
+            "value": "true on out-of-bounds or app-disabled dates"
+          },
+          {
+            "name": "focused",
+            "value": "Exactly the active date cell"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-empty",
+      "state": "empty",
+      "load_fixture": "empty_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Caller-supplied calendar label"
+          },
+          {
+            "name": "selected",
+            "value": "true on selected date cells"
+          },
+          {
+            "name": "disabled",
+            "value": "true on out-of-bounds or app-disabled dates"
+          },
+          {
+            "name": "focused",
+            "value": "Exactly the active date cell"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-disabled_day",
+      "state": "disabled_day",
+      "load_fixture": "disabled_day_fixture",
+      "expected_semantics": {
+        "role": "grid",
+        "properties": [
+          {
+            "name": "label",
+            "value": "Caller-supplied calendar label"
+          },
+          {
+            "name": "selected",
+            "value": "true on selected date cells"
+          },
+          {
+            "name": "disabled",
+            "value": "true on out-of-bounds or app-disabled dates"
+          },
+          {
+            "name": "focused",
+            "value": "Exactly the active date cell"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    }
+  ],
+  "screenshot_cases": [
+    {
+      "id": "screen-single-light-1x",
+      "state": "single",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/light-1x.png"
+    },
+    {
+      "id": "screen-single-light-2x",
+      "state": "single",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/light-2x.png"
+    },
+    {
+      "id": "screen-single-dark-1x",
+      "state": "single",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/dark-1x.png"
+    },
+    {
+      "id": "screen-single-dark-2x",
+      "state": "single",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/dark-2x.png"
+    },
+    {
+      "id": "screen-single-high-contrast-1x",
+      "state": "single",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-single-high-contrast-2x",
+      "state": "single",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "single_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/single/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-range_start-light-1x",
+      "state": "range_start",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/light-1x.png"
+    },
+    {
+      "id": "screen-range_start-light-2x",
+      "state": "range_start",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/light-2x.png"
+    },
+    {
+      "id": "screen-range_start-dark-1x",
+      "state": "range_start",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/dark-1x.png"
+    },
+    {
+      "id": "screen-range_start-dark-2x",
+      "state": "range_start",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/dark-2x.png"
+    },
+    {
+      "id": "screen-range_start-high-contrast-1x",
+      "state": "range_start",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-range_start-high-contrast-2x",
+      "state": "range_start",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "range_start_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_start/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-range_complete-light-1x",
+      "state": "range_complete",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/light-1x.png"
+    },
+    {
+      "id": "screen-range_complete-light-2x",
+      "state": "range_complete",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/light-2x.png"
+    },
+    {
+      "id": "screen-range_complete-dark-1x",
+      "state": "range_complete",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/dark-1x.png"
+    },
+    {
+      "id": "screen-range_complete-dark-2x",
+      "state": "range_complete",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/dark-2x.png"
+    },
+    {
+      "id": "screen-range_complete-high-contrast-1x",
+      "state": "range_complete",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-range_complete-high-contrast-2x",
+      "state": "range_complete",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "range_complete_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/range_complete/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-empty-light-1x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/light-1x.png"
+    },
+    {
+      "id": "screen-empty-light-2x",
+      "state": "empty",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/light-2x.png"
+    },
+    {
+      "id": "screen-empty-dark-1x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/dark-1x.png"
+    },
+    {
+      "id": "screen-empty-dark-2x",
+      "state": "empty",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/dark-2x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-1x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-empty-high-contrast-2x",
+      "state": "empty",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "empty_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/empty/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-disabled_day-light-1x",
+      "state": "disabled_day",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/light-1x.png"
+    },
+    {
+      "id": "screen-disabled_day-light-2x",
+      "state": "disabled_day",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/light-2x.png"
+    },
+    {
+      "id": "screen-disabled_day-dark-1x",
+      "state": "disabled_day",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/dark-1x.png"
+    },
+    {
+      "id": "screen-disabled_day-dark-2x",
+      "state": "disabled_day",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/dark-2x.png"
+    },
+    {
+      "id": "screen-disabled_day-high-contrast-1x",
+      "state": "disabled_day",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-disabled_day-high-contrast-2x",
+      "state": "disabled_day",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "disabled_day_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "calendar/disabled_day/high-contrast-2x.png"
+    }
+  ]
+}
