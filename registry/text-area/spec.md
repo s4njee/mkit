@@ -156,7 +156,52 @@ The input canvas supplies hit-test and range callbacks using GPUI wrapped text l
 The root requests AccessKit `MultilineTextInput` with an accessible label and exposes the current editor text as its accessible value; placeholder text is not the value. This role maps to a native text area on macOS. It sets a description from the validation message, or from the ordinary description when there is no validation message, and requests invalid/disabled state as applicable. The generated accessibility cases are pending active platform snapshots.
 
 ## Theme tokens used
-Rendering reads `Theme.colors.surface`, `text`, `text_muted`, `border`, `focus`, `danger`, `accent`, and `accent_text`; `spacing.xsmall/small/medium`, `controls.large`, `radii.medium`, `borders.strong`, and `typography.heading`. The root and editor use `w_full()` so the area fills its parent width. Focus changes border color. The editor height is fixed at `controls.large * 3`; the one-pixel border and `FIELD_TEXT_INSET = 12` used for hit testing and candidate bounds are fixed values. The inset should become a spacing token or be justified and checked against the render inset.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-textarea` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and the shadcn/ui
+`Textarea`, and uses the same colour rules as Text field. `high-contrast` is selected by theme name;
+every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`,
+otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Input" below is shadcn's
+`--input`: `border` in light themes and `text` at 15% in dark themes, as in the site token mapping.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Editor fill | `background` (shadcn's transparent fill, made opaque) | `text` at 4.5% over `background` (shadcn `dark:bg-input/30`) | `background` |
+| Border | input (`border`) | input (`text` at 15%) | `border` |
+| Value text | `text` | `text` | `text` |
+| Placeholder | `text_muted` | `text_muted` | `text_muted` |
+| Resting shadow | `shadows.small` (shadcn `shadow-xs`) | `shadows.small` | none (`shadows.small` is transparent in this theme) |
+| Keyboard focus or IME composition | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Invalid | border `danger` plus a 3px ring of `danger` at 20%, shown whether or not focused (the web preview's `aria-invalid` style) | same with the ring at 40% (shadcn `dark:aria-invalid:ring-destructive/40`) | border `danger`; focus still adds the opaque `focus` ring |
+| Selection | `accent` fill, `accent_text` text (shadcn `selection:bg-primary`) | same | same |
+| Caret and IME underline | `accent` | `accent` | `accent` |
+| Validation message | `danger` | `danger` | `danger` |
+| Disabled | fill, border, value, and placeholder at 50% over `background`; shadow alpha halved | same | `background` fill, `disabled` border, value, and placeholder |
+
+- **Rings and shadows.** The ring replaces the resting shadow, as in CSS. GPUI paints drop shadows as
+  filled shapes that are not clipped to the element's outside, so the editor fill is always opaque.
+  Ring corners use the editor radius rather than CSS's radius-plus-spread.
+- **Disabled.** The web preview's `opacity: .5` applies to the textarea as one layer. GPUI element
+  opacity dims each painted part separately, so each colour is instead composited opaque over
+  `background` and mixed 50% with it. High contrast keeps solid colours so the value stays legible.
+  The validation message is outside the editor and is not dimmed.
+- **Geometry.** Padding is `spacing.medium` horizontally and `spacing.small` vertically (12px and
+  8px, shadcn `px-3 py-2`), with a `borders.regular` border (1px; 2px in high contrast) and radius
+  `radii.medium` (shadcn `rounded-md`). The editor keeps its fixed `controls.large * 3` (120px)
+  height with vertical scrolling rather than shadcn's growing `min-h-16`, so scroll-to-caret
+  behaviour and embedding layouts are unchanged; 120px exceeds both shadcn's 64px minimum and the
+  web preview's 80px minimum. The root and editor use `w_full()`, and the validation message sits
+  `spacing.small` (8px, the web preview's `.ui-field` gap) below the editor. `FIELD_TEXT_INSET = 12`
+  (equal to `spacing.medium` in every built-in theme) is used for wrapping width, hit testing, and
+  candidate bounds; it should become the spacing token and be checked against the render inset.
+- **Text.** The value, placeholder, and validation message use `typography.body` (14px, shadcn
+  `text-sm`); the web preview's 13px error text has no token. The size is applied explicitly and the
+  same size and line height are used to shape and wrap text for visual rows, pointer hit testing,
+  caret scrolling, and IME candidate bounds, so geometry does not depend on the inherited text style
+  where a platform callback runs. Line height is GPUI's default relative line height at that size.
+- **Caret.** A `borders.hairline` wide bar (1px like a browser caret; 2px in high contrast) that is
+  `typography.heading` (20px) tall. The IME composition underline is `borders.strong` thick. The 3px
+  focus ring is the shadcn/ui ring width, a fixed component value.
 
 ## WAI-ARIA pattern reference
 Follow textbox role guidance. The multiline role, line-aware rendering, and caret scrolling require platform verification.

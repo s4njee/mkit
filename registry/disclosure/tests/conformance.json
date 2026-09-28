@@ -54,6 +54,14 @@
           {
             "name": "panel",
             "value": "stable content id"
+          },
+          {
+            "name": "controls",
+            "value": "not emitted; pinned GPUI exposes no element-to-element relation API"
+          },
+          {
+            "name": "motion",
+            "value": "optional panel fade from theme Open duration; none when motion is reduced"
           }
         ]
       },
@@ -71,6 +79,14 @@
           {
             "name": "panel",
             "value": "stable content id"
+          },
+          {
+            "name": "controls",
+            "value": "not emitted; pinned GPUI exposes no element-to-element relation API"
+          },
+          {
+            "name": "motion",
+            "value": "optional panel fade from theme Open duration; none when motion is reduced"
           }
         ]
       },
@@ -88,6 +104,14 @@
           {
             "name": "panel",
             "value": "stable content id"
+          },
+          {
+            "name": "controls",
+            "value": "not emitted; pinned GPUI exposes no element-to-element relation API"
+          },
+          {
+            "name": "motion",
+            "value": "optional panel fade from theme Open duration; none when motion is reduced"
           },
           {
             "name": "disabled",

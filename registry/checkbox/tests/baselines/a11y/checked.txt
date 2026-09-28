@@ -1,0 +1,2 @@
+Window
+  CheckBox name="Remember me" toggled=True actions=[Click, Focus]

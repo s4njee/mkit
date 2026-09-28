@@ -1,6 +1,6 @@
 # Laika seeds
 
-Laika is the first production-style consumer of mkit components. Its slider, histogram, and segmented-control surfaces adopt the registry versions while Laika keeps its edit semantics, palette, and layout. This is an E8.14 draft: the histogram mount and the theme bridge are wired, and the slider and segmented-control migration is blocked on adapter work described below.
+Laika is the first production-style consumer of mkit components. Its slider, histogram, and segmented-control surfaces adopt the registry versions while Laika keeps its edit semantics, palette, and layout. This is a draft: the histogram mount and the theme bridge are wired, and the slider and segmented-control migration is blocked on adapter work described below.
 
 ## Migration contract
 

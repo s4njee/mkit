@@ -4053,6 +4053,7 @@ dependencies = [
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
+ "serde_json",
  "windows 0.62.2",
 ]
 
@@ -4060,9 +4061,11 @@ dependencies = [
 name = "mkit-harness"
 version = "0.1.0"
 dependencies = [
+ "futures-channel",
  "gpui-pre",
  "gpui-pre-platform",
  "image",
+ "raw-window-handle",
 ]
 
 [[package]]

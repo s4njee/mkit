@@ -61,7 +61,7 @@ A labeled progress header shows the ordered step labels, completed/current/upcom
 
 ## Keyboard map
 
-Tab order follows the active step's host content, then enabled Back and Next/Finish controls according to host layout. Navigation buttons use ordinary button behavior: Enter and Space activate them. The step progress header is informational, not a tablist; arrow keys do not change steps. The component registers a `Stepper` key context with rebindable Next, Back, and Finish actions. Disabled actions are absent from tab order.
+Tab order follows the active step's host content, then enabled Back and Next/Finish controls according to host layout. Both enabled navigation buttons are Tab stops in rendered order (Back before Next/Finish) at the default tab index, so they join the surrounding window or container order rather than jumping ahead of or behind it. Navigation buttons use ordinary button behavior: Enter and Space activate them. The step progress header is informational, not a tablist; arrow keys do not change steps. The component registers a `Stepper` key context with rebindable Next, Back, and Finish actions; Alt+Left (Back) and Alt+Right (Next, or Finish on the last step) work while either navigation button has focus. The Stepper binds no Escape, Tab, or Shift+Tab action, so those keys reach the host or container. Disabled actions are absent from tab order.
 
 ## Pointer behaviour
 
@@ -81,10 +81,22 @@ There is no dedicated APG stepper pattern. Use labeled group, ordered-list progr
 
 ## Platform notes
 
-Keyboard activation and AccessKit roles/properties are provided by GPUI. The validation callback is synchronous in this draft; async or server-backed validation must be coordinated by the host before updating the controlled current step. The same component may be placed inside existing Dialog and Sheet containers; focus trapping and dismissal remain those containers' responsibilities.
+Keyboard activation and AccessKit roles/properties are provided by GPUI. The validation callback is synchronous in this draft; async or server-backed validation must be coordinated by the host before updating the controlled current step. The same component may be placed inside existing Dialog and Sheet containers; focus trapping and dismissal remain those containers' responsibilities. `Focusable::focus_handle` returns the Next/Finish handle and is valid before the first render, so hosts can pass it to a container's explicit focus stops at construction.
+
+## Composition in Dialog and Sheet
+
+The host owns the composition: it creates the `Entity<Stepper>` and the active step's content, passes both to `Dialog::with_content` or `Sheet::with_content`, and decides what closing and finishing mean. Registry crates do not depend on each other; the composition lives in `examples/e7_compositions`.
+
+- Focus containment belongs to the container. Inside Dialog (no explicit stops), Tab and Shift+Tab follow rendered order across the surface, step content, Back, and Next/Finish, and wrap to the surface at either edge. Sheet traps Tab among explicit stops fixed at construction; hosts pass the step content handles and `stepper.focus_handle(cx)`. Back appears only after the first step, so it cannot be a fixed Sheet stop; it stays reachable with Alt+Left and pointer, and Tab or Shift+Tab from Back re-enters the stop list.
+- Escape is not bound by Stepper, so it reaches the container's `Dismiss` action from any stepper button or step content. Dismissal emits the container's `OpenChanged(false)` and no `StepChangeRequested`.
+- Stepper state is host-owned. Dismissal does not reset, validate, or drop the stepper; reopening shows the same step unless the host calls `set_current_step` (or supplies a new controlled index). Finish emits `StepChangeRequested { kind: Finish }`; closing the container after Finish is a host decision.
+- Back/Next/Finish, Enter, Space, and Alt+Left/Right behave the same inside either container, and focus moves to the surviving navigation button when Back disappears.
+
+Evidence: `cargo test -p mkit-example-e7-compositions --test stepper_in_modal` checks focus after every Tab/Shift+Tab press, Escape from stepper buttons and step content, focus restoration, preserved step after reopen, and host-initiated close after Finish, in both containers. Container gaps recorded for maintainer review: Dialog Shift+Tab from its surface stays on the surface instead of wrapping to the last control, and Sheet has neither a rendered-order fallback nor a way to update focus stops after construction.
 
 ## Open questions
 
 - Maintainers should review whether synchronous validation belongs in the component API or should remain exclusively host-owned.
 - Confirm the public Step/status representation and whether direct jumps among completed steps are needed.
 - Verify current-step/position semantics and polite error timing with native screen readers.
+- Decide whether Sheet should gain Dialog's rendered-order Tab fallback or updatable focus stops so a conditionally rendered Back can be a Sheet Tab stop, and whether Dialog Shift+Tab from its surface should wrap to the last control.

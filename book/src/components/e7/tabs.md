@@ -1,6 +1,6 @@
 # Tabs
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 Tabs switch among related panels within one part of a screen. Moving keyboard focus does not change the selected panel until the person activates a tab.
 
@@ -38,12 +38,12 @@ Tablist with accessible label and orientation; each item is Tab with selected st
 
 ## Theme
 
-Theme surface, text, muted text, border, accent, accent text, focus, disabled; spacing, borders, radii, controls, typography tokens.
+Tabs follow the shadcn/ui look: a borderless, rounded track filled with a muted mix of text over background, and the selected tab as a raised pill (background fill with a small shadow in light themes; a 15% text fill and border in dark themes). Unselected labels use muted text, disabled tabs render at 50% opacity, and keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps a bordered track, an accent-filled selected tab, and an opaque focus ring. Colours, radii, spacing, control height, and typography come from theme tokens; the spec's theme table lists each mapping.
 
 ## Verification and limits
 
 Nine generated keyboard cases pass through a real GPUI adapter, covering arrow movement with wrapping, Home and End, and Enter/Space activation; three package tests pass alongside them. The screenshot matrix passes 36/36 comparisons across six states, three themes, and two scales.
 
-The app owns panel content and its relationship to each tab; active-platform panel relationships need verification. The generated accessibility cases are pending because the headless GPUI test platform does not activate the accessibility tree. The full E5 conformance matrix and maintainer API, spec, and visual review are outstanding.
+The app owns panel content and its relationship to each tab; active-platform panel relationships need verification. The generated accessibility cases are pending because the headless GPUI test platform does not activate the accessibility tree. The full conformance matrix and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/tabs/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/tabs/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

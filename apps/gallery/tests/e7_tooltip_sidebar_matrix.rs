@@ -13,6 +13,7 @@ use serde_json::Value;
 use std::{fs, path::PathBuf};
 
 const SIZE: (f32, f32) = (480.0, 220.0);
+const SIDEBAR_PANE_WIDTH: f32 = 192.0;
 
 struct TooltipFixture {
     state: &'static str,
@@ -106,7 +107,9 @@ impl Render for SidebarFixture {
                     .child("Sidebar"),
             )
             .child(div().text_color(theme.colors.text_muted).child(state.to_owned()))
-            .child(sidebar.clone())
+            // The owner sizes a sidebar pane; this matches the docs-site web
+            // preview's 190px column rounded up to the 8px spacing grid.
+            .child(div().flex().flex_col().w(px(SIDEBAR_PANE_WIDTH)).child(sidebar.clone()))
     }
 }
 
@@ -164,10 +167,11 @@ fn capture_sidebar(
             cx.bind_keys(mkit::sidebar::default_key_bindings());
         },
     )?;
-    // Click Projects in the fixed vertical fixture. The disabled fixture proves
+    // Click the centre of Projects (the second 32px row below the 8px pane
+    // padding) in the fixed vertical fixture. The disabled fixture proves
     // disabled links ignore the same pointer activation.
     session.update(|_, window, cx| {
-        let position = point(px(58.0), px(157.0));
+        let position = point(px(58.0), px(152.0));
         let _ = window.dispatch_event(
             MouseDownEvent {
                 position,

@@ -117,7 +117,7 @@ Search and run actions registered by the host application. The visual reference 
 ## Anatomy
 
 - A centered dialog surface containing an editable search field and a result list.
-- Each result shows its action label, optional group, and optional caller-provided keybinding text.
+- Each result shows its action label, optional group, and optional caller-provided keybinding, formatted through the shared KeyHint label.
 - `closed`: palette content is not rendered and no focus target is exposed.
 - `open_empty`: all enabled registered actions are shown; the first result is active when available.
 - `open_filtered`: fuzzy matches appear in stable source order, with one active row.
@@ -135,7 +135,9 @@ Typing updates the query and resets the active result to the first match. Fuzzy 
 
 ## Props and events
 
-Required input is an action list. Each action has a stable string ID, label, and optional group, keywords, and display-only keybinding. Duplicate IDs are invalid. Keybinding strings are presentation content; the palette does not install or execute shortcut bindings.
+Required input is an action list. Each action has a stable string ID, label, and optional group, keywords, and display-only keybinding. Duplicate IDs are invalid. Keybinding strings are presentation content; the palette does not install or execute shortcut bindings. `CommandAction::keybinding` keeps its `String` API. The palette passes each keybinding to KeyHint's shared `KeyChord::parse` and renders a parsed chord with `KeyHint::inline()`, so modifier names and order match menus and ShortcutEditor: `⌘⇧S` and `cmd-shift-s` both display as `⇧⌘S` on macOS and `Shift+Super+S` elsewhere. Text KeyHint cannot parse is shown verbatim. The inline presentation keeps the caption-sized, muted (or accent-text when active) shortcut column; keycap boxes were not adopted because they would change row density and the shadcn Command reference look.
+
+The implementation depends on `mkit-registry-key-hint` for this shared formatting and presentation. This is a documented draft exception to the mkit-core/GPUI-only default pending maintainer approval.
 
 The palette supports controlled and uncontrolled visibility. In controlled mode, `open` is authoritative and the component emits `OpenChanged` requests; the caller applies the next value with `set_open`. In uncontrolled mode, `default_open` initializes visibility and the component owns subsequent visibility. Query and active result are internal in both modes. `set_actions` replaces action props without emitting activation events and preserves the active action by ID when it still matches.
 
@@ -151,7 +153,7 @@ Clicking an enabled result activates it once and closes the palette. Disabled ac
 
 ## Accessibility role and properties
 
-The open surface exposes dialog role, accessible name “Command palette”, and modal state. Search exposes a persistent “Search commands” name and current query value. Results use listbox and option roles; the active result exposes the active-descendant focus marker. Result option names include the action label, group when present, and keybinding text when present. No-results content is a non-interactive status message. Closing returns focus to the host opener where supported by the host window's prior focus handling.
+The open surface exposes dialog role, accessible name “Command palette”, and modal state. Search exposes a persistent “Search commands” name and current query value. Results use listbox and option roles; the active result exposes the active-descendant focus marker. Result option names include the action label, group when present, and the KeyHint-formatted keybinding label (`shortcut_label`) when present, so the accessible name matches the visible text. No-results content is a non-interactive status message. Closing returns focus to the host opener where supported by the host window's prior focus handling.
 
 ## Theme tokens used
 
@@ -168,6 +170,7 @@ Use GPUI's native text input handler for editing, selection, clipboard, and IME 
 ## Open questions
 
 - Human review is required for public API/event naming, keyboard and accessibility contracts, and visual baseline changes.
+- Maintainer approval is needed for the `mkit-registry-key-hint` dependency and the platform modifier reordering of displayed keybindings (`⌘⇧S` now displays as `⇧⌘S`).
 - Confirm whether result ranking should prefer word-boundary and prefix matches over plain subsequence matches.
 - Verify the one-stop Tab/Shift+Tab trap and opener focus restoration with native keyboard and accessibility behavior on supported platforms.
 - The initial pilot is synchronous and does not support async providers, sections with headings, or live announcement of result counts.

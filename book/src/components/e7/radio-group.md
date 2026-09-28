@@ -1,6 +1,6 @@
 # Radio group
 
-Choose one option from a labelled set. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Choose one option from a labelled set. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Radio group dark theme baseline](../../images/e7/radio-group.png)
 
@@ -36,4 +36,4 @@ Global surface, text, border, accent, focus, disabled; spacing.small, radii.pill
 
 ## Verification and limits
 
-8/8 generated keyboard cases and focused pointer/Space tests passed. 36/36 screenshot comparisons passed; six accessibility cases remain pending. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/radio-group/spec.md` and `docs/E7_AUDIT.md` in the repository.
+8/8 generated keyboard cases and focused pointer/Space tests passed. 36/36 screenshot comparisons passed; six accessibility cases remain pending. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/radio-group/spec.md` and `docs/E7_AUDIT.md` in the repository.

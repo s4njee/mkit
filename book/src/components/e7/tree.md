@@ -1,6 +1,6 @@
 # Tree
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A tree lets someone browse nested items without opening a new page for every level. Branches can load children when first expanded.
 
@@ -47,4 +47,4 @@ Two generated keyboard cases (ArrowDown, ArrowRight) pass through a real GPUI ad
 
 This API navigates and expands nodes; it does not model selected nodes. Loading announcements still need platform review, and the generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. Disclosure size and behavior plus maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/tree/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/tree/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

@@ -4,9 +4,13 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+mkit-mirror = []
+
 [dependencies]
 gpui_pre.workspace = true
 mkit-core.workspace = true
+mkit-registry-key-hint = { path = "../key-hint" }
 
 [dev-dependencies]
 gpui_pre = { workspace = true, features = ["test-support"] }

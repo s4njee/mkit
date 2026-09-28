@@ -101,7 +101,7 @@ Let users inspect and change an application's action-to-key-chord map in a setti
 
 ## Anatomy
 
-- A focused list with one row per action, optional category, action label, and current chord.
+- A focused list with one row per action, optional category, action label, and current chord shown as a platform KeyHint label.
 - A status message for capture, conflict, save success, and save failure.
 - `viewing`, `capturing`, `conflict`, `dirty`, `saved`, and `save_error` states.
 
@@ -114,11 +114,13 @@ Let users inspect and change an application's action-to-key-chord map in a setti
 - `saved`: writing the map to the requested file succeeded.
 - `save_error`: writing failed; the draft remains available for retry.
 
-Bindings use GPUI keymap strings such as `cmd-k` or `ctrl-shift-p`. Capture serializes GPUI modifier fields to these parseable names rather than display glyphs. Comparison is case-insensitive after surrounding whitespace is trimmed. JSON output uses version 1 and an action-to-chord object. The selected row is independent from focus, which remains on the editor while keys are navigated.
+Bindings use GPUI keymap strings such as `cmd-k` or `ctrl-shift-p`. Capture serializes GPUI modifier fields to these parseable names rather than display glyphs. Stored bindings, events, and saved JSON keep these GPUI strings; only presentation is formatted. Row chords are rendered with KeyHint's shared `KeyChord::parse` and `KeyHint::inline()`, and conflict status text uses `shortcut_label`, so `cmd-shift-s` displays as `⇧⌘S` on macOS and `Shift+Super+S` elsewhere, matching menus and CommandPalette. Chords KeyHint cannot parse (for example those with the `fn` modifier) are shown verbatim. The inline presentation keeps the existing muted or danger-coloured chord column rather than keycap boxes, which would enlarge rows and change the settings-list look. Comparison is case-insensitive after surrounding whitespace is trimmed. JSON output uses version 1 and an action-to-chord object. The selected row is independent from focus, which remains on the editor while keys are navigated.
 
 ## Props and events
 
 Each action has a unique stable ID, label, and optional category. The host supplies the action list and binding map. In controlled mode the component emits `BindingChangeRequested` containing the target ID, chord, and proposed full map; it changes displayed bindings only after the host calls `set_bindings`. In uncontrolled mode it applies the local map change and emits `BindingChanged`. A confirmed conflict clears the former owner of the chord. `save_to_path` serializes the currently effective map and emits `SaveRequested`, then `Saved` or `SaveFailed`. Saving does not happen as a side effect of editing.
+
+The implementation depends on `mkit-registry-key-hint` for chord formatting and presentation. This is a documented draft exception to the mkit-core/GPUI-only default pending maintainer approval.
 
 ## Keyboard map
 
@@ -130,7 +132,7 @@ Clicking a row selects it and starts capture for that row. Clicking does not cha
 
 ## Accessibility role and properties
 
-The root uses grid role and the accessible name “Keyboard shortcuts”. Each row exposes an accessible name containing the action label and current chord, plus selected state and conflict text. Capture, conflict, save, and error feedback is exposed as status content. The component retains focus while selection moves; a conflict is named in the status content as well as on its row.
+The root uses grid role and the accessible name “Keyboard shortcuts”. Each row exposes an accessible name containing the action label and the KeyHint-formatted current chord (matching the visible label), plus selected state and conflict text. Capture, conflict, save, and error feedback is exposed as status content. The component retains focus while selection moves; a conflict is named in the status content as well as on its row.
 
 ## Theme tokens used
 
@@ -148,3 +150,4 @@ Capture is based on GPUI's normalized `Keystroke` display string, so app keymaps
 
 - Human review is required for public API and naming, the conflict-resolution contract, keymap format, keyboard behavior, accessibility contract, and visual baseline.
 - Confirm whether chords may contain multiple keystrokes or only one physical chord in the first version.
+- Maintainer approval is needed for the `mkit-registry-key-hint` dependency and for displaying formatted chords (`⌘O`) instead of raw GPUI keymap strings (`cmd-o`) in rows and conflict status.

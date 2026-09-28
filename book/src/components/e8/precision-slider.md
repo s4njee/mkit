@@ -1,12 +1,12 @@
 # Precision slider
 
-A precision slider adjusts a number by dragging or using the keyboard. It is designed for settings where people need both quick movement and small corrections, such as exposure, audio balance, or a filter strength. This is an E8.3 draft.
+A precision slider adjusts a number by dragging or using the keyboard. It is designed for settings where people need both quick movement and small corrections, such as exposure, audio balance, or a filter strength. This is a draft pro-app component.
 
 ![Precision slider below the viewport preview](../../images/e8-preview-dark-2x.png)
 
 ## Try it
 
-The shared E8 example creates a bipolar slider called **Tone balance** and displays it below the histogram. The code is compiled as part of the example crate.
+The shared pro-app example creates a bipolar slider called **Tone balance** and displays it below the histogram. The code is compiled as part of the example crate.
 
 ```rust
 {{#include ../../../../examples/e8_components/src/lib.rs:e8_preview}}

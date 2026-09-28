@@ -26,13 +26,78 @@ const bookSrc = join(repoRoot, 'book', 'src')
 const bookComponents = join(bookSrc, 'components')
 const catalogPath = join(siteRoot, 'content', 'catalog.json')
 const publicBook = join(siteRoot, 'public', 'book')
+
+// Harness screenshots are captured at 2x unless their name says -1x. Give each
+// book image its CSS-pixel size so a 2x capture displays at the size the
+// component actually renders, matching the web previews beside it.
+function bookImageSize(href) {
+  const match = /^@book\/(.+)$/.exec(href || '')
+  if (!match || !match[1].endsWith('.png')) return undefined
+  const file = join(bookSrc, match[1])
+  if (!existsSync(file)) return undefined
+  const header = readFileSync(file).subarray(16, 24)
+  const scale = /-1x\.png$/.test(match[1]) ? 1 : 2
+  return {
+    width: Math.round(header.readUInt32BE(0) / scale),
+    height: Math.round(header.readUInt32BE(4) / scale),
+  }
+}
+
+function sizeAttrs(size) {
+  return size ? ` width="${size.width}" height="${size.height}"` : ''
+}
 const outFile = join(siteRoot, 'src', 'generated', 'components.ts')
 const repoBlob = 'https://github.com/mk7s/mkit/blob/main/book/src'
 
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'))
-const registryNames = new Set(
-  JSON.parse(readFileSync(join(repoRoot, 'registry', 'registry.json'), 'utf8')).components.map((c) => c.name),
-)
+const registryEntries = JSON.parse(readFileSync(join(repoRoot, 'registry', 'registry.json'), 'utf8')).components
+const registryNames = new Set(registryEntries.map((c) => c.name))
+const registryByName = new Map(registryEntries.map((c) => [c.name, c]))
+
+const keyLabel = (dispatch) => [...(dispatch.modifiers ?? []), dispatch.key].join('+')
+
+// Summarize a registry entry's keyboard and accessibility contract from its
+// generated conformance manifest (itself generated from the spec front matter).
+function registryContract(name) {
+  const entry = registryByName.get(name)
+  const manifestPath = join(repoRoot, entry?.conformance_manifest ?? `registry/${name}/tests/conformance.json`)
+  const contract = {
+    name,
+    status: entry?.status ?? '',
+    spec: entry?.spec ?? '',
+    states: [],
+    keys: [],
+    role: '',
+    properties: [],
+  }
+  if (!existsSync(manifestPath)) return contract
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const seenKeys = new Set()
+  for (const item of manifest.keyboard_cases ?? []) {
+    const row = {
+      keys: keyLabel(item.dispatch ?? {}),
+      when: item.precondition ?? '',
+      action: item.expected_behavior ?? '',
+    }
+    const id = `${row.keys}|${row.when}|${row.action}`
+    if (seenKeys.has(id)) continue
+    seenKeys.add(id)
+    contract.keys.push(row)
+  }
+  const seenProps = new Set()
+  for (const item of manifest.accessibility_cases ?? []) {
+    if (item.state && !contract.states.includes(item.state)) contract.states.push(item.state)
+    const semantics = item.expected_semantics ?? {}
+    if (!contract.role && semantics.role) contract.role = semantics.role
+    for (const property of semantics.properties ?? []) {
+      const id = `${property.name}|${property.value}`
+      if (seenProps.has(id)) continue
+      seenProps.add(id)
+      contract.properties.push({ name: String(property.name), value: String(property.value) })
+    }
+  }
+  return contract
+}
 
 const slugify = (value) =>
   value
@@ -88,7 +153,7 @@ marked.use({
     },
     image(token) {
       const alt = escapeAttr(token.text || '')
-      return `<img src="${escapeAttr(token.href || '')}" alt="${alt}" loading="lazy" />`
+      return `<img src="${escapeAttr(token.href || '')}" alt="${alt}"${sizeAttrs(bookImageSize(token.href))} loading="lazy" />`
     },
   },
 })
@@ -248,7 +313,7 @@ function extractDoc(relSource, card) {
       bodyLines.splice(cursor, 1)
     }
     body = bodyLines.join('\n').trim()
-    image = { src, alt, caption }
+    image = { src, alt, caption, ...bookImageSize(src) }
   }
 
   // Split into preamble and `## ` sections.
@@ -276,18 +341,27 @@ function extractDoc(relSource, card) {
   const lede = firstParagraph ? renderInline(firstParagraph) : ''
   const intro = ledeParagraphs.length ? renderBlocks(ledeParagraphs.join('\n\n')) : ''
 
-  // Demo key and registry name follow the chapter file name; paged chapters
-  // (timeline-t1, node-editor-n2) share one registry component.
+  // Demo key and primary registry name follow the chapter file name; paged
+  // chapters (timeline-t1, timeline-t3-t4, node-editor-n2) share one registry
+  // component. A chapter that documents several entries (disclosure and
+  // accordion) names each entry's spec path, so those are picked up too.
   const demoKey = relSource.split('/').pop().replace(/\.md$/, '')
   const candidate =
-    demoKey === 'number-field-pilot' ? 'scrubbable-number-field' : demoKey.replace(/-(t|n)\d+$/, '')
-  const registryName = registryNames.has(candidate) ? candidate : ''
+    demoKey === 'number-field-pilot' ? 'scrubbable-number-field' : demoKey.replace(/(?:-[tn]\d+)+$/, '')
+  const registryNamesForDoc = []
+  if (registryNames.has(candidate)) registryNamesForDoc.push(candidate)
+  for (const match of raw.matchAll(/registry\/([a-z0-9-]+)\/spec\.md/g)) {
+    if (registryNames.has(match[1]) && !registryNamesForDoc.includes(match[1])) registryNamesForDoc.push(match[1])
+  }
+  const registryName = registryNamesForDoc[0] ?? ''
 
   return {
     slug: card.slug,
     name: title,
     demoKey,
     registryName,
+    registryNames: registryNamesForDoc,
+    contracts: registryNamesForDoc.map(registryContract),
     lede,
     intro,
     notes,
@@ -372,6 +446,8 @@ for (const kind of Object.keys(catalog)) {
         sourcePath: '',
         demoKey: '',
         registryName: '',
+        registryNames: [],
+        contracts: [],
       })
     }
     generatedCards.push({
@@ -427,6 +503,13 @@ writeFileSync(
 )
 
 const chapterCount = generatedCards.reduce((total, card) => total + card.components.length, 0)
+const documented = new Set(
+  generatedCards.flatMap((card) => card.components.flatMap((component) => component.registryNames)),
+)
+const undocumented = [...registryNames].filter((name) => !documented.has(name))
+if (undocumented.length) {
+  console.warn(`content: registry components without a site page: ${undocumented.join(', ')}`)
+}
 console.log(
-  `content: wrote ${generatedCards.length} cards from ${chapterCount} book chapters, plus the theming chapter`,
+  `content: wrote ${generatedCards.length} cards from ${chapterCount} book chapters (${documented.size}/${registryNames.size} registry components), plus the theming chapter`,
 )

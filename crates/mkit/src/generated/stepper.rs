@@ -2,14 +2,14 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
+    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
     actions, div, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
     theme::Theme,
 };
-use std::rc::Rc;
+use std::{cell::OnceCell, rc::Rc};
 
 pub const KEY_CONTEXT: &str = "Stepper";
 actions!(stepper, [ActivateStep, PreviousStep, NextStep, FinishStep]);
@@ -64,8 +64,13 @@ pub struct Stepper {
     controlled: bool,
     validator: Option<Validator>,
     error: Option<String>,
-    back_focus: Option<FocusHandle>,
-    next_focus: Option<FocusHandle>,
+    back_focus: OnceCell<FocusHandle>,
+    next_focus: OnceCell<FocusHandle>,
+}
+
+/// Enabled navigation buttons are Tab stops at the default index, so they follow rendered order.
+fn navigation_focus(cell: &OnceCell<FocusHandle>, cx: &App) -> FocusHandle {
+    cell.get_or_init(|| cx.focus_handle().tab_stop(true)).clone()
 }
 
 impl Stepper {
@@ -77,8 +82,8 @@ impl Stepper {
             controlled: false,
             validator: None,
             error: None,
-            back_focus: None,
-            next_focus: None,
+            back_focus: OnceCell::new(),
+            next_focus: OnceCell::new(),
         }
     }
     /// Seed uncontrolled current step.
@@ -139,9 +144,9 @@ impl Stepper {
         cx.emit(StepChangeRequested { from, to, kind });
         cx.notify();
         let target = if matches!(kind, StepChangeKind::Back) && to > 0 {
-            &self.back_focus
+            self.back_focus.get()
         } else {
-            &self.next_focus
+            self.next_focus.get()
         };
         if let Some(target) = target {
             target.focus(window, cx);
@@ -150,17 +155,16 @@ impl Stepper {
 }
 
 impl Focusable for Stepper {
-    fn focus_handle(&self, _: &gpui_pre::App) -> FocusHandle {
-        self.next_focus.clone().expect("focus initialized during render")
+    /// The Next/Finish button's handle. It is valid before the first render.
+    fn focus_handle(&self, cx: &App) -> FocusHandle {
+        navigation_focus(&self.next_focus, cx)
     }
 }
 
 impl Render for Stepper {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let back_focus =
-            self.back_focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
-        let next_focus =
-            self.next_focus.get_or_insert_with(|| cx.focus_handle().tab_index(1)).clone();
+        let back_focus = navigation_focus(&self.back_focus, cx);
+        let next_focus = navigation_focus(&self.next_focus, cx);
         let theme = *cx.global::<Theme>();
         let current = self.current.min(self.steps.len().saturating_sub(1));
         let steps = self.steps.clone();
@@ -178,6 +182,20 @@ impl Render for Stepper {
             .gap(px(theme.spacing.medium))
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label(group_name)
+            // Shortcut actions live on the root so they work from either navigation button.
+            .on_action(cx.listener(|this, _: &PreviousStep, window, cx| {
+                this.request(StepChangeKind::Back, window, cx)
+            }))
+            .on_action(cx.listener(move |this, _: &NextStep, window, cx| {
+                this.request(
+                    if is_last { StepChangeKind::Finish } else { StepChangeKind::Next },
+                    window,
+                    cx,
+                )
+            }))
+            .on_action(cx.listener(|this, _: &FinishStep, window, cx| {
+                this.request(StepChangeKind::Finish, window, cx)
+            }))
             .child(div().flex().flex_col().gap(px(theme.spacing.small)).children(
                 steps.iter().enumerate().map(|(index, step)| {
                     let (state, color) = if index == current {
@@ -221,9 +239,6 @@ impl Render for Stepper {
                                 .tab_index(0)
                                 .role(gpui_pre::accesskit::Role::Button)
                                 .aria_label("Back")
-                                .on_action(cx.listener(|this, _: &PreviousStep, window, cx| {
-                                    this.request(StepChangeKind::Back, window, cx)
-                                }))
                                 .on_action(cx.listener(|this, _: &ActivateStep, window, cx| {
                                     this.request(StepChangeKind::Back, window, cx)
                                 }))
@@ -248,17 +263,6 @@ impl Render for Stepper {
                             .tab_index(0)
                             .role(gpui_pre::accesskit::Role::Button)
                             .aria_label(if is_last { "Finish" } else { "Next" })
-                            .on_action(cx.listener(move |this, _: &NextStep, window, cx| {
-                                this.request(
-                                    if is_last {
-                                        StepChangeKind::Finish
-                                    } else {
-                                        StepChangeKind::Next
-                                    },
-                                    window,
-                                    cx,
-                                )
-                            }))
                             .on_action(cx.listener(move |this, _: &ActivateStep, window, cx| {
                                 this.request(
                                     if is_last {
@@ -269,9 +273,6 @@ impl Render for Stepper {
                                     window,
                                     cx,
                                 )
-                            }))
-                            .on_action(cx.listener(|this, _: &FinishStep, window, cx| {
-                                this.request(StepChangeKind::Finish, window, cx)
                             }))
                             .on_click(cx.listener(move |this, _, window, cx| {
                                 this.request(
@@ -335,6 +336,40 @@ mod tests {
         });
         visual.simulate_keystrokes("enter");
         assert_eq!(controlled.read_with(visual, |stepper, _| stepper.current_step_index()), 0);
+    }
+
+    #[gpui_pre::test]
+    async fn navigation_buttons_are_tab_stops_and_shortcuts_work_from_either_button(
+        cx: &mut gpui_pre::TestAppContext,
+    ) {
+        cx.update(mkit_core::theme::set_light_theme);
+        cx.update(|app| app.bind_keys(default_key_bindings()));
+        let three =
+            || vec![Step::new("a", "Account"), Step::new("b", "Options"), Step::new("c", "Review")];
+        // Hosts may read the handle before the first render, e.g. for container focus stops.
+        let unrendered = cx.new(|_| Stepper::new("Setup", three()));
+        let _ = unrendered.read_with(cx, |stepper, cx| stepper.focus_handle(cx));
+
+        let (view, visual) =
+            cx.add_window_view(|_, _| Stepper::new("Setup", three()).default_step(1));
+        let next = view.read_with(visual, |stepper, cx| stepper.focus_handle(cx));
+        visual.update(|window, cx| {
+            window.draw(cx).clear(cx);
+            next.focus(window, cx);
+        });
+        visual.update(|window, cx| window.focus_prev(cx));
+        let back = visual.update(|window, cx| window.focused(cx)).expect("Back is a tab stop");
+        assert_ne!(back, next);
+        visual.update(|window, cx| window.focus_next(cx));
+        assert!(visual.update(|window, _| next.is_focused(window)));
+
+        // Alt+Left from Next goes back; Alt+Right from Back goes forward.
+        visual.simulate_keystrokes("alt-left");
+        assert_eq!(view.read_with(visual, |stepper, _| stepper.current_step_index()), 0);
+        visual.simulate_keystrokes("alt-right");
+        visual.update(|window, cx| back.focus(window, cx));
+        visual.simulate_keystrokes("alt-right");
+        assert_eq!(view.read_with(visual, |stepper, _| stepper.current_step_index()), 2);
     }
 
     #[gpui_pre::test]

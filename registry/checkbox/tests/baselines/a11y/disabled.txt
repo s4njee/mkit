@@ -1,0 +1,2 @@
+Window
+  CheckBox name="Remember me" description="Unavailable" disabled=true toggled=False

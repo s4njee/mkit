@@ -10,10 +10,23 @@ gpui_pre = { workspace = true, features = ["test-support"] }
 gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5", features = ["test-support"] }
 image = "=0.25.10"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# Exact versions already resolved for gpui-pre 0.3.5; needed to implement the
+# public `Platform`/`PlatformWindow` traits for accessibility capture.
+futures-channel = "=0.3.34"
+raw-window-handle = "=0.6.2"
+
 [dev-dependencies]
 gpui-kit = "=0.6.4"
 
 [[test]]
 name = "screenshot"
 path = "tests/screenshot.rs"
+harness = false
+
+# `AccessibilitySession` creates the macOS text system, which must happen on
+# the main thread, so this target runs without libtest's worker threads.
+[[test]]
+name = "a11y_capture"
+path = "tests/a11y_capture.rs"
 harness = false

@@ -67,6 +67,34 @@
       "assert": {
         "event": "value_changed"
       }
+    },
+    {
+      "id": "keyboard-05",
+      "dispatch": {
+        "key": "Enter",
+        "modifiers": []
+      },
+      "precondition": "A group header is focused and the inspector is enabled.",
+      "expected_behavior": "Toggle that group through the shared Disclosure Toggle action.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "state": "collapsed"
+      }
+    },
+    {
+      "id": "keyboard-06",
+      "dispatch": {
+        "key": "Space",
+        "modifiers": []
+      },
+      "precondition": "A group header is focused and the inspector is enabled.",
+      "expected_behavior": "Toggle that group through the shared Disclosure Toggle action instead of toggling a boolean.",
+      "initial_state": "expanded",
+      "load_fixture": "expanded_fixture",
+      "assert": {
+        "state": "collapsed"
+      }
     }
   ],
   "accessibility_cases": [
@@ -92,6 +120,10 @@
           {
             "name": "collapsed",
             "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "group-panel",
+            "value": "Expanded group rows sit in a Disclosure panel group named by the group label."
           },
           {
             "name": "focus",
@@ -127,6 +159,10 @@
             "value": "Group header exposes expanded=false and descendants are omitted."
           },
           {
+            "name": "group-panel",
+            "value": "Expanded group rows sit in a Disclosure panel group named by the group label."
+          },
+          {
             "name": "focus",
             "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
           }
@@ -160,6 +196,10 @@
             "value": "Group header exposes expanded=false and descendants are omitted."
           },
           {
+            "name": "group-panel",
+            "value": "Expanded group rows sit in a Disclosure panel group named by the group label."
+          },
+          {
             "name": "focus",
             "value": "Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps."
           }
@@ -191,6 +231,10 @@
           {
             "name": "collapsed",
             "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "group-panel",
+            "value": "Expanded group rows sit in a Disclosure panel group named by the group label."
           },
           {
             "name": "focus",
@@ -228,6 +272,10 @@
           {
             "name": "collapsed",
             "value": "Group header exposes expanded=false and descendants are omitted."
+          },
+          {
+            "name": "group-panel",
+            "value": "Expanded group rows sit in a Disclosure panel group named by the group label."
           },
           {
             "name": "focus",

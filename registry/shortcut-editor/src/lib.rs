@@ -1,11 +1,15 @@
 //! Editable, theme-driven keyboard shortcut list for application settings.
 extern crate gpui_pre as gpui;
 
+#[cfg(feature = "mkit-mirror")]
+use crate::key_hint::{KeyChord, KeyHint, shortcut_label};
 use gpui_pre::{
     App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
     KeyBinding, KeyDownEvent, Keystroke, Render, Window, actions, div, prelude::*, px,
 };
 use mkit_core::theme::Theme;
+#[cfg(not(feature = "mkit-mirror"))]
+use mkit_registry_key_hint::{KeyChord, KeyHint, shortcut_label};
 use std::{collections::BTreeMap, fs, io, path::Path};
 
 pub const KEY_CONTEXT: &str = "MkitShortcutEditor";
@@ -225,7 +229,8 @@ impl ShortcutEditor {
         if let Some(other) = find_conflict(&self.bindings, &id, &chord) {
             self.conflict = Some((chord.clone(), other.clone()));
             self.status = format!(
-                "{chord} is already assigned. Press Enter to move it here, or Escape to cancel."
+                "{} is already assigned. Press Enter to move it here, or Escape to cancel.",
+                shortcut_label(&chord)
             );
             cx.emit(ConflictDetected { action_id: id, conflicting_action_id: other, chord });
             cx.notify();
@@ -312,8 +317,8 @@ impl Render for ShortcutEditor {
             .text_color(theme.colors.text);
         for (index, action) in self.actions.iter().enumerate() {
             let selected = self.selected == Some(index);
-            let chord =
-                self.bindings.get(&action.id).cloned().unwrap_or_else(|| "Unassigned".into());
+            let binding = self.bindings.get(&action.id);
+            let chord = binding.map_or_else(|| "Unassigned".into(), |value| shortcut_label(value));
             let conflict = self.bindings.get(&action.id).is_some_and(|value| {
                 self.bindings.iter().any(|(id, other)| {
                     id != &action.id && normalize_chord(value) == normalize_chord(other)
@@ -361,7 +366,10 @@ impl Render for ShortcutEditor {
                     } else {
                         theme.colors.text_muted
                     })
-                    .child(chord),
+                    .child(match binding {
+                        Some(value) => shortcut_hint(value),
+                        None => chord.into_any_element(),
+                    }),
             );
             root = root.child(row.on_click(cx.listener(move |this, _, _, cx| {
                 if let Some(index) = this.actions.iter().position(|action| action.id == id) {
@@ -374,8 +382,16 @@ impl Render for ShortcutEditor {
             })));
         }
         if let Some((chord, _)) = &self.conflict {
-            root = root.child(div().id("shortcut-editor-conflict-status").role(gpui_pre::accesskit::Role::Status).text_color(theme.colors.danger)
-                .child(format!("{chord} is already assigned. Press Enter to move it here, or Escape to cancel.")));
+            root = root.child(
+                div()
+                    .id("shortcut-editor-conflict-status")
+                    .role(gpui_pre::accesskit::Role::Status)
+                    .text_color(theme.colors.danger)
+                    .child(format!(
+                        "{} is already assigned. Press Enter to move it here, or Escape to cancel.",
+                        shortcut_label(chord)
+                    )),
+            );
         } else if !self.status.is_empty() {
             root = root.child(
                 div()
@@ -466,6 +482,15 @@ fn json_string(value: &str) -> String {
     output
 }
 
+/// Renders a display-only shortcut through KeyHint's shared platform
+/// formatter, keeping text KeyHint cannot parse verbatim.
+fn shortcut_hint(shortcut: &str) -> gpui_pre::AnyElement {
+    match KeyChord::parse(shortcut) {
+        Some(chord) => KeyHint::new(chord).inline().into_any_element(),
+        None => shortcut.to_owned().into_any_element(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -501,6 +526,34 @@ mod tests {
         assert_eq!(find_conflict(&bindings, "save", " cmd-s "), None);
         assert_eq!(find_conflict(&bindings, "open", "CTRL-O"), None);
         assert_eq!(find_conflict(&bindings, "open", "cmd-s"), Some("save".into()));
+    }
+
+    #[gpui_pre::test]
+    fn chords_display_through_the_shared_key_hint_formatter(cx: &mut TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        cx.update(|app| app.bind_keys(default_key_bindings()));
+        let (editor, visual) = cx.add_window_view(|_, _| {
+            ShortcutEditor::new(
+                vec![ShortcutAction::new("open", "Open"), ShortcutAction::new("save", "Save")],
+                BTreeMap::from([("open".into(), "cmd-o".into()), ("save".into(), "cmd-s".into())]),
+            )
+        });
+        visual.run_until_parked();
+        assert!(visual.debug_bounds("mkit-key-hint").is_some());
+        visual.update(|window, cx| editor.focus_handle(cx).focus(window, cx));
+        visual.simulate_keystrokes("down enter cmd-o");
+        let status = editor.read_with(visual, |view, _| view.status.clone());
+        assert_eq!(
+            status,
+            format!(
+                "{} is already assigned. Press Enter to move it here, or Escape to cancel.",
+                shortcut_label("cmd-o")
+            )
+        );
+        #[cfg(target_os = "macos")]
+        assert!(status.starts_with("⌘O "));
+        let bindings = editor.read_with(visual, |view, _| view.bindings.clone());
+        assert_eq!(bindings.get("open"), Some(&"cmd-o".to_string()), "storage keeps GPUI text");
     }
 
     #[gpui_pre::test]

@@ -9,12 +9,132 @@ extern crate gpui_pre as gpui;
 
 use gpui_pre::{
     Bounds, Context, ElementInputHandler, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
-    IntoElement, KeyBinding, KeyDownEvent, Pixels, Render, ScrollStrategy, UTF16Selection,
-    UniformListScrollHandle, Window, actions, canvas, div, point, prelude::*, px, size,
-    uniform_list,
+    IntoElement, KeyBinding, KeyDownEvent, PathBuilder, Pixels, Render, Rgba, ScrollStrategy,
+    UTF16Selection, UniformListScrollHandle, Window, actions, canvas, div, point, prelude::*, px,
+    size, uniform_list,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::ops::Range;
+
+/// Resolved input and popup colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    background: Rgba,
+    input_border: Rgba,
+    text: Rgba,
+    icon: Rgba,
+    popup_bg: Rgba,
+    popup_border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for enabled rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            background: c.background,
+            input_border: c.border,
+            text: c.text,
+            icon: c.text,
+            popup_bg: c.background,
+            popup_border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            focus: c.focus,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        background: c.background,
+        input_border: if dark { c.text.opacity(0.15) } else { c.border },
+        text: c.text,
+        icon: c.text_muted,
+        popup_bg: c.surface,
+        popup_border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
+/// shadcn/ui focus ring width, drawn outside the input.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+
+/// Horizontal text inset inside the input (shadcn `px-3`), shared by rendering, IME bounds, and
+/// pointer hit testing.
+fn text_inset(theme: &Theme) -> Pixels {
+    px(theme.spacing.medium)
+}
+
+/// Decorative Lucide `check` (20,6 → 9,17 → 4,12 on a 24-unit grid, 2-unit stroke) drawn as a
+/// vector path so it stays crisp at every scale.
+fn check_icon(size: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            path.move_to(origin + point(unit * 20.0, unit * 6.0));
+            path.line_to(origin + point(unit * 9.0, unit * 17.0));
+            path.line_to(origin + point(unit * 4.0, unit * 12.0));
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 /// Key context used by the combobox named actions.
 pub const KEY_CONTEXT: &str = "Combobox";
@@ -575,7 +695,7 @@ impl EntityInputHandler for Combobox {
         let end = shaped.x_for_index(bytes.end);
         let line_height = window.line_height();
         let vertical_inset = ((element_bounds.size.height - line_height) / 2.).max(px(0.));
-        let inset = px(cx.global::<Theme>().spacing.small);
+        let inset = text_inset(cx.global::<Theme>());
         let origin =
             point(element_bounds.left() + inset + start, element_bounds.top() + vertical_inset);
         Some(Bounds::new(origin, size((end - start).max(px(1.)), line_height)))
@@ -595,7 +715,7 @@ impl EntityInputHandler for Combobox {
             &[style.to_run(self.query.len())],
             None,
         );
-        let inset = px(cx.global::<Theme>().spacing.small);
+        let inset = text_inset(cx.global::<Theme>());
         let x = (point.x - bounds.left() - inset).max(px(0.));
         let byte = shaped.closest_index_for_x(x).min(self.query.len());
         Some(byte_range_to_utf16(&self.query, &(byte..byte)).start)
@@ -664,6 +784,14 @@ impl Render for Combobox {
         let filtered = self.filtered_indices();
         let disabled = self.disabled;
         let focused = !disabled && focus.is_focused(window);
+        let look = look(&theme);
+        let (input_border, text) = if !disabled {
+            (look.input_border, look.text)
+        } else if look.high_contrast {
+            (look.disabled, look.disabled)
+        } else {
+            (dim(look.input_border, look.background), dim(look.text, look.background))
+        };
         let field_input = input.clone();
         let mut content = div().flex().items_center();
         if !focused {
@@ -725,15 +853,21 @@ impl Render for Combobox {
             .on_action(cx.listener(Self::close_explicit))
             .on_key_down(cx.listener(Self::on_key_down))
             .h(gpui_pre::px(theme.controls.medium))
-            .px(gpui_pre::px(theme.spacing.small))
+            .px(text_inset(&theme))
             .flex()
             .items_center()
-            .rounded(gpui_pre::px(theme.radii.small))
-            .border(gpui_pre::px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface)
-            .when(disabled, |element| element.opacity(0.55))
-            .text_color(if self.disabled { theme.colors.disabled } else { theme.colors.text })
+            .rounded(gpui_pre::px(theme.radii.medium))
+            .border(gpui_pre::px(theme.borders.regular))
+            .border_color(if focused { look.focus } else { input_border })
+            .bg(look.background)
+            .shadow(if focused {
+                vec![focus_ring(look.ring)]
+            } else if look.high_contrast {
+                Vec::new()
+            } else {
+                vec![box_shadow(theme.shadows.small, if disabled { 0.5 } else { 1.0 })]
+            })
+            .text_color(text)
             .text_size(gpui_pre::px(theme.typography.body))
             .min_w(gpui_pre::px(theme.spacing.xxlarge))
             .child(content)
@@ -760,20 +894,31 @@ impl Render for Combobox {
                 .role(gpui_pre::accesskit::Role::ListBox)
                 .mt(gpui_pre::px(theme.spacing.xsmall))
                 .p(gpui_pre::px(theme.spacing.xsmall))
-                .rounded(gpui_pre::px(theme.radii.small))
-                .border(gpui_pre::px(theme.borders.hairline))
-                .border_color(theme.colors.border)
-                .bg(theme.colors.elevated_surface);
+                .rounded(gpui_pre::px(theme.radii.medium))
+                .border(gpui_pre::px(theme.borders.regular))
+                .border_color(look.popup_border)
+                .bg(look.popup_bg)
+                .when(!look.high_contrast, |element| {
+                    element.shadow(vec![box_shadow(theme.shadows.medium, 1.0)])
+                })
+                .text_size(gpui_pre::px(theme.typography.body));
             if filtered.is_empty() {
-                list = list
-                    .child(div().text_color(theme.colors.text_muted).child("No matching options"));
+                list = list.child(
+                    div()
+                        .py(gpui_pre::px(theme.spacing.xlarge))
+                        .flex()
+                        .justify_center()
+                        .text_color(theme.colors.text_muted)
+                        .child("No matching options"),
+                );
             } else {
                 let filtered_mapping = filtered.clone();
                 let options = self.options.clone();
                 let committed = self.committed.clone();
                 let active = self.active;
                 let scroll = self.list_scroll.clone();
-                let row_height = theme.controls.medium;
+                let row_height = theme.controls.small;
+                let rows = filtered_mapping.len().min(8) as f32;
                 let input = input.clone();
                 list = list.child(
                     uniform_list(
@@ -791,6 +936,27 @@ impl Render for Combobox {
                                     let disabled = option.disabled;
                                     let selected = committed.as_deref() == Some(id.as_str());
                                     let is_active = active == Some(filtered_index);
+                                    let (foreground, check) = if disabled {
+                                        if look.high_contrast {
+                                            (look.disabled, look.disabled)
+                                        } else {
+                                            (
+                                                dim(look.text, look.popup_bg),
+                                                dim(look.icon, look.popup_bg),
+                                            )
+                                        }
+                                    } else if is_active {
+                                        let check = if look.high_contrast {
+                                            look.active_text
+                                        } else {
+                                            look.icon
+                                        };
+                                        (look.active_text, check)
+                                    } else {
+                                        (look.text, look.icon)
+                                    };
+                                    let hover_bg =
+                                        look.hover_bg.filter(|_| !disabled && !is_active);
                                     let input = input.clone();
                                     Some(
                                         div()
@@ -810,21 +976,22 @@ impl Render for Combobox {
                                             .w_full()
                                             .flex()
                                             .items_center()
+                                            .justify_between()
+                                            .gap(px(theme.spacing.small))
                                             .px(px(theme.spacing.small))
+                                            .rounded(px(theme.radii.small))
                                             .when(is_active, |element| {
+                                                element.aria_active_descendant().bg(look.active_bg)
+                                            })
+                                            .when_some(hover_bg, |element, bg| {
+                                                element.hover(move |style| style.bg(bg))
+                                            })
+                                            .text_color(foreground)
+                                            .child(div().flex_1().min_w_0().truncate().child(label))
+                                            .when(selected, |element| {
                                                 element
-                                                    .aria_active_descendant()
-                                                    .bg(theme.colors.accent)
-                                                    .text_color(theme.colors.accent_text)
+                                                    .child(check_icon(theme.spacing.large, check))
                                             })
-                                            .when(!is_active, |element| {
-                                                element.text_color(if disabled {
-                                                    theme.colors.disabled
-                                                } else {
-                                                    theme.colors.text
-                                                })
-                                            })
-                                            .child(label)
                                             .on_click(move |_, _, cx| {
                                                 input.update(cx, |combobox, cx| {
                                                     if combobox.disabled || disabled {
@@ -858,7 +1025,7 @@ impl Render for Combobox {
                                 .collect()
                         },
                     )
-                    .h(px(row_height * 8.0))
+                    .h(px(row_height * rows))
                     .track_scroll(&scroll),
                 );
             }

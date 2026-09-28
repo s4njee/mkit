@@ -57,7 +57,7 @@ A button has an accessible name, optional leading/trailing icon elements, and a 
 
 ## States
 
-`idle`, `disabled`, and `loading` are the declared states. Loading is unavailable for activation, exposes a "Loading" description, and is disabled in the accessibility tree; a platform busy-state relationship remains to be verified.
+`idle`, `disabled`, and `loading` are the declared states. Disabled and loading share the same unavailable look (see "Theme tokens used"). Loading is unavailable for activation, exposes a "Loading" description, and is disabled in the accessibility tree; a platform busy-state relationship remains to be verified.
 
 ## Screenshot matrix
 
@@ -81,7 +81,41 @@ Use a button role and accessible name. The visible label is the default accessib
 
 ## Theme tokens used
 
-`Theme.colors` background/surface/text/border/accent/accent_text/focus/danger/disabled/elevated_surface; `Theme.spacing` small/medium; `Theme.radii.medium`; `Theme.borders.regular`; `Theme.typography.body`; `Theme.controls` xsmall/medium/large.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-btn*` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved from
+the installed `Theme` in three variants. `high-contrast` is selected by theme name (the convention
+other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `secondary`/`accent`/`muted`: `text` mixed 4% (light) or
+12% (dark) into `background`.
+
+| Variant | Light / dark fill | Text | Border | Shadow | Hover | High contrast (fill, text, border; hover border) |
+|---|---|---|---|---|---|---|
+| default | `accent` | `accent_text` | transparent | `shadows.small` | `accent` 90% over `background` | `accent`, `accent_text`, `accent`; `text` |
+| secondary | muted | `text` | transparent | `shadows.small` | the web's `color-mix(secondary 80%, text 6%)` (86% total becomes alpha over `background`) | `background`, `text`, `border`; `accent` |
+| outline | `background` | `text` | light `border`; dark `text` at 10% | `shadows.small` | muted | `background`, `text`, `border`; `accent` |
+| ghost | transparent | `text` | transparent | none | muted | transparent, `text`, transparent; `accent` |
+| destructive | `danger` | light `background`, dark `text` (the theme's near-white; the web uses `#fff`) | transparent | `shadows.small` | the theme's near-black (light `text`, dark `background`) at 10% over `danger` | `danger`, `accent_text`, `danger`; `text` |
+| link | transparent | `accent` (shadcn `text-primary`) | transparent | none | underline, no fill | transparent, `accent`, transparent; underline |
+
+- **Focus** (`focus_visible`): border `focus` plus a 3px ring of `focus` at 50% alpha (opaque
+  `focus` in high contrast); the ring replaces the resting shadow, as in CSS. GPUI paints drop
+  shadows as filled shapes that are not clipped to the element's outside, so the fill under the ring
+  is always opaque: the variant fill, or `background` for the transparent ghost and link variants.
+  Ring corners use the button radius rather than CSS's radius-plus-spread.
+- **Disabled and loading**: the resting look at 50% opacity with hover suppressed, matching the web
+  preview (which renders its loading sample as a disabled button). High contrast instead keeps solid
+  colours: `background` fill, `disabled` text, and a `disabled` border on every variant except ghost
+  and link, so unavailable buttons stay legible without relying on transparency.
+- **Geometry**: heights `controls.small`/`controls.medium`/`controls.large` (32/36/40, shadcn `h-8`,
+  `h-9`, `h-10`); horizontal padding `spacing.medium`/`spacing.large`/`spacing.xlarge` (12/16/24,
+  shadcn `px-3`, `px-4`, `px-6`); radius `radii.medium`; a `borders.regular` border that is
+  transparent unless the variant draws one, so every variant has the same box; icon gap
+  `spacing.small` (8px) at every size (shadcn's small size uses 6px; there is no 6px token, and the
+  8px default gap is kept rather than crowding icons at 4px). Labels use `typography.body` (14px) at
+  medium weight (500), shadcn's `font-medium`; there is no font-weight token yet. The 3px focus ring
+  is the shadcn/ui ring width, a fixed component value.
 
 ## WAI-ARIA pattern reference
 
@@ -93,4 +127,4 @@ Use GPUI's native focus and click semantics. Host applications may replace the n
 
 ## Open questions
 
-The component API's icon type is `AnyElement`; maintainers should decide whether a future icon registry warrants a typed icon abstraction. Review whether the pointer-only `on_click` callback should remain alongside unified `on_activate`. Review disabled and busy accessibility semantics on an active platform.
+The component API's icon type is `AnyElement`; maintainers should decide whether a future icon registry warrants a typed icon abstraction. Review whether the pointer-only `on_click` callback should remain alongside unified `on_activate`. Review disabled and busy accessibility semantics on an active platform. Visually, loading and disabled currently render identically because the component has no progress glyph; the web preview shows a spinner, which needs either a loading-glyph slot or the E9.2 icon set.

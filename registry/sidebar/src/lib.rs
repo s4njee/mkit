@@ -1,10 +1,60 @@
 //! Labeled navigation landmark with link-style items and a current-page marker.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, Render, Window, actions, div,
-    prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, Render, Rgba, Window,
+    actions, div, prelude::*, px,
 };
 use mkit_core::theme::Theme;
+
+/// Colours derived from theme tokens for the shadcn-style sidebar. The
+/// shadcn themes mix `text` into `background` the same way DropdownMenu,
+/// ContextMenu, MenuBar and TagInput derive their active rows; other themes
+/// keep solid theme roles so high contrast stays high contrast.
+struct Palette {
+    /// Pane background (shadcn "muted").
+    pane: Rgba,
+    /// Hover and current-page row fill (shadcn "accent", one step above the pane).
+    active: Rgba,
+    /// Text colour on the current-page row.
+    active_text: Rgba,
+    /// Trailing-edge divider.
+    divider: Rgba,
+    /// Whether hover is shown as a fill (shadcn) or as a border (other themes).
+    fill_hover: bool,
+}
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    let mix = |f: f32, b: f32| f * weight + b * (1.0 - weight);
+    Rgba {
+        r: mix(foreground.r, base.r),
+        g: mix(foreground.g, base.g),
+        b: mix(foreground.b, base.b),
+        a: 1.0,
+    }
+}
+fn palette(t: &Theme) -> Palette {
+    let c = t.colors;
+    let (weight, dark) = match t.name {
+        "shadcn-light" => (0.04, false),
+        "shadcn-dark" => (0.12, true),
+        _ => {
+            return Palette {
+                pane: c.surface,
+                active: c.accent,
+                active_text: c.accent_text,
+                divider: c.border,
+                fill_hover: false,
+            };
+        }
+    };
+    let pane = mix(c.text, c.background, weight);
+    Palette {
+        pane,
+        active: mix(c.text, pane, weight),
+        active_text: c.text,
+        divider: if dark { Rgba { a: 0.1, ..c.text } } else { c.border },
+        fill_hover: true,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "MkitSidebar";
 actions!(sidebar, [Activate]);
@@ -112,23 +162,27 @@ impl Render for Sidebar {
             *focus = focus.clone().tab_stop(enabled).tab_index(if enabled { 0 } else { -1 });
         }
         let row = self.orientation == Orientation::Horizontal;
+        let p = palette(&t);
+        let hairline = px(t.borders.hairline);
         let mut root = div()
             .id(("mkit-sidebar", cx.entity().entity_id()))
             .key_context(KEY_CONTEXT)
             .role(gpui_pre::accesskit::Role::Navigation)
             .aria_label(self.label.clone())
             .flex()
-            .when(row, |e| e.flex_row())
-            .when(!row, |e| e.flex_col())
-            .rounded(px(t.radii.medium))
-            .border(px(t.borders.regular))
-            .border_color(t.colors.border)
+            .when(row, |e| e.flex_row().border_b(hairline))
+            .when(!row, |e| e.flex_col().border_r(hairline))
+            .gap(px(t.spacing.xsmall))
+            .p(px(t.spacing.small))
+            .bg(p.pane)
+            .border_color(p.divider)
             .on_action(cx.listener(Self::activate_focused));
         for (index, item) in self.items.iter().enumerate() {
             let current = self.value.as_deref() == Some(item.value.as_str());
             let enabled = self.enabled(index);
             let entity = entity.clone();
             let focus = self.item_focus[index].clone();
+            let (active, fill_hover, border) = (p.active, p.fill_hover, t.colors.border);
             let element = div()
                 .id(item.value.clone())
                 .debug_selector(move || format!("sidebar-item-{index}"))
@@ -142,22 +196,31 @@ impl Render for Sidebar {
                 .on_click(move |_, _, cx| {
                     entity.update(cx, |sidebar, cx| sidebar.request(index, cx))
                 })
-                .min_w(px(t.controls.medium))
-                .h(px(t.controls.medium))
+                .when(!row, |e| e.w_full())
+                .h(px(t.controls.small))
                 .px(px(t.spacing.small))
                 .flex()
                 .items_center()
-                .justify_start()
+                .gap(px(t.spacing.small))
                 .rounded(px(t.radii.small))
-                .border(px(t.borders.hairline))
-                .border_color(if current { t.colors.accent } else { t.colors.border })
-                .bg(if current { t.colors.accent } else { t.colors.surface })
-                .text_color(if !enabled {
+                .border(hairline)
+                .border_color(gpui_pre::transparent_black())
+                .when(current, |e| e.font_weight(FontWeight::MEDIUM))
+                // A disabled current page in the solid-fill themes keeps its
+                // marker as a `disabled` outline: disabled text on the solid
+                // accent fill would be illegible.
+                .when(current && (enabled || fill_hover), |e| e.bg(p.active))
+                .when(current && !enabled && !fill_hover, |e| e.border_color(t.colors.disabled))
+                .text_color(if !enabled && !fill_hover {
                     t.colors.disabled
                 } else if current {
-                    t.colors.accent_text
+                    p.active_text
                 } else {
                     t.colors.text
+                })
+                .when(!enabled && fill_hover, |e| e.opacity(0.5))
+                .when(enabled && !current, |e| {
+                    e.hover(move |s| if fill_hover { s.bg(active) } else { s.border_color(border) })
                 })
                 .text_size(px(t.typography.body))
                 .focus_visible(|s| s.border_color(t.colors.focus))

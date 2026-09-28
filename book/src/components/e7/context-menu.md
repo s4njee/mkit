@@ -1,6 +1,6 @@
 # Context menu
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 Use a context menu for commands related to the item someone just clicked or focused. The app supplies the context gesture and opening position.
 
@@ -46,10 +46,12 @@ menu; host trigger retains its role; entries use menuitem/menuitemcheckbox, expo
 
 ## Theme
 
-Read colors, typography, spacing, radii, border widths, and control sizing from the GPUI Global `Theme` tokens. Enabled, non-active menu rows use `Theme.colors.text`; disabled rows use `Theme.colors.disabled`; shortcut labels and submenu indicators use `Theme.colors.text_muted`. In shadcn themes, the pane uses `surface`, and the pointer-hovered or keyboard-active row keeps `text` over the web preview's subtle `text`/`background` mix (4% text in light, 12% in dark), with `radii.small` corners and the pane's `spacing.xsmall` inset. Other themes retain their accent/contrast active colors and `elevated_surface` pane. Shadows and motion are not used by this menu surface. Do not hard-code colors.
+Menus follow the shadcn/ui look: a popover pane on the surface colour with a 1px border (a 10% text border in dark themes), `radii.medium` corners, a medium shadow, 4px padding, and a 128px minimum width. Rows are 32px tall with 8px padding, 14px labels, and small rounded corners. The pointer-hovered or keyboard-active row, and a submenu parent while its child pane is open, gets the muted accent fill (text mixed 4% into the background in light themes, 12% in dark themes). Checkable items show a drawn check mark in a leading 16px slot, submenu parents end with a drawn chevron, and shortcuts are right-aligned in 12px muted text. Disabled rows render at 50% strength over the pane. The high-contrast theme keeps a black pane with a white border, a solid accent-filled active row with accent text, thicker icon strokes, and solid `disabled` text for unavailable rows. `MenuItem` has no group label, separator, icon, or destructive variant, so those parts of the web preview are not drawn. The spec's theme table lists each token mapping.
 
 ## Current limits
 
 The host must wire the opening gesture, coordinates, and any nested overlay ordering.
 
-For the exact state and event contract, see the checked-in `registry/context-menu/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full E5 conformance matrix has passed.
+Shortcut labels go through the shared [KeyHint](key-hint.md) formatter, so menus, the command palette, and the shortcut editor show the same platform key names. A label written as `⌘⇧S` or `cmd-shift-s` appears as `⇧⌘S` on macOS and `Shift+Super+S` on other platforms. Text the formatter cannot read, such as a two-step sequence, is shown as written. The shortcut keeps its muted inline text style rather than keycap boxes.
+
+For the exact state and event contract, see the checked-in `registry/context-menu/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full conformance matrix has passed.

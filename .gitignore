@@ -5,4 +5,4 @@ target/
 __pycache__/
 *.pyc
 .env
-crates/mkit-harness/snapshots/*-diff.png
+*-diff.png

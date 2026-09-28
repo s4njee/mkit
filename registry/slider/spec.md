@@ -114,8 +114,35 @@ Pointer down on a thumb selects that endpoint and starts dragging; clicking the 
 Every thumb is a separate slider accessibility node with a focus handle, role, and value min/max/now. For a single slider, the node name is `label`. For a range, names are `label minimum` and `label maximum`; each node's value reflects its own endpoint and each can receive keyboard focus independently. The selected fill spans the lower to upper endpoint. Disabled thumbs set the AccessKit disabled property, describe themselves as unavailable, and ignore input.
 
 ## Theme tokens used
+The look follows the shadcn/ui slider and is resolved from the installed `Theme` in three variants,
+the same way Tabs does it. `high-contrast` is selected by theme name; every other theme is dark
+when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived
+colours use `mkit_core::contrast::composite`; no new core tokens are added.
 
-Track, fill, thumb, and focus colors come from the GPUI Global `Theme`; an inactive thumb uses `text_muted` for its outline so it stays visible against the dark surface. A disabled slider renders its selected fill and thumb with the theme's disabled color rather than the active accent. Compact track/thumb dimensions use `controls` and `borders` tokens, and corners use `radii.pill`. The thumb is 0.6 times the xsmall control token to fit within the small track row; maintainers should review this fixed ratio.
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Track ("muted") | `text` at 4% over `background` | `text` at 12% over `background` | `background` with a `borders.hairline` border in `border` |
+| Selected fill | `accent` | `accent` | `accent` |
+| Thumb fill | `background` | `background` | `background` |
+| Thumb border | `accent` | `accent` | `accent` |
+| Thumb shadow | `shadows.small` | `shadows.small` | `shadows.small` (transparent in this theme) |
+| Keyboard focus | a `spacing.xsmall` (4px) ring of `focus` at 50% around the focused thumb | same | the same ring in opaque `focus` |
+| Disabled | track, fill and thumb border at 50% over `background` | same | same |
+
+Geometry: the visible track is `spacing.xsmall + borders.strong` tall with radius `radii.pill`,
+which is 6px in the shadcn themes (shadcn/ui's `h-1.5`; there is no 6px token) and 7px in high
+contrast, whose strong border is heavier. Each thumb is a `spacing.large` (16px) circle with a
+`borders.hairline` border, shadcn/ui's `size-4 border`. The focus ring follows shadcn/ui's slider
+`ring-4` and the web preview, so it uses `spacing.xsmall` rather than the 3px ring of other
+controls, and the thumb keeps its `accent` border. Only a thumb with keyboard focus shows the ring;
+the most recently active thumb is no longer outlined when the slider is not focused. Thumb fills
+are opaque because GPUI paints the drop shadow as a filled shape inside the element. The pointer
+row stays `controls.small` (32px) tall, so pointer hit geometry is unchanged.
+
+Disabled matches the web preview's `opacity: .5` applied to the control as one layer: every part's
+colour is composited opaque over `background` and then mixed 50% with it, and the shadow alpha is
+halved. GPUI element opacity is not used because it dims each painted part separately, so a thumb
+or mark would show the part beneath it.
 
 ## WAI-ARIA pattern reference
 

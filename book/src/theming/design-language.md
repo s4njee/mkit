@@ -2,7 +2,7 @@
 
 mkit ships one default look, not a neutral blank slate. It is dense, dark-first, and quiet, so a pro tool feels calm while the content stays loud. The same semantic tokens also drive a light palette and a high-contrast palette, and components read them at runtime instead of hard-coding colors or sizes.
 
-This is the E9.1 design-language reference. It documents the principles and the token set in `crates/mkit-core/src/theme.rs`. E9.2 (a redistributable icon set) and E9.3 (theme authoring from files) are not shipped yet; their gaps are recorded at the end. The component guides in [Everyday component drafts](../components/everyday-components.md) and the E7/E8 guides describe how each control consumes these tokens.
+This is the design-language reference. It documents the principles and the token set in `crates/mkit-core/src/theme.rs`. A redistributable icon set and theme authoring from files are not shipped yet; their gaps are recorded at the end. The component guides in [Everyday component drafts](../components/everyday-components.md) and the everyday and pro-app guides describe how each control consumes these tokens.
 
 ## Principles
 
@@ -75,7 +75,7 @@ Keep line length short in dense panes, and prefer `text_muted` over a lighter fo
 
 Icons are monochrome, stroke-based, and inherit `currentColor` so they match the text role beside them. Size an icon to the control it sits in: the body size in a `controls.medium` control, and one step larger for a standalone toolbar glyph.
 
-An icon is decoration when a visible label already names the action, and meaningful when it is the only label. A meaningful, icon-only control must carry an explicit accessible name; mkit components expose an `aria_label` (or equivalent) for that case and never invent a name from the glyph. mkit does not bundle an icon set yet, so today a caller supplies an `AnyElement` or SVG. [E9.2](https://github.com/mk7s/mkit/blob/main/plan.md) will add a licensed set with a consistent grid; until then, match the stroke weight and grid of the icons you supply yourself.
+An icon is decoration when a visible label already names the action, and meaningful when it is the only label. A meaningful, icon-only control must carry an explicit accessible name; mkit components expose an `aria_label` (or equivalent) for that case and never invent a name from the glyph. mkit does not bundle an icon set yet, so today a caller supplies an `AnyElement` or SVG. The [planned icon set](https://github.com/mk7s/mkit/blob/main/plan.md) will add a licensed set with a consistent grid; until then, match the stroke weight and grid of the icons you supply yourself.
 
 ## Built-in themes
 
@@ -113,6 +113,14 @@ The baselines come from `examples/state_entities/tests/component_state_screensho
 
 Install a built-in theme with `set_theme(cx, DARK)`, or a named helper such as `set_light_theme(cx)`, `set_dark_theme(cx)`, `set_high_contrast_theme(cx)`, `set_shadcn_light_theme(cx)`, or `set_shadcn_dark_theme(cx)`. Each helper calls `App::set_global` and then `App::refresh_windows`. A headless two-window test in `mkit-core` checks that both windows render again with the replacement theme. Read [Shared configuration with Global](../state/globals.md) for the general global pattern.
 
+### Theme files
+
+A theme can also come from a JSON file. `Theme::from_json` requires every token and reports the first missing or invalid one by its dotted path, such as `colors.focus`, without changing the installed theme. `Theme::to_json` writes the same format, and `Theme::to_css_custom_properties` exports the tokens for a web page. All five built-in themes round-trip through the file format unchanged.
+
+```rust
+{{#include ../../../examples/state_entities/src/theme_tokens.rs:theme_file}}
+```
+
 ## Common mistakes
 
 - **Hard-coding a color.** A literal like `rgb(0x17191f)` matches the dark background today and breaks the light and high-contrast themes. Symptom: one theme looks right and the others do not. Cause: the constant bypasses the role. Correction: read `cx.global::<Theme>().colors.<role>`.
@@ -121,7 +129,7 @@ Install a built-in theme with `set_theme(cx, DARK)`, or a named helper such as `
 
 ## Limits and open questions
 
-- The icon set and the icon component are E9.2 and are not implemented. Components accept caller-supplied icons and require an explicit accessible name.
-- Theme authoring (loading a theme from a file, editing it in the gallery, and exporting tokens) is E9.3 and is not implemented. Today a host selects one of the built-in constants or constructs its own `Theme` value.
-- Contrast ratios have not been measured for every text/surface pair. E4.1 verifies that the palettes are complete and distinct, not that each pair meets a target ratio.
+- The icon set and the icon component are not implemented. Components accept caller-supplied icons and require an explicit accessible name.
+- Theme files must list every token; a file cannot yet extend a built-in theme. There is no theme editor in the gallery.
+- `mkit_core::contrast` measures WCAG contrast for 23 token pairs in every built-in theme. Text and muted text meet 4.5:1 on every surface. Some pairs are below target: borders against surfaces (below 3:1 in the light, dark and shadcn themes), the focus ring against accent-coloured controls, and the high-contrast danger colour (6.68:1 against a 7:1 target). The fixes are pending design review.
 - Motion durations are tokens, but callers still decide whether to animate; honoring the OS reduced-motion setting is tracked separately.

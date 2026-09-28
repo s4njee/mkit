@@ -34,10 +34,10 @@ progress = []
 text-field = []
 text-area = []
 breadcrumbs = []
-context-menu = []
+context-menu = ["mkit-mirror", "key-hint"]
 data-table = []
 dialog = []
-dropdown-menu = []
+dropdown-menu = ["mkit-mirror", "key-hint"]
 form-layout = []
 multi-select = []
 popover = []
@@ -56,13 +56,13 @@ virtual-list = []
 viewport = []
 histogram = []
 precision-slider = []
-command-palette = []
+command-palette = ["mkit-mirror", "key-hint"]
 curve-editor = []
 colour-tools = []
-property-inspector = []
+property-inspector = ["mkit-mirror", "disclosure"]
 layer-panel = []
 gradient-editor = []
-shortcut-editor = []
+shortcut-editor = ["mkit-mirror", "key-hint"]
 timeline = []
 node-editor = []
 calendar = []
@@ -97,6 +97,7 @@ gpui_pre = { workspace = true, features = ["test-support"] }
 serde_json = "=1.0.151"
 mkit-registry-dropdown-menu = { path = "../../registry/dropdown-menu" }
 mkit-registry-context-menu = { path = "../../registry/context-menu" }
+mkit-harness = { path = "../mkit-harness" }
 
 [[test]]
 name = "menu_host_integration"
@@ -209,3 +210,11 @@ name = "breadcrumbs_conformance"
 path = "tests/breadcrumbs_conformance.rs"
 harness = false
 required-features = ["breadcrumbs"]
+
+# Renders generated accessibility cases through `mkit_harness::AccessibilitySession`
+# and compares normalized AccessKit trees with committed text snapshots.
+[[test]]
+name = "a11y_conformance"
+path = "tests/a11y_conformance.rs"
+harness = false
+required-features = ["button", "checkbox", "slider"]

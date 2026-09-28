@@ -1,0 +1,29 @@
+[package]
+name = "mkit-example-e7-compositions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# E7 components composed inside other E7 components. Keeping these scenes in an example crate
+# lets registry components stay independent of one another.
+
+[dependencies]
+mkit.workspace = true
+gpui_pre.workspace = true
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+gpui-kit = "=0.6.4"
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }
+mkit-harness = { path = "../../crates/mkit-harness" }
+image = "=0.25.10"
+
+[[test]]
+name = "stepper_in_modal"
+path = "tests/stepper_in_modal.rs"
+
+[[test]]
+name = "screenshots"
+path = "tests/screenshots.rs"
+harness = false

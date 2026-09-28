@@ -39,15 +39,24 @@ struct TooltipLabel(String);
 impl Render for TooltipLabel {
     fn render(&mut self, _: &mut Window, cx: &mut gpui_pre::Context<Self>) -> impl IntoElement {
         let t = *cx.global::<Theme>();
+        let c = t.colors;
+        // shadcn/ui tooltip: a primary-filled label. High contrast keeps solid text on the
+        // background with an outline instead of the accent fill; see the spec's theme table.
+        let high_contrast = t.name == "high-contrast";
+        let (bg, fg) =
+            if high_contrast { (c.background, c.text) } else { (c.accent, c.accent_text) };
         div()
-            .px(px(t.spacing.small))
-            .py(px(t.spacing.xsmall))
-            .rounded(px(t.radii.small))
-            .border(px(t.borders.hairline))
-            .border_color(t.colors.border)
-            .bg(t.colors.elevated_surface)
-            .text_color(t.colors.text)
+            .px(px(t.spacing.medium))
+            // 6px (shadcn `py-1.5`): the midpoint of the xsmall and small spacing tokens.
+            .py(px((t.spacing.xsmall + t.spacing.small) / 2.0))
+            .rounded(px(t.radii.medium))
+            .when(high_contrast, |label| {
+                label.border(px(t.borders.hairline)).border_color(c.border)
+            })
+            .bg(bg)
+            .text_color(fg)
             .text_size(px(t.typography.caption))
+            .whitespace_nowrap()
             .child(self.0.clone())
     }
 }

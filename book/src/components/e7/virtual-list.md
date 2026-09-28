@@ -1,6 +1,6 @@
 # Virtual list
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A virtual list displays a large list inside a bounded scrolling area. GPUI only builds rows around the visible part of the list.
 
@@ -44,6 +44,6 @@ The focusable root has listbox role and accessible label. Rendered rows have lis
 
 Two generated keyboard cases (ArrowDown `ActiveChanged`, Space `SelectionChanged`) pass through a real GPUI adapter, and five package tests pass, including uncontrolled and controlled row-click selection and 10,000-row keyboard-to-end and wheel-scroll checks. The screenshot matrix passes 18/18 idle/selected/empty comparisons across three themes and two scales.
 
-Offscreen rows are absent from the accessibility tree. The default multiple-selection mode still needs active-platform semantics review, and the generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. The full E5 conformance matrix and maintainer API, spec, and visual review are outstanding.
+Offscreen rows are absent from the accessibility tree. The default multiple-selection mode still needs active-platform semantics review, and the generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. The full conformance matrix and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/virtual-list/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/virtual-list/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

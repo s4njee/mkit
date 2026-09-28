@@ -47,7 +47,7 @@ accessibility:
       when: visible
 controlled: Owner supplies open state through controlled constructor and set_open; uncontrolled dismissal updates state before emitting.
 events: [OpenChanged]
-theme_tokens: [elevated_surface, text, border, spacing.medium, spacing.large, radii.large, borders.regular, typography.body, typography.heading_small]
+theme_tokens: [background, surface, text, text_muted, border, spacing.xsmall, spacing.large, radii.large, borders.regular, typography.body, shadows.large]
 open_questions: []
 ---
 
@@ -85,7 +85,33 @@ The open root exposes AccessKit `status` role with polite live-region priority b
 
 ## Theme tokens used
 
-The renderer reads `elevated_surface`, `text`, `border`, `spacing.medium`, `spacing.large`, `radii.large`, `borders.regular`, `typography.body`, and `typography.heading_small` from GPUI `Theme`.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, a `.ui-popover` surface styled in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved from the
+installed `Theme` in three variants. `high-contrast` is selected by theme name (the convention other
+registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. No mkit-core
+API or tokens are added. "Hairline" is shadcn's `border`: the `border` token in light themes and
+`text` at 10% in dark themes.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Fill | `surface` (shadcn `popover`) | `background` |
+| Border | hairline | `border` |
+| Shadow | `shadows.large` (shadcn `shadow-lg`) | none (the token is transparent) |
+| Title | `text`, semibold | `text`, semibold |
+| Content | `text_muted` (shadcn `muted-foreground`) | `text_muted` |
+
+GPUI paints drop shadows as filled shapes that are not clipped to the element's outside, so the
+fill is always opaque. The dismissed state renders nothing, as before.
+
+Geometry: radius `radii.large` (the preview overrides `.ui-popover`'s medium radius with
+`--ui-radius-lg`), `spacing.large` padding (shadcn `p-4`; the preview's 14px vertical
+padding has no token), a `borders.regular` border, and a `spacing.xsmall` gap between title and
+content (the nearest token to the preview's 2px gap; shadcn's `gap-1`). Title and content use
+`typography.body` (14px); the preview's 13px description has no token. Semibold (600) is shadcn's
+`font-semibold`; there is no font-weight token yet. Width is host-owned, like placement. The
+preview's status icon and Undo action are not part of this component's API; adding an action button
+would add a focus stop and an accessibility node, which needs a spec decision.
 
 ## WAI-ARIA pattern reference
 

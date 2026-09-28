@@ -1,0 +1,784 @@
+{
+  "schema_version": 1,
+  "description": "GPUI Book benchmark apps (plan E3.1). Order is increasing difficulty. Benchmarks 1-6 gate M1 and must be answerable from Parts I-IV; 7-10 gate 1.0.",
+  "m1_parts": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "benchmarks": [
+    {
+      "id": "01-counter",
+      "number": 1,
+      "title": "Counter",
+      "milestone": "M1",
+      "fixture": false,
+      "chapters": [
+        "examples/counter.md",
+        "examples/hello.md",
+        "state/entities.md",
+        "state/reactivity.md",
+        "interaction/actions.md",
+        "interaction/focus.md"
+      ],
+      "optional_chapters": [
+        "testing/simulate-and-assert.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_initial_count_is_zero",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "count starts at 0"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_buttons_change_the_count",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "buttons increment, decrement, reset"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_keyboard_commands_change_the_count",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "up/down/escape actions"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_count_never_goes_below_zero",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "decrement floors at 0"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_count_change_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "frame changes with count"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_accessibility_names_the_increment_button",
+          "target": "acceptance",
+          "kind": "a11y",
+          "summary": "Increment button in a11y tree"
+        }
+      ]
+    },
+    {
+      "id": "02-todo-list",
+      "number": 2,
+      "title": "Todo list with keyboard shortcuts",
+      "milestone": "M1",
+      "fixture": false,
+      "chapters": [
+        "examples/hello.md",
+        "state/entities.md",
+        "state/views-and-components.md",
+        "elements/conditional-lists.md",
+        "interaction/mouse.md",
+        "interaction/focus.md",
+        "interaction/actions.md",
+        "interaction/keyboard-list.md"
+      ],
+      "optional_chapters": [
+        "cookbook/state/stable-row-ids.md",
+        "cookbook/state/derived-count.md",
+        "text-input/single-line-field.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_initial_state",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "three seeded items, draft focused"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_typing_and_enter_adds_an_item",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "draft typing and enter"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_empty_draft_is_ignored",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "blank draft adds nothing"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_list_navigation_and_toggle",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "tab, arrows, space toggle"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_delete_and_reorder",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "backspace delete, alt-up/down reorder"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_pointer_selects_and_toggles",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "row and checkbox clicks"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_toggle_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "done state renders differently"
+        },
+        {
+          "id": "AC8",
+          "test": "ac8_accessibility_lists_items",
+          "target": "acceptance",
+          "kind": "a11y",
+          "summary": "items in a11y tree"
+        }
+      ]
+    },
+    {
+      "id": "03-settings-screen",
+      "number": 3,
+      "title": "Settings screen",
+      "milestone": "M1",
+      "fixture": false,
+      "chapters": [
+        "elements/div-and-layout.md",
+        "elements/size-and-scroll.md",
+        "elements/text.md",
+        "elements/conditional-lists.md",
+        "elements/settings-screen.md",
+        "state/globals.md",
+        "interaction/mouse.md",
+        "interaction/focus.md",
+        "interaction/actions.md"
+      ],
+      "optional_chapters": [
+        "cookbook/windows/theme-preview.md",
+        "cookbook/rendering/conditional-panel.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_defaults",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "default settings"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_sidebar_click_switches_sections",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "sidebar selection"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_switches_toggle_by_click",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "switch clicks"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_conditional_sound_row",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "sound row only with alerts on"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_font_size_clamps",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "font size 10..=24"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_keyboard_sections_and_tab_focus",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "arrows, tab order, space"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_dark_theme_is_darker",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "theme global changes colours"
+        },
+        {
+          "id": "AC8",
+          "test": "ac8_accessibility_names_switches",
+          "target": "acceptance",
+          "kind": "a11y",
+          "summary": "switch names in a11y tree"
+        }
+      ]
+    },
+    {
+      "id": "04-file-browser",
+      "number": 4,
+      "title": "File browser",
+      "milestone": "M1",
+      "fixture": true,
+      "chapters": [
+        "state/entities.md",
+        "elements/size-and-scroll.md",
+        "elements/conditional-lists.md",
+        "interaction/mouse.md",
+        "interaction/actions.md",
+        "interaction/keyboard-list.md"
+      ],
+      "optional_chapters": [
+        "async/file-browser.md",
+        "async/executors-and-tasks.md",
+        "async/entity-updates.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_lists_root_sorted",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "directories first, sorted, sizes"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_enter_opens_directory_and_backspace_returns",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "navigate in and out"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_root_is_a_boundary",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "cannot leave fixture root"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_hidden_entries_toggle",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "dotfiles hidden by default"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_open_file_and_click_select",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "open file, click selects"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_refresh_reads_disk_again",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "refresh picks up new files"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_navigation_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "directory change renders"
+        },
+        {
+          "id": "AC8",
+          "test": "ac8_accessibility_lists_entries",
+          "target": "acceptance",
+          "kind": "a11y",
+          "summary": "entries in a11y tree"
+        }
+      ]
+    },
+    {
+      "id": "05-markdown-previewer",
+      "number": 5,
+      "title": "Markdown previewer",
+      "milestone": "M1",
+      "fixture": true,
+      "chapters": [
+        "elements/text.md",
+        "elements/size-and-scroll.md",
+        "elements/conditional-lists.md",
+        "state/entities.md",
+        "interaction/actions.md"
+      ],
+      "optional_chapters": [
+        "cookbook/rendering/rich-text.md",
+        "cookbook/rendering/scroll-region.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_parses_blocks",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "block structure"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_inline_styles",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "bold, italic, code spans"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_source_mode_toggle",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "preview/source toggle"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_reload_from_disk",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "reload re-reads the file"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_heading_navigation_scrolls",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "heading jumps scroll"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_preview_and_source_differ",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "modes render differently"
+        }
+      ]
+    },
+    {
+      "id": "06-split-pane-editor",
+      "number": 6,
+      "title": "Split-pane editor",
+      "milestone": "M1",
+      "fixture": true,
+      "chapters": [
+        "examples/hello.md",
+        "elements/div-and-layout.md",
+        "elements/text.md",
+        "interaction/mouse.md",
+        "interaction/focus.md",
+        "interaction/actions.md"
+      ],
+      "optional_chapters": [
+        "cookbook/rendering/split-pane.md",
+        "text-input/handler-contract.md",
+        "text-input/selection-and-undo.md",
+        "async/settings-files-sqlite.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_lists_files_and_opens_first",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "file list and open"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_typing_edits_the_buffer",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "insert text, dirty flag"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_enter_backspace_and_arrows",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "line editing and cursor"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_save_writes_file",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "save to disk"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_buffers_survive_switching",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "per-file buffers"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_divider_drag_and_keyboard_resize",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "resizable split"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_editing_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "edits render"
+        }
+      ]
+    },
+    {
+      "id": "07-image-viewer",
+      "number": 7,
+      "title": "Image viewer with zoom",
+      "milestone": "1.0",
+      "fixture": true,
+      "chapters": [
+        "elements/images-and-svg.md",
+        "interaction/mouse.md",
+        "interaction/actions.md",
+        "custom-rendering/pan-and-zoom.md",
+        "custom-rendering/canvas-primitives.md"
+      ],
+      "optional_chapters": [
+        "components/e8/viewport.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_loads_and_fits",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "image metadata and fit zoom"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_keyboard_zoom_steps_and_clamps",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "zoom steps and limits"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_actual_size_and_fit",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "100% and fit commands"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_drag_and_arrow_pan",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "panning"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_ctrl_scroll_zooms",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "modifier scroll zoom"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_missing_image_reports_error",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "error state"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_zoom_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "zoom renders"
+        }
+      ]
+    },
+    {
+      "id": "08-searchable-table",
+      "number": 8,
+      "title": "Searchable table",
+      "milestone": "1.0",
+      "fixture": true,
+      "chapters": [
+        "text-input/single-line-field.md",
+        "custom-rendering/virtualization.md",
+        "interaction/keyboard-list.md",
+        "interaction/mouse.md",
+        "interaction/focus.md",
+        "elements/text.md"
+      ],
+      "optional_chapters": [
+        "components/e7/data-table.md",
+        "cookbook/async/debounce-timer.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_loads_rows_virtualized",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "500 rows, bounded rendering"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_search_filters_case_insensitively",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "filtering"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_header_click_sorts",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "sorting"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_keyboard_selection_and_details",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "selection and details"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_escape_clears_and_focus_shortcut",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "escape and focus shortcut"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_scrolling_keeps_rendering_bounded",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "virtualized scrolling"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_filter_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "filter renders"
+        }
+      ]
+    },
+    {
+      "id": "09-canvas-drawing",
+      "number": 9,
+      "title": "Canvas drawing app",
+      "milestone": "1.0",
+      "fixture": false,
+      "chapters": [
+        "custom-rendering/element-lifecycle.md",
+        "custom-rendering/canvas-primitives.md",
+        "interaction/mouse.md",
+        "interaction/actions.md"
+      ],
+      "optional_chapters": [
+        "custom-rendering/pan-and-zoom.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_initial_state",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "empty canvas, pen, black"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_drag_draws_a_stroke",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "freehand stroke"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_rectangle_tool_and_colours",
+          "target": "acceptance",
+          "kind": "pointer",
+          "summary": "rectangle tool and palette"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_undo_redo",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "undo and redo"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_clear_is_undoable",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "clear and undo"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_stroke_is_visible",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "drawing renders"
+        }
+      ]
+    },
+    {
+      "id": "10-multi-window-notes",
+      "number": 10,
+      "title": "Multi-window notes app",
+      "milestone": "1.0",
+      "fixture": true,
+      "chapters": [
+        "windows-platform-shipping/windows-and-appearance.md",
+        "text-input/single-line-field.md",
+        "async/settings-files-sqlite.md",
+        "state/entities.md",
+        "state/reactivity.md",
+        "interaction/actions.md"
+      ],
+      "optional_chapters": [
+        "cookbook/windows/window-options.md",
+        "text-input/selection-and-undo.md"
+      ],
+      "criteria": [
+        {
+          "id": "AC0",
+          "test": null,
+          "target": "build",
+          "kind": "build",
+          "summary": "crate and binary build"
+        },
+        {
+          "id": "AC1",
+          "test": "ac1_loads_store",
+          "target": "acceptance",
+          "kind": "state",
+          "summary": "notes loaded from store"
+        },
+        {
+          "id": "AC2",
+          "test": "ac2_new_note_opens_window",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "new note window"
+        },
+        {
+          "id": "AC3",
+          "test": "ac3_editing_updates_list_live",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "shared entity updates"
+        },
+        {
+          "id": "AC4",
+          "test": "ac4_save_persists_to_disk",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "save to store file"
+        },
+        {
+          "id": "AC5",
+          "test": "ac5_open_existing_focuses_single_window",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "one window per note"
+        },
+        {
+          "id": "AC6",
+          "test": "ac6_close_window",
+          "target": "acceptance",
+          "kind": "keyboard",
+          "summary": "close note window"
+        },
+        {
+          "id": "AC7",
+          "test": "ac7_list_is_rendered",
+          "target": "screenshots",
+          "kind": "screenshot",
+          "summary": "list renders"
+        }
+      ]
+    }
+  ]
+}

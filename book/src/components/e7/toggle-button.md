@@ -1,6 +1,6 @@
 # Toggle button
 
-Keep one persistent pressed or unpressed choice. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Keep one persistent pressed or unpressed choice. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Toggle button dark theme baseline](../../images/e7/toggle-button.png)
 
@@ -24,7 +24,7 @@ Requests button role, accessible name, and pressed state. Disabled leaves Tab or
 
 ## Theme tokens
 
-Colors: surface, text, accent, focus, disabled. Spacing: small/medium. Radius: small. Border: regular.
+Toggle buttons follow the shadcn/ui toggle. They are transparent when off, show a muted hover fill, and use a muted accent fill with regular text when pressed. They are 36px tall (`controls.medium`) with 8px padding, `radii.medium` corners, and 14px medium-weight labels. Disabled toggles render at 50% opacity, and keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme uses a white border when off, a solid accent fill when pressed, and the `disabled` colour when unavailable. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -34,4 +34,4 @@ Colors: surface, text, accent, focus, disabled. Spacing: small/medium. Radius: s
 
 ## Verification and limits
 
-Enter/Space adapter and focused controlled, uncontrolled, and disabled tests passed. 18/18 declared screenshot comparisons passed. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/toggle-button/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Enter/Space adapter and focused controlled, uncontrolled, and disabled tests passed. 18/18 declared screenshot comparisons passed. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/toggle-button/spec.md` and `docs/E7_AUDIT.md` in the repository.

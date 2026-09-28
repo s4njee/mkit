@@ -40,7 +40,7 @@ compact rows and fan horizontally around their cluster's time position. Extremel
 can extend past the visible track width; use keyboard navigation to reach offscreen markers.
 
 Keyframes have stable IDs and accessible names containing the owner and formatted time. The source
-contract is `registry/timeline/spec.md`; its example compiles as part of the E8 examples. The
+contract is `registry/timeline/spec.md`; its example compiles as part of the pro-app examples. The
 dedicated macOS harness captures eight states (clip preview, commit, cancel, keyframe preview,
 commit, cancel, selection, and dense keyframes) in light, dark, and high-contrast themes at 1× and
 2×. Keyboard

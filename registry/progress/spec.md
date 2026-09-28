@@ -60,8 +60,22 @@ Decorative and ignores pointer input.
 Progressbar role with accessible name and min/max bounds. Determinate values expose the clamped current value. Indeterminate mode omits the current value and supplies the description “In progress”; it does not set a live-region or busy property. Active-platform announcement behavior remains unverified.
 
 ## Theme tokens used
+The look follows the shadcn/ui progress bar and is resolved from the installed `Theme` in three
+variants, the same way Tabs does it. `high-contrast` is selected by theme name; every other theme
+is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light.
+Derived colours use `mkit_core::contrast::composite`; no new core tokens are added.
 
-Global border and accent colors, radii.pill, and spacing.xsmall. The static indeterminate segment is 35% of track width and centered; this fraction is a deliberate visual placeholder pending animation and reduced-motion design review.
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Track | `accent` at 20% over `background` | `accent` at 20% over `background` | `background` with a `borders.hairline` border in `border` |
+| Fill | `accent` | `accent` | `accent` |
+
+The track uses shadcn/ui's `bg-primary/20`, as the web preview does, composited opaque over
+`background`. High contrast outlines the track instead so the yellow fill never sits on a white
+track. The bar is `spacing.small` (8px) tall, shadcn/ui's `h-2`, with radius `radii.pill` on both
+the track and the fill. The static indeterminate segment is 35% of the track width and centred, so
+it stays distinguishable from a determinate fill, which always starts at the leading edge; this
+fraction is a deliberate visual placeholder pending animation and reduced-motion design review.
 
 ## WAI-ARIA pattern reference
 

@@ -167,7 +167,7 @@ An editable, single-value choice control for selecting one option from a supplie
 
 The popup is an in-window anchored surface, not a menu and not a separate dialog. The option list is single-select; highlight/active navigation is distinct from committed selection.
 
-The editable caret, selected-text highlight, and IME marked-text treatment appear only while the input has keyboard focus. A closed, unfocused committed value renders as ordinary text; disabled input never shows an editing caret. The field keeps the theme's medium control height and vertically centers its text even when no caret or query text is present. The disabled field surface uses reduced opacity so an empty disabled control is visibly different from an enabled empty control even without text.
+The editable caret, selected-text highlight, and IME marked-text treatment appear only while the input has keyboard focus. A closed, unfocused committed value renders as ordinary text; disabled input never shows an editing caret. The field keeps the theme's medium control height and vertically centers its text even when no caret or query text is present. The disabled field is drawn at 50% (its colours mixed over the background) so an empty disabled control is visibly different from an enabled empty control even without text.
 
 ## States
 
@@ -236,11 +236,53 @@ AccessKit models list autocomplete, and this component sets `AutoComplete::List`
 
 ## Theme tokens used
 
-- Input background, foreground, border, focus ring, placeholder, and disabled appearance: corresponding GPUI Global text-field/control tokens.
-- Popup background, border, shadow, and elevation: corresponding Global surface/popover tokens.
-- Option foreground, hover, active, selected, and disabled appearances: corresponding Global list/selection tokens.
-- Empty-state and validation text: Global secondary text and semantic status tokens.
-- Spacing, row height, corner radius, and focus-ring width: existing Global spacing, control-size, radius, and focus tokens. Do not introduce fixed values without a reviewed token or documented spec exception.
+The look follows the shadcn/ui input and command list as drawn by the docs-site web previews
+(`site/src/demos/e7.ts`, styled by `.ui-input`, `.ui-popover`, and `.ui-menu*` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`), and matches the
+Select trigger and popup. It is resolved from the installed `Theme` in three variants, the same way
+Button, Checkbox, and Tabs do it. `high-contrast` is selected by theme name; every other theme is
+dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light.
+Derived colours use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no
+mkit-core API or tokens are added. "Muted" below is shadcn's `accent`: `text` mixed 4% (light) or
+12% (dark) into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Input fill | `background` | `background` | `background` |
+| Input border ("input") | `border` | `text` at 15% | `border` |
+| Input shadow | `shadows.small` | `shadows.small` | none |
+| Query text | `text` | `text` | `text` |
+| Caret, text selection, IME marked text | `accent` caret; `accent` fill with `accent_text` | same | same |
+| Popup fill ("popover") | `surface` | `surface` | `background` |
+| Popup border | `border` | `text` at 10% | `border` |
+| Popup shadow | `shadows.medium` | `shadows.medium` | none |
+| Active option | muted fill, `text` | muted fill, `text` | `accent` fill, `accent_text` (check too) |
+| Committed option check | `text_muted` | `text_muted` | `text` |
+| Disabled option | `text` 50% over the popup fill | same | `disabled` |
+| Empty-state message | `text_muted` | `text_muted` | `text_muted` |
+| Focus | input border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Disabled control | every input colour mixed 50% over `background`, shadow alpha halved | same | `background` fill, `disabled` text and border |
+
+- **Focus** follows the web preview's `.ui-input:focus` (a text field shows its ring for any focus,
+  not only keyboard focus) and stays while the popup is open, because focus remains on the input.
+  The ring replaces the resting shadow. GPUI paints drop shadows as filled shapes that are not
+  clipped to the element's outside, so the input and popup fills are always opaque (the web input's
+  transparent fill composites to `background`).
+- **Disabled** matches the web preview's `opacity: .5` as one layer, the way Checkbox does it: each
+  colour is composited over `background` and mixed 50% with it. GPUI element opacity is not used
+  because it dims each painted part separately. High contrast keeps solid colours instead.
+- **Geometry**: the input is `controls.medium` (36px, shadcn `h-9`) tall with `spacing.medium`
+  (12px, `px-3`) horizontal padding, radius `radii.medium`, a `borders.regular` border, and
+  `typography.body` (14px) text; IME bounds and pointer hit testing use the same 12px text inset.
+  The popup keeps its inline placement a `spacing.xsmall` gap below the input and has radius
+  `radii.medium`, a `borders.regular` border, and `spacing.xsmall` (4px, `p-1`) padding. Option rows
+  are `controls.small` (32px) tall, matching shadcn's `py-1.5` around a 20px line, with
+  `spacing.small` (8px, `px-2`) horizontal padding and radius `radii.small`. The committed option
+  shows Lucide `check` (20,6 → 9,17 → 4,12 on a 24-unit grid, 2-unit stroke) drawn as a vector path
+  in a `spacing.large` (16px) square at the row's end; there are no icon assets. Pointer hover gives
+  enabled rows the muted fill (not in high contrast). The empty-state message is centred with `spacing.xlarge` (24px,
+  shadcn `py-6`) vertical padding. The 3px focus ring is the shadcn/ui ring width, a fixed component
+  value; it fits inside the 4px popup gap.
 
 ## WAI-ARIA pattern reference
 
@@ -264,6 +306,6 @@ Preserve native text entry, selection, clipboard, undo, and IME behavior on macO
 - Pointer selection is covered by the component behavior tests. Outside-click dismissal, a disclosure button, popup anchoring/clipping, live result announcements, and a popup controls relationship are not implemented by this pilot and must not be reported as conformant. The active option uses GPUI's supported AccessKit active-descendant focus marker. List autocomplete and disabled control/option states are written through the public accessibility subtree callback; disabled options remain visibly styled and behaviorally guarded.
 - Disabled matching options remain visible in the list but are skipped by active-option navigation and cannot be committed.
 
-For large synchronous option collections, the popup is a real scroll viewport over the complete filtered option sequence. Use uniform-height virtualization with a persistent scroll handle; the viewport is sized to eight option rows using the control-height token, and only the virtualizer's rendered range is mounted while every filtered option remains reachable by scrolling and keyboard navigation. The active item is tracked by its stable option identity within the current filtered mapping, and the scroll handle moves it into view whenever keyboard navigation changes the active option. Filtering rebuilds the mapping in source order and clamps/clears stale active state before rendering. Pointer hit testing maps each rendered virtual row back to its source option and commits the clicked enabled option. Controlled and uncontrolled value/event semantics remain those above; scrolling and virtualization emit no value, selection, or open-change events.
+For large synchronous option collections, the popup is a real scroll viewport over the complete filtered option sequence. Use uniform-height virtualization with a persistent scroll handle; the viewport shows up to eight option rows (fewer when fewer options match) using the small control-height token, and only the virtualizer's rendered range is mounted while every filtered option remains reachable by scrolling and keyboard navigation. The active item is tracked by its stable option identity within the current filtered mapping, and the scroll handle moves it into view whenever keyboard navigation changes the active option. Filtering rebuilds the mapping in source order and clamps/clears stale active state before rendering. Pointer hit testing maps each rendered virtual row back to its source option and commits the clicked enabled option. Controlled and uncontrolled value/event semantics remain those above; scrolling and virtualization emit no value, selection, or open-change events.
 
 For a large filtered result set, wheel scrolling to a later viewport and clicking a mounted row must commit the option represented by that filtered index, close the popup, and preserve the query. This interaction is covered by a GPUI test.

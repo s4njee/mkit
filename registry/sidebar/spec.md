@@ -60,7 +60,27 @@ Navigation landmark with accessible label, containing links with accessible name
 
 ## Theme tokens used
 
-Theme surface, text, muted text, border, accent, focus, disabled; spacing, borders, radii, controls, typography tokens.
+Theme background, surface, text, border, accent, accent text, focus, disabled; spacing, borders, radii, controls, typography tokens.
+
+### Visual design
+
+The look follows the shadcn sidebar used by the docs-site web preview (`site/src/demos/e7.ts`, `.ui-menu__item`).
+
+- **Container.** A flat pane, not a bordered card: no radius, `spacing.small` (8px) padding, and one `borders.hairline` divider on the trailing edge (right edge when vertical, bottom edge when horizontal). Items are separated by `spacing.xsmall` (4px), the shadcn `SidebarMenu` gap, with no borders between items. The component does not set a width; the owner sizes the pane and items stretch to fill it.
+- **Items.** Full-width rows, `controls.small` (32px) tall, which equals the web row (14px text × 1.43 line height + 2 × 6px padding). Horizontal padding `spacing.small` (8px), radius `radii.small`, text `typography.body` (14px) in `text`, transparent background and a transparent `borders.hairline` border reserved for the focus ring so focus does not shift layout.
+- **Hover and current page.** Hover fills the row with the theme's accent fill. The current page uses the same fill plus medium (500) font weight.
+- **Disabled.** Disabled links render at 50% opacity in the shadcn themes, matching the web preview; other themes keep the `disabled` text token so high-contrast text stays legible.
+- **Focus.** Keyboard focus (`focus_visible`) colours the reserved item border with `focus` in every theme.
+
+Derived fills (no public mkit-core API is added; the helper is local to this crate and follows the `active_row_colors` convention in DropdownMenu, ContextMenu, MenuBar and TagInput, keyed on the shadcn theme names):
+
+| Role | shadcn light | shadcn dark | Other themes (light, dark, high contrast) |
+| --- | --- | --- | --- |
+| Container ("muted") | `text` mixed 4% into `background` | `text` mixed 12% into `background` | `surface` |
+| Hover / current fill | `text` mixed 4% into the container fill | `text` mixed 12% into the container fill | `accent` fill with `accent_text` |
+| Divider | `border` | `text` at 10% alpha | `border` |
+
+The web preview maps both shadcn "muted" and "accent" to the same mix, so there the current row on a muted pane differs only by font weight. GPUI applies the mix a second time over the pane so the current page keeps a visible fill; this is a deliberate deviation. In high contrast the current page keeps the solid `accent` fill with `accent_text`, hover draws the item border in `border` (white), and focus draws it in `focus` (cyan), so every state stays distinguishable without relying on subtle fills.
 
 ## WAI-ARIA pattern reference
 
@@ -72,8 +92,10 @@ The application owns destinations and route changes. GPUI's current element API 
 
 ## Gallery screenshot fixtures
 
-`sidebar_selection` renders the enabled vertical navigation list with Projects current and Home/Settings enabled. The matrix starts with Home current, requests navigation by clicking Projects, verifies that the uncontrolled value changes to Projects, then captures that selected state in light, dark, and high-contrast themes at 1× and 2×. `sidebar_disabled` renders both the navigation landmark and its links disabled; the matrix checks that its current value remains Home after a Projects click and captures the disabled appearance. Headless pixels do not substitute for active-platform accessibility snapshots.
+`sidebar_selection` renders the enabled vertical navigation list with Projects current and Home/Settings enabled. The fixture places the sidebar in a 192px-wide owner pane, which is the web preview's 190px column rounded to the 8px grid, because the component does not choose its own width. The matrix starts with Home current, requests navigation by clicking Projects, verifies that the uncontrolled value changes to Projects, then captures that selected state in light, dark, and high-contrast themes at 1× and 2×. `sidebar_disabled` renders both the navigation landmark and its links disabled; the matrix checks that its current value remains Home after a Projects click and captures the disabled appearance. Headless pixels do not substitute for active-platform accessibility snapshots.
 
 ## Open questions
+
+Visual proposals needing an API decision (not implemented, no API added): the web preview shows an optional small muted group label ("Workspace", `typography.caption`, `text_muted`) above the items and an optional 16px leading icon per item in `text_muted` with an 8px (`spacing.small`) gap. `Item` has no leading-element slot and the landmark label is accessibility-only, so neither is rendered. The icon also depends on the E9.2 icon set.
 
 Maintainer review is needed for whether to add a GPUI-level `aria-current`/link-destination API before claiming full navigation conformance.

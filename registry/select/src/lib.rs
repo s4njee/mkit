@@ -2,11 +2,129 @@
 extern crate gpui_pre as gpui;
 use gpui_pre::{
     Anchor, AnchoredPositionMode, Bounds, Context, EventEmitter, FocusHandle, Focusable,
-    InteractiveElement, IntoElement, Pixels, Render, ScrollStrategy, UniformListScrollHandle,
-    Window, actions, anchored, deferred, div, point, prelude::*, px, uniform_list,
+    InteractiveElement, IntoElement, PathBuilder, Pixels, Render, Rgba, ScrollStrategy,
+    UniformListScrollHandle, Window, actions, anchored, canvas, deferred, div, point, prelude::*,
+    px, uniform_list,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::{cell::RefCell, rc::Rc};
+
+/// Resolved trigger and popup colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    background: Rgba,
+    trigger_border: Rgba,
+    text: Rgba,
+    placeholder: Rgba,
+    icon: Rgba,
+    popup_bg: Rgba,
+    popup_border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for enabled rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            background: c.background,
+            trigger_border: c.border,
+            text: c.text,
+            placeholder: c.text_muted,
+            icon: c.text,
+            popup_bg: c.background,
+            popup_border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            focus: c.focus,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        background: c.background,
+        trigger_border: if dark { c.text.opacity(0.15) } else { c.border },
+        text: c.text,
+        placeholder: c.text_muted,
+        icon: c.text_muted,
+        popup_bg: c.surface,
+        popup_border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the trigger.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevron-down`.
+const CHEVRON_DOWN: &[&[(f32, f32)]] = &[&[(6., 9.), (12., 15.), (18., 9.)]];
+/// Lucide `check`.
+const CHECK: &[&[(f32, f32)]] = &[&[(20., 6.), (9., 17.), (4., 12.)]];
 
 pub const KEY_CONTEXT: &str = "MkitSelect";
 actions!(select, [Next, Previous, First, Last, Toggle, Close, Traverse, TraversePrevious]);
@@ -210,19 +328,47 @@ impl Render for Select {
             if selected_label.is_empty() { self.label.clone() } else { selected_label.clone() };
         let disabled = self.disabled;
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle()).clone().tab_stop(!disabled);
+        let look = look(&t);
+        // `:focus-visible`: the trigger shows the ring while the Select owns keyboard focus.
+        let focus_visible =
+            !disabled && focus.is_focused(window) && window.last_input_was_keyboard();
+        let (border, text, placeholder, chevron) = if !disabled {
+            (look.trigger_border, look.text, look.placeholder, look.icon)
+        } else if look.high_contrast {
+            (look.disabled, look.disabled, look.disabled, look.disabled)
+        } else {
+            let bg = look.background;
+            (
+                dim(look.trigger_border, bg),
+                dim(look.text, bg),
+                dim(look.placeholder, bg),
+                dim(look.icon, bg),
+            )
+        };
         let trigger = div()
             .id("mkit-select-trigger")
             .debug_selector(|| "mkit-select-trigger".into())
             .h(px(t.controls.medium))
-            .px(px(t.spacing.small))
+            .px(px(t.spacing.medium))
             .flex()
             .items_center()
+            .justify_between()
+            .gap(px(t.spacing.small))
             .border(px(t.borders.regular))
-            .border_color(t.colors.border)
-            .rounded(px(t.radii.small))
-            .bg(t.colors.surface)
-            .text_color(if self.disabled { t.colors.disabled } else { t.colors.text })
-            .child(title);
+            .border_color(if focus_visible { look.focus } else { border })
+            .rounded(px(t.radii.medium))
+            .bg(look.background)
+            .shadow(if focus_visible {
+                vec![focus_ring(look.ring)]
+            } else if look.high_contrast {
+                Vec::new()
+            } else {
+                vec![box_shadow(t.shadows.small, if disabled { 0.5 } else { 1.0 })]
+            })
+            .text_size(px(t.typography.body))
+            .text_color(if selected_label.is_empty() { placeholder } else { text })
+            .child(div().flex_1().min_w_0().truncate().child(title))
+            .child(icon(t.spacing.large, CHEVRON_DOWN, chevron));
         let mut root = div()
             .id(("mkit-select", cx.entity().entity_id()))
             .key_context(KEY_CONTEXT)
@@ -255,14 +401,21 @@ impl Render for Select {
                 }
             }));
         if self.open {
+            let rows = self.options.len().min(8) as f32;
+            let row_height = t.controls.small;
+            let chrome = 2. * (t.spacing.xsmall + t.borders.regular);
             let list = div()
                 .id("mkit-select-popup")
                 .debug_selector(|| "mkit-select-popup".into())
                 .role(gpui_pre::accesskit::Role::ListBox)
                 .aria_label(self.label.clone())
+                .p(px(t.spacing.xsmall))
                 .border(px(t.borders.regular))
-                .border_color(t.colors.border)
-                .bg(t.colors.elevated_surface)
+                .border_color(look.popup_border)
+                .rounded(px(t.radii.medium))
+                .bg(look.popup_bg)
+                .when(!look.high_contrast, |e| e.shadow(vec![box_shadow(t.shadows.medium, 1.0)]))
+                .text_size(px(t.typography.body))
                 .on_mouse_down_out(cx.listener(|s, _, _, cx| s.visibility(false, cx)));
             let n = self.options.len();
             let options = self.options.clone();
@@ -281,33 +434,56 @@ impl Render for Select {
                                 let id = o.id.clone();
                                 let option_disabled = o.disabled;
                                 let is_active = i == active;
+                                let is_selected = selected.as_deref() == Some(&o.id);
+                                let (fg, check) = if option_disabled {
+                                    if look.high_contrast {
+                                        (look.disabled, look.disabled)
+                                    } else {
+                                        let bg = look.popup_bg;
+                                        (dim(look.text, bg), dim(look.icon, bg))
+                                    }
+                                } else if is_active {
+                                    let check = if look.high_contrast {
+                                        look.active_text
+                                    } else {
+                                        look.icon
+                                    };
+                                    (look.active_text, check)
+                                } else {
+                                    (look.text, look.icon)
+                                };
+                                let hover_bg = look.hover_bg.filter(|_| !option_disabled);
                                 div()
                                     .id(("mkit-select-option", i))
                                     .debug_selector(move || format!("mkit-select-option-{i}"))
                                     .role(gpui_pre::accesskit::Role::ListBoxOption)
                                     .aria_label(o.label.clone())
-                                    .aria_selected(selected.as_deref() == Some(&o.id))
+                                    .aria_selected(is_selected)
                                     .a11y_synthetic_children(move |builder| {
                                         if option_disabled {
                                             builder.parent_node().set_disabled();
                                         }
                                     })
                                     .when(is_active, |row| row.aria_active_descendant())
-                                    .h(px(t.controls.medium))
+                                    .h(px(row_height))
+                                    .w_full()
                                     .px(px(t.spacing.small))
-                                    .bg(if is_active {
-                                        t.colors.accent
-                                    } else {
-                                        t.colors.elevated_surface
+                                    .flex()
+                                    .items_center()
+                                    .justify_between()
+                                    .gap(px(t.spacing.small))
+                                    .rounded(px(t.radii.small))
+                                    .when(is_active, |row| row.bg(look.active_bg))
+                                    .when_some(hover_bg.filter(|_| !is_active), |row, bg| {
+                                        row.hover(move |s| s.bg(bg))
                                     })
-                                    .text_color(if o.disabled {
-                                        t.colors.disabled
-                                    } else if is_active {
-                                        t.colors.accent_text
-                                    } else {
-                                        t.colors.text
+                                    .text_color(fg)
+                                    .child(
+                                        div().flex_1().min_w_0().truncate().child(o.label.clone()),
+                                    )
+                                    .when(is_selected, |row| {
+                                        row.child(icon(t.spacing.large, CHECK, check))
                                     })
-                                    .child(o.label.clone())
                                     .on_click(move |_, _, cx| {
                                         cx.stop_propagation();
                                         ent.update(cx, |s, cx| {
@@ -328,10 +504,10 @@ impl Render for Select {
                 )
                 .track_scroll(&scroll)
                 .w_full()
-                .h(px(t.controls.medium * n.min(8) as f32)),
+                .h(px(row_height * rows)),
             );
             let trigger_bounds = self.trigger_bounds.borrow();
-            let popup_height = px(t.controls.medium * n.min(8) as f32);
+            let popup_height = px(row_height * rows + chrome);
             let margin = px(t.spacing.medium);
             let gap = px(t.spacing.small);
             let window_height = window.bounds().size.height;

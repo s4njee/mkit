@@ -1,6 +1,6 @@
 # Tooltip
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A tooltip adds a short explanation when the pointer rests on a child control. The child remains responsible for its own accessible name and keyboard behavior.
 
@@ -31,10 +31,10 @@ The wrapper sets an accessible description with the label; the child keeps its o
 
 ## Theme
 
-`elevated_surface`, `text`, `border`, `spacing.small`, `spacing.xsmall`, `radii.small`, `borders.hairline`, and `typography.caption` come from GPUI `Theme`.
+The popup follows the shadcn/ui look: a compact label filled with the theme's primary (`accent`) colour and `accent_text` text at caption size, with medium-radius corners and 12 × 6px padding. The high-contrast theme uses solid background and text colours with a border outline instead of the accent fill. The tooltip does not restyle the wrapped child. Colours, radii, spacing, and typography come from theme tokens; the spec's theme table lists each mapping.
 
 ## Current limits
 
 The current GPUI API shows the visual popup on pointer hover or long press, not keyboard focus. A focused child is not proven to receive the wrapper description. Visible native popups cannot yet be captured by the headless screenshot harness.
 
-For the exact state and event contract, see the checked-in `registry/tooltip/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full E5 conformance matrix has passed.
+For the exact state and event contract, see the checked-in `registry/tooltip/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full conformance matrix has passed.

@@ -210,7 +210,7 @@ export const e8: DemoMap = {
       <div class="ui-row" style="justify-content:space-between;margin-bottom:10px"><span class="ui-label">Histogram</span><span class="ui-badge ui-badge--outline">RGB</span></div>
       <svg viewBox="0 0 400 150" role="img" aria-label="Luminance skews to the midtones with a highlight peak near white" style="width:100%;height:auto;display:block;border-radius:var(--ui-radius-md);background:var(--ui-muted)">
         <g style="mix-blend-mode:screen" opacity=".7"><path d="${area(bins(1.7, 0.42), 400, 150)}" fill="#ef4444"/><path d="${area(bins(2.3, 0.5), 400, 150)}" fill="#22c55e"/><path d="${area(bins(3.1, 0.36), 400, 150)}" fill="#3b82f6"/></g>
-        <path d="${area(bins(1.1, 0.45), 400, 150).replace(/ Z$/, '').replace(/^M0 150 /, 'M')}" fill="none" stroke="var(--ui-foreground)" stroke-width="1.5"/>
+        <path d="${area(bins(1.1, 0.45), 400, 150).replace(/ Z$/, '').replace(/^M0 150 L/, 'M')}" fill="none" stroke="var(--ui-foreground)" stroke-width="1.5"/>
       </svg>
       <div class="ui-row ui-muted ui-small" style="justify-content:space-between;margin-top:8px"><span>Shadows</span><span>Midtones</span><span>Highlights</span></div></div>`,
   },

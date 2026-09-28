@@ -1,6 +1,6 @@
 # Button
 
-Trigger a command such as saving or submitting. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Trigger a command such as saving or submitting. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Button dark theme baseline](../../images/e7/button.png)
 
@@ -24,7 +24,7 @@ Requests button role. Visible text supplies the name unless `aria_label` overrid
 
 ## Theme tokens
 
-Colors: surface, text, border, accent, focus, danger, disabled. Spacing: small/medium. Radius: medium. Border: regular. Typography: body. Control sizes: xsmall/medium/large.
+Buttons follow the shadcn/ui look. Default is an accent fill, secondary a muted mix of text over background, outline a background fill with a light border, ghost and link are transparent, and destructive uses the danger colour. Filled and outline buttons carry a small shadow. Hover darkens or tints the fill, and links underline on hover. Heights are 32, 36, and 40px (`controls.small`, `controls.medium`, `controls.large`), with 12, 16, and 24px padding, `radii.medium` corners, and 14px medium-weight labels. Disabled and loading buttons render at 50% opacity. Keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps solid accent, danger, and white-bordered variants, and shows unavailable buttons in the `disabled` colour. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -34,4 +34,4 @@ Colors: surface, text, border, accent, focus, danger, disabled. Spacing: small/m
 
 ## Verification and limits
 
-Enter/Space adapter cases and focused pointer tests passed. 18/18 declared screenshot comparisons passed. Generated accessibility cases are pending. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/button/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Enter/Space adapter cases and focused pointer tests passed. 18/18 declared screenshot comparisons passed. Generated accessibility cases are pending. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/button/spec.md` and `docs/E7_AUDIT.md` in the repository.

@@ -1,0 +1,56 @@
+name: Snapshot watch
+
+# E11.1: check crates.io weekly for newer gpui-pre / gpui-pre-platform / gpui-kit
+# releases than the pins in the workspace manifests, and open or update one tracking issue.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: snapshot-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Check pinned GPUI crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check crates.io for newer versions
+        id: check
+        run: >-
+          python scripts/check_snapshot_versions.py
+          --format markdown
+          --body-file "$RUNNER_TEMP/snapshot-watch.md"
+
+      - name: Open or update tracking issue
+        if: steps.check.outputs.updates == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: ${{ steps.check.outputs.title }}
+          LABEL: snapshot-watch
+        run: |
+          gh label create "$LABEL" --color 5319E7 \
+            --description "Newer GPUI snapshot or GPUI Kit release available (E11.1)" --force
+          number=$(gh issue list --label "$LABEL" --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --title "$TITLE" --body-file "$RUNNER_TEMP/snapshot-watch.md"
+            echo "Updated issue #$number"
+          else
+            gh issue create --title "$TITLE" --label "$LABEL" \
+              --body-file "$RUNNER_TEMP/snapshot-watch.md"
+          fi

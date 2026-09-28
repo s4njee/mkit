@@ -9,9 +9,21 @@ they must retain state while their panel is closed. Uncontrolled interactions up
 emit `ExpandedChanged`; controlled interactions emit a proposal and wait for `set_expanded` from the
 owner. Disabled triggers ignore pointer and keyboard input.
 
-Enter and Space toggle the focused trigger. Accordion headers keep ordinary Tab order; arrow-key
-navigation is not part of this draft. Optional motion is off by default and only affects the
-indicator. Panel visibility changes immediately.
+Enter and Space toggle the focused trigger. The `Disclosure` key context sits on the trigger, so
+Enter and Space inside the open panel reach the panel's own controls. Accordion headers keep
+ordinary Tab order; arrow-key navigation is not part of this draft.
+
+Motion is optional and off by default. `.motion(true)` fades the panel in over the theme's open
+duration. The panel appears in the layout, focus order, and accessibility tree immediately; only its
+opacity animates. Collapsing is immediate. No animation runs when the app's reduced-motion setting
+is on or the theme's motion tokens are zero, as in the high-contrast theme.
+
+The trigger and panel are also available as stateless parts, `DisclosureTrigger` and
+`DisclosurePanel`, for composite components that own their own expansion state. The
+[property inspector](../e8/property-inspector.md) builds its group rows from them.
+
+The pinned GPUI version cannot express the `aria-controls` relation from trigger to panel. The panel
+follows the trigger, keeps a stable element ID, and uses the trigger's label as its accessible name.
 
 The public API and accessibility mapping are draft and require maintainer review. The component
 specs are maintained at `registry/disclosure/spec.md` and `registry/accordion/spec.md`.

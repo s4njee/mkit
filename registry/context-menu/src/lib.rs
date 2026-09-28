@@ -1,29 +1,126 @@
 //! Stateful command menu with checkable items and visible shortcut labels.
 extern crate gpui_pre as gpui;
+#[cfg(all(test, feature = "mkit-mirror"))]
+use crate::key_hint::shortcut_label;
+#[cfg(feature = "mkit-mirror")]
+use crate::key_hint::{KeyChord, KeyHint};
 use gpui_pre::{
     Anchor, AnchoredPositionMode, Context, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, MouseDownEvent, Render, WeakFocusHandle, Window, actions, anchored, deferred, div,
-    point, prelude::*, px,
+    KeyBinding, MouseDownEvent, PathBuilder, Render, Rgba, WeakFocusHandle, Window, actions,
+    anchored, canvas, deferred, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
-fn active_row_colors(theme: Theme) -> (gpui_pre::Rgba, gpui_pre::Rgba) {
-    let weight = match theme.name {
-        "shadcn-light" => 0.04,
-        "shadcn-dark" => 0.12,
-        _ => return (theme.colors.accent, theme.colors.accent_text),
-    };
-    let text = theme.colors.text;
-    let background = theme.colors.background;
-    let mix = |foreground: f32, base: f32| foreground * weight + base * (1.0 - weight);
-    (
-        gpui_pre::Rgba {
-            r: mix(text.r, background.r),
-            g: mix(text.g, background.g),
-            b: mix(text.b, background.b),
-            a: 1.0,
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+#[cfg(all(test, not(feature = "mkit-mirror")))]
+use mkit_registry_key_hint::shortcut_label;
+#[cfg(not(feature = "mkit-mirror"))]
+use mkit_registry_key_hint::{KeyChord, KeyHint};
+/// Resolved menu colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    pane: Rgba,
+    border: Rgba,
+    text: Rgba,
+    /// Shortcut labels, check marks and submenu chevrons.
+    muted: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    active_muted: Rgba,
+    disabled_text: Rgba,
+    disabled_muted: Rgba,
+    /// Stroke width of the check and chevron icons, as a fraction of the icon size or in pixels.
+    icon_stroke: IconStroke,
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            pane: c.background,
+            border: c.border,
+            text: c.text,
+            muted: c.text_muted,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            active_muted: c.accent_text,
+            disabled_text: c.disabled,
+            disabled_muted: c.disabled,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "popover" is `surface`; GPUI fills inside drop shadows, so the pane and its
+    // border stay opaque (the dark border is the web's translucent 10% text, composited).
+    let pane = c.surface;
+    Look {
+        pane,
+        border: if dark { mix(c.text, pane, 0.1) } else { c.border },
+        text: c.text,
+        muted: c.text_muted,
+        // shadcn "accent": text mixed into the background.
+        active_bg: mix(c.text, c.background, if dark { 0.12 } else { 0.04 }),
+        active_text: c.text,
+        active_muted: c.text_muted,
+        // The web preview's `opacity: .5`, flattened over the opaque pane.
+        disabled_text: mix(c.text, pane, 0.5),
+        disabled_muted: mix(c.text_muted, pane, 0.5),
+        icon_stroke: IconStroke::Relative,
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+#[derive(Clone, Copy)]
+enum Icon {
+    Check,
+    ChevronRight,
+}
+/// Decorative Lucide `check` (20,6 → 9,17 → 4,12) or `chevron-right` (9,6 → 15,12 → 9,18)
+/// drawn as a vector path on a 24-unit grid inside a square `size` box, so it stays crisp at
+/// every scale without icon assets.
+fn icon(icon: Icon, size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let mut path = PathBuilder::stroke(width);
+            let points: &[(f32, f32)] = match icon {
+                Icon::Check => &[(20.0, 6.0), (9.0, 17.0), (4.0, 12.0)],
+                Icon::ChevronRight => &[(9.0, 6.0), (15.0, 12.0), (9.0, 18.0)],
+            };
+            for (i, (x, y)) in points.iter().enumerate() {
+                let p = origin + point(unit * *x, unit * *y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
         },
-        text,
     )
+    .size(px(size))
+    .flex_none()
 }
 pub const KEY_CONTEXT: &str = "ContextMenu";
 actions!(
@@ -389,26 +486,33 @@ impl Render for ContextMenu {
                 d.track_focus(&focus).on_mouse_down_out(cx.listener(Self::outside_down))
             });
         if self.open {
-            let (active_bg, active_fg) = active_row_colors(t);
-            let pane_bg = if t.name.starts_with("shadcn-") {
-                t.colors.surface
-            } else {
-                t.colors.elevated_surface
-            };
+            let look = look(&t);
+            let icon_size = t.spacing.large;
             root = root.flex().items_start().gap(px(t.spacing.xsmall));
             for depth in 0..=self.path.len() {
                 let items = self.pane(depth);
+                let active_index = self.active_index(depth);
                 let mut pane = div()
                     .id(("menu-pane", depth))
                     .role(gpui_pre::accesskit::Role::Menu)
                     .flex()
                     .flex_col()
+                    .min_w(px(t.spacing.xxlarge * 4.0))
                     .p(px(t.spacing.xsmall))
                     .rounded(px(t.radii.medium))
                     .border(px(t.borders.regular))
-                    .border_color(t.colors.border)
-                    .bg(pane_bg);
+                    .border_color(look.border)
+                    .bg(look.pane)
+                    .shadow(vec![box_shadow(t.shadows.medium)]);
                 for (index, item) in items.iter().enumerate() {
+                    let active = index == active_index;
+                    let (fg, muted) = if item.disabled {
+                        (look.disabled_text, look.disabled_muted)
+                    } else if active {
+                        (look.active_text, look.active_muted)
+                    } else {
+                        (look.text, look.muted)
+                    };
                     let mut row = div()
                         .id(format!("menu-item-{depth}-{index}"))
                         .debug_selector(|| format!("menu-item-{depth}-{index}"))
@@ -433,30 +537,26 @@ impl Render for ContextMenu {
                             row.aria_toggled(item.checked.unwrap_or(false).into())
                         })
                         .aria_expanded(self.path.get(depth) == Some(&index))
-                        .when(index == self.active_index(depth), |d| {
-                            d.aria_active_descendant().bg(active_bg).text_color(active_fg)
-                        })
-                        .when(item.disabled, |d| d.text_color(t.colors.disabled))
-                        .when(!item.disabled && index != self.active_index(depth), |d| {
-                            d.text_color(t.colors.text)
-                        })
+                        .when(active, |d| d.aria_active_descendant().bg(look.active_bg))
+                        .text_color(fg)
                         .flex()
+                        .items_center()
+                        .gap(px(t.spacing.small))
                         .rounded(px(t.radii.small))
                         .text_size(px(t.typography.body))
-                        .items_center()
-                        .justify_between()
-                        .gap(px(t.spacing.large))
                         .px(px(t.spacing.small))
                         .h(px(t.controls.small));
-                    let check = if item.checked == Some(true) {
-                        "✓ "
-                    } else if item.checked.is_some() {
-                        "  "
-                    } else {
-                        ""
-                    };
-                    row = row.child(div().flex_1().child(format!("{}{}", check, item.label)));
-                    if index == self.active_index(depth) {
+                    if let Some(checked) = item.checked {
+                        row = row.child(div().size(px(icon_size)).flex_none().when(
+                            checked,
+                            |slot| {
+                                slot.child(icon(Icon::Check, icon_size, look.icon_stroke, muted))
+                            },
+                        ));
+                    }
+                    row = row
+                        .child(div().flex_grow(1.0).whitespace_nowrap().child(item.label.clone()));
+                    if active {
                         row = row.child(
                             div()
                                 .debug_selector(|| format!("menu-active-{depth}-{index}"))
@@ -467,12 +567,21 @@ impl Render for ContextMenu {
                         row = row.child(
                             div()
                                 .debug_selector(|| format!("menu-shortcut-{depth}-{index}"))
-                                .text_color(t.colors.text_muted)
-                                .child(shortcut.clone()),
+                                .ml_auto()
+                                .flex_none()
+                                .whitespace_nowrap()
+                                .text_size(px(t.typography.caption))
+                                .text_color(muted)
+                                .child(shortcut_hint(shortcut)),
                         );
                     }
                     if !item.children.is_empty() {
-                        row = row.child(div().text_color(t.colors.text_muted).child("›"));
+                        row = row.child(div().ml_auto().flex_none().child(icon(
+                            Icon::ChevronRight,
+                            icon_size,
+                            look.icon_stroke,
+                            muted,
+                        )));
                     }
                     pane = pane.child(row);
                 }
@@ -497,6 +606,14 @@ impl Render for ContextMenu {
         }
     }
 }
+/// Renders a display-only shortcut through KeyHint's shared platform
+/// formatter, keeping text KeyHint cannot parse verbatim.
+fn shortcut_hint(shortcut: &str) -> gpui_pre::AnyElement {
+    match KeyChord::parse(shortcut) {
+        Some(chord) => KeyHint::new(chord).inline().into_any_element(),
+        None => shortcut.to_owned().into_any_element(),
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,6 +625,35 @@ mod tests {
         assert_eq!(child.shortcut.as_deref(), Some("⌘S"));
         assert_eq!(checked.checked, Some(true));
         assert_eq!(parent.children, vec![child]);
+    }
+    #[gpui_pre::test]
+    fn shortcut_labels_render_through_the_shared_key_hint(cx: &mut gpui_pre::TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        let (_, visual) = cx.add_window_view(|_, _| {
+            ContextMenu::controlled(
+                vec![MenuItem::new("save", "Save").shortcut("cmd-shift-s")],
+                true,
+            )
+        });
+        visual.run_until_parked();
+        assert!(visual.debug_bounds("menu-shortcut-0-0").is_some());
+        assert!(visual.debug_bounds("mkit-key-hint").is_some(), "parsed shortcut uses KeyHint");
+        #[cfg(target_os = "macos")]
+        assert_eq!(shortcut_label("cmd-shift-s"), "⇧⌘S");
+    }
+    #[gpui_pre::test]
+    fn unparseable_shortcut_labels_are_shown_verbatim(cx: &mut gpui_pre::TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        let (_, visual) = cx.add_window_view(|_, _| {
+            ContextMenu::controlled(
+                vec![MenuItem::new("next", "Next").shortcut("cmd-k cmd-n")],
+                true,
+            )
+        });
+        visual.run_until_parked();
+        assert!(visual.debug_bounds("menu-shortcut-0-0").is_some());
+        assert!(visual.debug_bounds("mkit-key-hint").is_none());
+        assert_eq!(shortcut_label("cmd-k cmd-n"), "cmd-k cmd-n");
     }
     #[test]
     fn keyboard_actions_cover_navigation_and_are_rebindable() {

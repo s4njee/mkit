@@ -1,6 +1,7 @@
 export type Route =
   | { name: 'home' }
   | { name: 'theming' }
+  | { name: 'health' }
   | { name: 'component'; slug: string }
   | { name: 'not-found' }
 
@@ -20,6 +21,7 @@ export function resolveRoute(pathname: string): Route {
   if (path === '/') return { name: 'home' }
   if (path === '/components') return { name: 'home' }
   if (path === '/theming') return { name: 'theming' }
+  if (path === '/health') return { name: 'health' }
   const match = path.match(/^\/components\/([A-Za-z0-9-]+)$/)
   if (match) return { name: 'component', slug: match[1] }
   return { name: 'not-found' }
@@ -57,6 +59,8 @@ export function installLinkInterceptor(onNavigate: (path: string) => void) {
     const href = anchor.getAttribute('href')
     if (!href) return
     if (anchor.getAttribute('target') === '_blank' || anchor.hasAttribute('download')) return
+    // Static files (llms.txt) and explicit opt-outs load natively.
+    if (anchor.hasAttribute('data-native') || /\.[a-z0-9]+$/i.test(href.split(/[?#]/)[0])) return
     if (/^(https?:|mailto:|tel:)/i.test(href)) return
     // Same-page hash links should scroll natively.
     if (href.startsWith('#')) return

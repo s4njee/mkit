@@ -1,6 +1,6 @@
 # Data table
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A data table presents rows and columns that can be sorted and selected. Keyboard focus moves between cells while selection remains a separate choice.
 
@@ -48,4 +48,4 @@ Eight generated keyboard cases pass through a real GPUI adapter: six directional
 
 This is a basic grid; active-platform cell semantics and the declared accessibility cases still need verification, and the generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. Maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/data-table/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/data-table/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

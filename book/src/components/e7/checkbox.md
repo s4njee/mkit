@@ -1,6 +1,6 @@
 # Checkbox
 
-Represent one labelled choice, including a mixed aggregate state. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Represent one labelled choice, including a mixed aggregate state. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Checkbox dark theme baseline](../../images/e7/checkbox.png)
 
@@ -34,4 +34,4 @@ Global surface, text, border, accent, focus, disabled; spacing.small, radii.smal
 
 ## Verification and limits
 
-Space adapter and focused pointer tests passed. 24/24 screenshot comparisons passed; generated accessibility cases remain pending. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/checkbox/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Space adapter and focused pointer tests passed. 24/24 screenshot comparisons passed; generated accessibility cases remain pending. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/checkbox/spec.md` and `docs/E7_AUDIT.md` in the repository.

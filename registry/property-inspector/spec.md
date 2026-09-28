@@ -48,6 +48,20 @@ keys:
     initial_state: expanded
     expect:
       event: value_changed
+  - key: Enter
+    modifiers: []
+    when: A group header is focused and the inspector is enabled.
+    action: Toggle that group through the shared Disclosure Toggle action.
+    initial_state: expanded
+    expect:
+      state: collapsed
+  - key: Space
+    modifiers: []
+    when: A group header is focused and the inspector is enabled.
+    action: Toggle that group through the shared Disclosure Toggle action instead of toggling a boolean.
+    initial_state: expanded
+    expect:
+      state: collapsed
 accessibility:
   role: group
   properties:
@@ -62,6 +76,8 @@ accessibility:
       when: disabled
     - name: collapsed
       value: Group header exposes expanded=false and descendants are omitted.
+    - name: group-panel
+      value: Expanded group rows sit in a Disclosure panel group named by the group label.
     - name: focus
       value: Disabled controls are not keyboard tabbable; ArrowUp/Down updates the active enabled visible property and wraps.
 ---
@@ -79,6 +95,11 @@ come from the mkit Global `Theme`.
 
 The inspector is a bordered panel containing one or more group headers and compact property rows.
 Each row has a label, a type-specific editor, and a reset control.
+
+Group headers and their row containers are the shared Disclosure parts (E7.12):
+`DisclosureTrigger` renders each header with the inspector's elevated surface, and each expanded
+group's rows are children of a zero-padding `DisclosurePanel` with the stable ID
+`group-panel-{group id}`. Expansion state stays inspector-owned; the parts are stateless.
 
 ## States
 
@@ -123,10 +144,18 @@ boolean; `r` requests the active property's default. Arrow navigation updates ac
 Tab remains normal platform traversal among typed controls, while disabled controls are removed
 from that traversal.
 Group headers are buttons and toggle with Enter or Space. The group state remains inspector-owned.
+Header activation is the Disclosure part's rebindable `disclosure::Toggle` action in the
+`Disclosure` key context on the header, which takes precedence over the root's Space binding while
+a header is focused. `default_key_bindings()` therefore returns six bindings: the four
+`PropertyInspector` bindings followed by `disclosure::default_key_bindings()`. The keys are
+unchanged; the array length is a draft public API change for maintainer review.
 
 ## Accessibility role and properties
 
-The root is a named group. Each group header is a button exposing its expanded state. Property rows
+The root is a named group. Each group header is a button exposing its expanded state; when the
+whole inspector is disabled, headers also expose disabled state. An expanded group's rows are
+contained in a group node named by the group label, as for Disclosure. Pinned GPUI cannot emit the
+header-to-panel `controls` relation (see the Disclosure spec). Property rows
 are named groups; editors expose their native checkbox/button roles and accessible names derived
 from the property label. Mixed values are announced as mixed text, not as a stale concrete value.
 Disabled editors expose disabled state. Reset controls are named “Reset {property label}”.
@@ -146,7 +175,13 @@ the [Checkbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/).
 
 ## Platform notes
 
-Group headers and controls use GPUI's cross-platform click, focus, action, and AccessKit APIs. The
+Group headers and controls use GPUI's cross-platform click, focus, action, and AccessKit APIs.
+
+This package depends on `mkit-registry-disclosure` so group rows reuse the Disclosure trigger and
+panel instead of a private expand/collapse implementation. This is a documented draft exception to
+the mkit-core/GPUI-only registry default, pending maintainer approval. The bundled `mkit` source
+uses the mirrored `crate::disclosure` module through the `mkit-mirror` feature. Disclosure motion
+is not enabled for inspector groups. The
 basic compact text interaction does not yet provide native IME, selection, or clipboard handling;
 hosts needing those features should offer an application-owned full text editor. Native colour
 picker integration remains host-owned.
@@ -157,4 +192,6 @@ picker integration remains host-owned.
 - Should the text editor be composed with a reusable native text field once registry dependency
   layering supports shared registry components?
 - Confirm whether keyboard navigation should include group headers or only property editors.
+- Approve or reject the draft `mkit-registry-disclosure` dependency and the six-binding
+  `default_key_bindings()` return type.
 - Verify announced mixed-value semantics and collapsed group state in platform accessibility trees.

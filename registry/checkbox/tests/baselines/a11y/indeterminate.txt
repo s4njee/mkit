@@ -1,0 +1,2 @@
+Window
+  CheckBox name="Remember me" description="Mixed" toggled=Mixed actions=[Click, Focus]

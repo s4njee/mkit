@@ -86,7 +86,12 @@ Choose one option from a compact set.
 
 ## Anatomy
 
-Labeled single-selection radio group rendered as a compact segmented choice.
+Labeled single-selection radio group rendered as a compact segmented choice. The group is a single
+filled, rounded track with no outer border and no dividers between options. Each option is a
+rounded trigger inside the track; the checked option is drawn as a raised pill on the track,
+matching the documentation site's web preview (which shares the shadcn/ui Tabs styling).
+Horizontal groups size to their content; vertical groups stack the same triggers and stretch each
+one to the group width.
 Each `Item` may include an optional tooltip. When supplied, it is shown after GPUI's delayed hover
 interval and exposed as the radio item's accessible description. Tooltip interaction is attached to
 the radio item itself; it does not add another focus stop or change pointer selection.
@@ -127,7 +132,40 @@ If a tooltip is present, its text is included in the item's accessible descripti
 hover content. Optional deselection is unsupported.
 
 ## Theme tokens used
-Theme surface, text, border, accent, accent text, focus, disabled; spacing, borders, radii, controls, typography tokens.
+The look is resolved from the installed `Theme` in three variants and is identical to Tabs.
+`high-contrast` is selected by theme name (the convention other registry components use); every
+other theme is treated as dark when `mkit_core::contrast::relative_luminance(colors.background) <
+0.5`, otherwise light. Derived colours use `mkit_core::contrast::composite`, the same
+text-over-background mix the menu components and the site preview use; no new core tokens are added.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Group fill ("muted") | `text` at 4% over `background` | `text` at 12% over `background` | `background` |
+| Group border | none | none | `borders.hairline` in `colors.border` |
+| Unchecked text | `text_muted` | `text_muted` | `text_muted` |
+| Checked fill | `background` | `text` at 15% ("input") over the muted fill, composited opaque | `accent` |
+| Checked border | transparent | `text` at 15% ("input") | `accent` |
+| Checked text | `text` | `text` | `accent_text` |
+| Checked shadow | `shadows.small` | `shadows.small` | `shadows.small` (transparent in this theme) |
+| Focus | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Focused fill | the resting fill, made opaque | same | same |
+| Disabled option | 50% opacity | 50% opacity | 50% opacity |
+
+GPUI paints drop shadows (the selected shadow and the focus ring) as filled shapes that are not
+clipped to the element's outside, so the selected and focused fills are always opaque (the list
+fill for an unselected focused item). The result matches the preview's composited colours; the ring
+corners use the trigger radius rather than CSS's radius-plus-spread, so they are slightly squarer.
+
+Geometry: the group has radius `radii.large` and padding `spacing.xsmall`; each option has radius
+`radii.medium`, a `borders.hairline` border (transparent unless checked or focused), horizontal
+padding `spacing.small`, and height `controls.medium - 2 × spacing.xsmall`, so a horizontal group is
+exactly `controls.medium` tall. The web preview uses a 36px group with 3px padding and 10px option
+padding; there is no 3px or 10px token, so the nearest tokens (4px and 8px, the latter matching
+shadcn/ui's own `px-2`) are used and the options are 2px shorter than the preview. The 3px focus
+ring is the shadcn/ui ring width; it fits inside the group padding and is a fixed component value.
+Horizontal options share the group width equally (`flex: 1`). Labels use `typography.body` at
+medium weight (500), matching shadcn/ui's `font-medium`; there is no font-weight token yet.
+Tooltips keep their existing elevated-surface styling.
 
 ## WAI-ARIA pattern reference
 [Radio Group](https://www.w3.org/WAI/ARIA/apg/patterns/radio/). Arrow-key selection follows the APG radio pattern; Space selects the focused radio.
@@ -144,3 +182,13 @@ The E8.14 adoption spike aligns both applications on `gpui-pre` 0.3.5 and embeds
 
 ## Open questions
 Whether applications need optional deselection can be handled in a future API revision.
+In the shadcn light theme, unchecked labels (`text_muted` on the muted group fill) measure about
+4.36:1, just under the WCAG AA 4.5:1 text threshold; this matches shadcn/ui and the site preview but
+needs maintainer review. The 3px focus ring width and medium label weight are fixed values pending
+a ring-width and font-weight token.
+Proposal only (no API added): the web preview allows a 16px leading icon with a 6px gap before the
+label. `Item` derives `Clone`, `PartialEq`, and `Eq`, so an element slot does not fit it cheaply; an
+optional `Item::icon(path)` storing a `SharedString` asset path, rendered with GPUI's `svg()` at
+16px in the label colour, would need no new dependency (the app supplies the asset source). The gap
+would use `spacing.xsmall`, the nearest token to 6px, and the accessible name would stay the text
+label. This needs API review before implementation.

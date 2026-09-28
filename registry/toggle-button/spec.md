@@ -87,7 +87,29 @@ Button role with accessible label and toggled state mapped to `aria-pressed`; di
 
 ## Theme tokens used
 
-`Theme.colors` background/surface/text/text_muted/border/accent/accent_text/focus/disabled; `Theme.spacing` small/medium; `Theme.radii.small`; `Theme.borders.regular`.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-toggle` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved from
+the installed `Theme` in three variants. `high-contrast` is selected by theme name (the convention
+other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `secondary`/`accent`/`muted`: `text` mixed 4% (light) or
+12% (dark) into `background`.
+
+| State | Light / dark | High contrast |
+|---|---|---|
+| Off | transparent fill and border, `text` | `background` fill, `border` border, `text` |
+| Off, hover | muted fill, `text_muted` | border `accent` |
+| On (pressed) | muted fill (shadcn `accent`), `text`; hover unchanged | `accent` fill and border, `accent_text` |
+| Disabled | the resting look at 50% opacity, hover suppressed | off: `background`, `disabled` text and border; on: `disabled` fill and border with `accent_text`, so the pressed state stays visible |
+| Focus | border `focus` plus a 3px ring of `focus` at 50% | border `focus` plus a 3px ring of opaque `focus` |
+
+The focused fill is opaque (muted when pressed, otherwise `background`) because GPUI fills the
+inside of drop shadows. Geometry follows shadcn's default toggle (`h-9 min-w-9 px-2`): height and
+minimum width `controls.medium`, horizontal padding `spacing.small`, radius `radii.medium`, a
+`borders.regular` border (transparent except in high contrast), icon gap `spacing.small`, and
+`typography.body` at medium weight (500). The web preview's `outline` toggle variant is not
+implemented because `ToggleButton` has no variant API; see open questions.
 
 ## WAI-ARIA pattern reference
 
@@ -99,4 +121,4 @@ The visual pressed state and semantic pressed state are synchronized from one va
 
 ## Open questions
 
-None.
+Visual proposal needing an API decision: the web preview's `outline` toggle variant (a `border`/`text` at 10% border plus `shadows.small`) and 16px leading icons have no `ToggleButton` API yet.

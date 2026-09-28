@@ -1,6 +1,6 @@
 # Form layout
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 Form layout aligns labels, controls, helper text, and errors so a form is easy to scan.
 
@@ -44,4 +44,4 @@ The registry crate check and test commands pass, and the dedicated screenshot te
 
 Callers must connect each visible label to its control's accessible name; layout text alone does not set it. Rows stay horizontal at every width. Active-platform accessibility and maintainer contract, visual, and book review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/form-layout/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/form-layout/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

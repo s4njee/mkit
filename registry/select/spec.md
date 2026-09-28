@@ -87,7 +87,60 @@ Expose a named combobox trigger with expanded state, the committed option label 
 
 ## Theme tokens used
 
-Use Theme surface, elevated surface, text, muted text, border, accent, focus, disabled, spacing, radii, borders, and controls tokens. The viewport displays up to eight rows and uses GPUI `uniform_list` virtualization for the full option collection. Keyboard navigation scrolls the active row into view. The popup is placed in the window overlay at the measured trigger's left edge with a small spacing gap. Its measured row viewport height is compared with available space below and above; it flips above when the full viewport plus gap does not fit below and above offers more room. Window snapping preserves a medium spacing margin, and the viewport remains clipped when neither side fits.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-input`,
+`.ui-popover`, and `.ui-menu*` in `site/src/ui/ui.css` with the shadcn token mapping in
+`site/src/ui/tokens.ts`), which in turn follows the shadcn/ui select. It is resolved from the
+installed `Theme` in three variants, the same way Button, Checkbox, and Tabs do it. `high-contrast`
+is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `accent`/`secondary`: `text` mixed 4% (light) or 12%
+(dark) into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Trigger fill | `background` | `background` | `background` |
+| Trigger border ("input") | `border` | `text` at 15% | `border` |
+| Trigger shadow | `shadows.small` | `shadows.small` | none |
+| Value text | `text` | `text` | `text` |
+| Placeholder (no value; shows the label) | `text_muted` | `text_muted` | `text_muted` |
+| Chevron and option check | `text_muted` | `text_muted` | `text` |
+| Popup fill ("popover") | `surface` | `surface` | `background` |
+| Popup border | `border` | `text` at 10% | `border` |
+| Popup shadow | `shadows.medium` | `shadows.medium` | none |
+| Active option | muted fill, `text` | muted fill, `text` | `accent` fill, `accent_text` (check too) |
+| Disabled option | `text` 50% over the popup fill | same | `disabled` |
+| Keyboard focus | trigger border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Disabled control | every trigger colour mixed 50% over `background`, shadow alpha halved | same | `background` fill, `disabled` text, border, and chevron |
+
+- **Focus** follows `:focus-visible`: the ring shows while the Select owns keyboard focus and the
+  last input was from the keyboard (`Window::last_input_was_keyboard`), so it also marks the trigger
+  while the popup is open, because focus stays on the trigger. The ring replaces the resting shadow.
+  GPUI paints drop shadows as filled shapes that are not clipped to the element's outside, so the
+  trigger and popup fills are always opaque (the web trigger's transparent fill composites to
+  `background`). Ring corners use the trigger radius rather than CSS's radius-plus-spread.
+- **Disabled** matches the web preview's `opacity: .5` as one layer, the way Checkbox does it: each
+  colour is composited over `background` and mixed 50% with it. GPUI element opacity is not used
+  because it dims each painted part separately. High contrast keeps solid colours instead.
+- **Geometry**: trigger height `controls.medium` (36, shadcn `h-9`), horizontal padding
+  `spacing.medium` (12, `px-3`), radius `radii.medium`, a `borders.regular` border, value text
+  `typography.body` (14px), and a `spacing.small` gap before the chevron. The chevron is Lucide
+  `chevron-down` (6,9 → 12,15 → 18,9 on a 24-unit grid, 2-unit stroke) drawn as a vector path in a
+  `spacing.large` (16px) square, like the Breadcrumbs separator; there are no icon assets. The popup
+  has radius `radii.medium`, a `borders.regular` border, and `spacing.xsmall` (4px, `p-1`) padding.
+  Option rows are `controls.small` (32px) tall, matching shadcn's `py-1.5` around a 20px line, with
+  `spacing.small` (8px, `px-2`) horizontal padding and radius `radii.small`. A selected option shows
+  Lucide `check` (20,6 → 9,17 → 4,12) in a 16px square at the row's end. Pointer hover gives
+  enabled rows the muted fill (not in high contrast). The 3px focus ring is the shadcn/ui ring width, a fixed component
+  value. The popup keeps the trigger's width and an 8px (`spacing.small`) gap below the trigger;
+  shadcn uses a 4px side offset, but the placement contract below is unchanged.
+
+The viewport displays up to eight rows and uses GPUI `uniform_list` virtualization for the full
+option collection. Keyboard navigation scrolls the active row into view. The popup is placed in the
+window overlay at the measured trigger's left edge with a small spacing gap. Its full height (the
+row viewport plus the popup padding and border) is compared with available space below and above;
+it flips above when the popup plus gap does not fit below and above offers more room. Window
+snapping preserves a medium spacing margin, and the viewport remains clipped when neither side fits.
 
 For virtualized lists, scrolling to a later viewport must preserve source-option identity: clicking a mounted row after wheel scrolling commits the row at that visible index, closes the popup, and emits only its value request. This interaction is covered by a large-list GPUI test.
 

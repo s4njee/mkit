@@ -4074,6 +4074,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-harness",
  "mkit-registry-context-menu",
  "mkit-registry-dropdown-menu",
  "serde_json",
@@ -4089,6 +4090,7 @@ dependencies = [
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
+ "serde_json",
  "windows 0.62.2",
 ]
 
@@ -4154,6 +4156,18 @@ dependencies = [
  "gpui-pre",
  "gpui-pre-platform",
  "image",
+ "mkit-harness",
+]
+
+[[package]]
+name = "mkit-example-e7-compositions"
+version = "0.1.0"
+dependencies = [
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-platform",
+ "image",
+ "mkit",
  "mkit-harness",
 ]
 
@@ -4297,10 +4311,12 @@ dependencies = [
 name = "mkit-harness"
 version = "0.1.0"
 dependencies = [
+ "futures-channel",
  "gpui-kit",
  "gpui-pre",
  "gpui-pre-platform",
  "image",
+ "raw-window-handle",
 ]
 
 [[package]]
@@ -4391,6 +4407,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-registry-key-hint",
 ]
 
 [[package]]
@@ -4399,6 +4416,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-registry-key-hint",
 ]
 
 [[package]]
@@ -4460,6 +4478,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-registry-key-hint",
 ]
 
 [[package]]
@@ -4604,6 +4623,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-registry-disclosure",
 ]
 
 [[package]]
@@ -4678,6 +4698,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-pre",
  "mkit-core",
+ "mkit-registry-key-hint",
 ]
 
 [[package]]

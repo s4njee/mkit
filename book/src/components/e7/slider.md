@@ -1,6 +1,6 @@
 # Slider
 
-Choose a bounded number or ordered range with one or two thumbs. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Choose a bounded number or ordered range with one or two thumbs. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Slider dark theme baseline](../../images/e7/slider.png)
 
@@ -39,4 +39,4 @@ Theme track/fill/thumb/focus/disabled colors; controls and borders size the trac
 
 ## Verification and limits
 
-6 generated keyboard cases cover value changes. Seven package tests pass, including GPUI assertions for keyboard start/change/end ordering, pointer end ordering, and controlled and uncontrolled Escape cancellation. The existing 30/30 screenshot comparisons passed before this lifecycle API change; interactive screenshots of the new gesture states remain pending. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/slider/spec.md` and `docs/E7_AUDIT.md` in the repository.
+6 generated keyboard cases cover value changes. Seven package tests pass, including GPUI assertions for keyboard start/change/end ordering, pointer end ordering, and controlled and uncontrolled Escape cancellation. The existing 30/30 screenshot comparisons passed before this lifecycle API change; interactive screenshots of the new gesture states remain pending. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/slider/spec.md` and `docs/E7_AUDIT.md` in the repository.

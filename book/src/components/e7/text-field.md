@@ -1,6 +1,6 @@
 # Text field
 
-Edit a short, single-line value. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Edit a short, single-line value. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Text field dark theme baseline](../../images/e7/text-field.png)
 
@@ -27,7 +27,7 @@ Requests TextInput role, label, current text value, description or validation me
 
 ## Theme tokens
 
-Global surface/text/muted/border/focus/danger/accent colors; spacing.xsmall/medium, controls.medium, radii.medium, borders.strong, typography.heading. The fixed hit-test inset needs review.
+Text fields follow the shadcn/ui input. The field is 36px tall (`controls.medium`) with 12px horizontal padding, `radii.medium` corners, a one-pixel input border, a small shadow, and 14px text (`typography.body`). Light themes fill it with the background colour; dark themes add a faint text tint. Keyboard focus and IME composition add a focus-coloured border and a 3px ring. An invalid field has a danger border and a faint danger ring, and its message sits 8px below. Disabled fields render at 50% strength. The caret is a 1px accent bar, and selected text uses the accent fill. The high-contrast theme keeps solid white borders, a solid cyan focus ring, and shows disabled fields in the `disabled` colour. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -37,4 +37,4 @@ Global surface/text/muted/border/focus/danger/accent colors; spacing.xsmall/medi
 
 ## Verification and limits
 
-The 6/6 generated keyboard cases, 9/9 registry tests, and 36/36 screenshot comparisons pass, including the six secure-state captures. A unit check covers Unicode masking. Active-platform per-state accessibility, native IME placement, and the full accessibility contract remain open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/text-field/spec.md` and `docs/E7_AUDIT.md` in the repository.
+The 6/6 generated keyboard cases, 9/9 registry tests, and 36/36 screenshot comparisons pass, including the six secure-state captures. A unit check covers Unicode masking. Active-platform per-state accessibility, native IME placement, and the full accessibility contract remain open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/text-field/spec.md` and `docs/E7_AUDIT.md` in the repository.

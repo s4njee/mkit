@@ -4,7 +4,7 @@ This index covers all **634** public inventory rows at the pinned `gpui-pre` 0.3
 
 The index is generated from `book/inventory.md` with a small manually reviewed chapter-route map. Review routes and counts after every inventory refresh.
 
-## E2.4: Getting started (5)
+## Getting started (5)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -14,7 +14,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::Window`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/window.rs#L1144) | struct | [Published chapter](../getting-started/how-gpui-thinks.md) |
 | [`gpui::WindowOptions`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/platform.rs#L2044) | struct | [Published chapter](../examples/hello.md) |
 
-## E2.5: App, context, and entities (34)
+## App, context, and entities (34)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -53,7 +53,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::VisualContext`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/gpui.rs#L260) | trait | Future coverage |
 | [`gpui::WeakEntity`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/app/entity_map.rs#L740) | struct | [Published chapter](../state/entities.md) |
 
-## E2.6: Elements, styling, and text (157)
+## Elements, styling, and text (157)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -215,7 +215,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::WrappedLine`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/text_system/line.rs#L267) | struct | Future coverage |
 | [`gpui::WrappedLineLayout`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/text_system/line_layout.rs#L274) | struct | Future coverage |
 
-## E2.7: Input, actions, and key bindings (93)
+## Input, actions, and key bindings (93)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -313,7 +313,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::Unbind`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/action.rs#L448) | struct | Future coverage |
 | [`gpui::WeakFocusHandle`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/window.rs#L666) | struct | Future coverage |
 
-## E2.8: Text input and IME (10)
+## Text input and IME (10)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -328,7 +328,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::TextInputStateChange`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/platform.rs#L864) | enum | Future coverage |
 | [`gpui::UTF16Selection`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/platform.rs#L1780) | struct | [Published chapter](../text-input/selection-and-undo.md) |
 
-## E2.9: Composition and advanced elements (70)
+## Composition and advanced elements (70)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -403,7 +403,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::UniformListScrollHandle`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/elements/uniform_list.rs#L80) | struct | Future coverage |
 | [`gpui::UniformListScrollState`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/elements/uniform_list.rs#L115) | struct | Future coverage |
 
-## E2.10: Async work and queues (14)
+## Async work and queues (14)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -422,7 +422,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::TaskExt`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/executor.rs#L38) | trait | Future coverage |
 | [`gpui::Timeout`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/util.rs#L95) | struct | Future coverage |
 
-## E2.11: Windows, platforms, and accessibility (145)
+## Windows, platforms, and accessibility (145)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -572,7 +572,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::WindowProfiler`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/profiler.rs#L895) | struct | Future coverage |
 | [`gpui::WindowVisibility`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/platform.rs#L102) | enum | Future coverage |
 
-## E2.12: Testing and profiling (18)
+## Testing and profiling (18)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -595,7 +595,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::VisualTestContext`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/app/test_context.rs#L783) | struct | [Published chapter](../testing/test-contexts.md) |
 | [`gpui::VisualTestPlatform`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/platform/visual_test.rs#L31) | struct | Future coverage |
 
-## E2.15: Types, preludes, and interop (17)
+## Types, preludes, and interop (17)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |
@@ -617,7 +617,7 @@ The index is generated from `book/inventory.md` with a small manually reviewed c
 | [`gpui::SharedString`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui_shared_string/gpui_shared_string.rs#L15) | struct | Future coverage |
 | [`gpui::SharedUri`](https://github.com/zed-industries/zed/blob/d89e9c2124b2786a390c7a451c7488601b4da2e1/crates/gpui/src/shared_uri.rs#L7) | struct | Future coverage |
 
-## E2.16: Internals (11)
+## Internals (11)
 
 | Public item | Kind | Teaching route |
 | --- | --- | --- |

@@ -1,0 +1,8 @@
+{
+  "name": "codex",
+  "description": "OpenAI Codex CLI `exec` mode with a workspace-write sandbox and the mkit-inspector MCP server passed as a config override. Verify the flags against the installed Codex version before a paid run.",
+  "command": "codex exec --json --model {model} --sandbox workspace-write --skip-git-repo-check -c mcp_servers.mkit_inspector.command={inspector_toml} - < {prompt_file}",
+  "token_parser": "codex-jsonl",
+  "default_model": null,
+  "env": {}
+}

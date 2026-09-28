@@ -6,6 +6,9 @@ export type DocImage = {
   src: string
   alt: string
   caption?: string
+  /** Display size in CSS pixels (the capture's pixels divided by its scale). */
+  width?: number
+  height?: number
 }
 
 export type DocSection = {
@@ -29,8 +32,24 @@ export type ComponentDoc = {
   sourcePath: string
   /** Key into the preview demos, from the chapter file name. */
   demoKey: string
-  /** `cargo mkit add` name, or empty when there is no registry entry. */
+  /** Primary registry entry name, or empty when there is no registry entry. */
   registryName: string
+  /** Every registry entry this chapter documents (disclosure also covers accordion). */
+  registryNames: string[]
+  /** Keyboard and accessibility contract from each entry's conformance manifest. */
+  contracts: RegistryContract[]
+}
+
+export type RegistryContract = {
+  name: string
+  /** Registry status, verbatim from registry/registry.json. */
+  status: string
+  /** Spec path relative to the repository root. */
+  spec: string
+  states: string[]
+  keys: { keys: string; when: string; action: string }[]
+  role: string
+  properties: { name: string; value: string }[]
 }
 
 export type CatalogCard = {

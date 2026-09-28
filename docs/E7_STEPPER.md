@@ -25,8 +25,30 @@ warnings` passes. Candidate images were inspected in a 1× theme/state montage; 
 Back control contrast was corrected before the accepted capture. The book preview uses the exact
 bytes of the accepted middle/dark/2× baseline.
 
-Native screen-reader announcement timing and placement inside real Dialog/Sheet focus traps require
-platform validation. The current API does not support async validation or direct jumps among
+## Composition in Dialog and Sheet
+
+`examples/e7_compositions` hosts the Stepper in a Dialog and in a Sheet without adding a
+registry-to-registry dependency. `cargo test -p mkit-example-e7-compositions --test
+stepper_in_modal` passes five GPUI tests. They check focus after every Tab and Shift+Tab press across
+the container surface, step content, Back, and Next. They also cover Escape from stepper buttons and
+step content, focus return to the opener, the step kept after dismissal and reopen, Back/Next/Alt
+shortcuts inside both containers, and a host-initiated close and reset after Finish. The
+`screenshots` target matched 12/12 new captures of the middle step (Dialog and Sheet × light, dark,
+and high-contrast × 1× and 2×). The dark 2× captures are the book images.
+
+This work fixed three Stepper bugs within the existing contract. Back and Next were not Tab stops
+because their focus handles never set `tab_stop`, so Tab skipped them. `Focusable::focus_handle`
+panicked before the first render. Alt+Left and Alt+Right worked only on the button they would
+activate anyway. `cargo test -p mkit-registry-stepper` adds a regression test for all three.
+
+Container gaps are recorded, not redesigned. Dialog Shift+Tab from its surface stays on the surface
+instead of wrapping to the last control. Sheet has no rendered-order fallback and cannot update focus
+stops after construction, so the conditional Back button is not a Sheet Tab stop. Back remains
+reachable with Alt+Left and the pointer, and Tab from Back re-enters the stop list. Stepper buttons
+also have no visible focus indicator yet. Adding one would change the accepted Stepper baselines.
+
+Native screen-reader announcement timing inside real Dialog/Sheet focus traps requires platform
+validation. The current API does not support async validation or direct jumps among
 completed steps; those decisions remain open for maintainer review.
 
 The component API and its synchronous validator are a draft for maintainer review. See

@@ -1,10 +1,72 @@
 //! Compact shadcn-inspired switch.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Rgba, Window,
+    actions, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved track and thumb colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    track: Rgba,
+    track_border: Rgba,
+    thumb: Rgba,
+    ring: Rgba,
+}
+fn look(t: &Theme, on: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            track: if on { c.accent } else { c.background },
+            track_border: if on { c.accent } else { c.border },
+            thumb: if on { c.accent_text } else { c.text },
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // Track fills stay opaque: GPUI paints the drop shadow as a filled shape inside the element.
+    let off_track = if dark { composite(c.text.opacity(0.15), c.background) } else { c.border };
+    Look {
+        track: if on { c.accent } else { off_track },
+        track_border: c.background.opacity(0.),
+        thumb: if dark && !on { c.text } else { c.background },
+        ring: c.focus.opacity(0.5),
+    }
+}
+/// Disabled controls render at 50% opacity as one layer, like the web preview's `opacity: .5`.
+/// GPUI applies element opacity to each painted part separately, so overlapping parts would show
+/// through each other; instead each colour is composited opaque over `background` first.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. {
+        color
+    } else {
+        composite(composite(color, background).opacity(0.5), background)
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the track.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 pub const KEY_CONTEXT: &str = "Switch";
 actions!(switch, [Toggle]);
 pub fn default_key_bindings() -> [KeyBinding; 1] {
@@ -64,7 +126,7 @@ impl Focusable for Switch {
     }
 }
 impl Render for Switch {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let f = self
             .focus
             .get_or_insert_with(|| cx.focus_handle().tab_index(0).tab_stop(!self.disabled))
@@ -73,6 +135,13 @@ impl Render for Switch {
         let label = self.label.clone();
         let on = self.checked;
         let disabled = self.disabled;
+        let look = look(&t, on);
+        let focus_visible = !disabled && f.is_focused(window) && window.last_input_was_keyboard();
+        let paint = |color: Rgba| if disabled { dim(color, t.colors.background) } else { color };
+        let mut shadow = t.shadows.small;
+        if disabled {
+            shadow.color = shadow.color.opacity(0.5);
+        }
         div()
             .id("switch")
             .debug_selector(|| "mkit-switch".into())
@@ -90,27 +159,41 @@ impl Render for Switch {
             .flex()
             .items_center()
             .gap(px(t.spacing.small))
+            .pr(px(t.spacing.xsmall))
             .child(
                 div()
-                    .w(px(t.controls.medium))
-                    .h(px(t.controls.xsmall * 0.64))
+                    .w(px(t.spacing.xxlarge))
+                    .h(px(t.spacing.large + 2. * t.borders.hairline))
+                    .flex_none()
                     .rounded(px(t.radii.pill))
-                    .bg(if on { t.colors.accent } else { t.colors.border })
-                    .p(px(t.spacing.xsmall * 0.25))
+                    .border(px(t.borders.hairline))
+                    .border_color(if focus_visible {
+                        t.colors.focus
+                    } else {
+                        paint(look.track_border)
+                    })
+                    .bg(paint(look.track))
+                    .shadow(if focus_visible {
+                        vec![focus_ring(look.ring)]
+                    } else {
+                        vec![box_shadow(shadow)]
+                    })
                     .flex()
                     .items_center()
+                    .when(on, |d| d.justify_end())
                     .child(
                         div()
-                            .size(px(t.controls.xsmall * 0.48))
+                            .size(px(t.spacing.large))
                             .rounded(px(t.radii.pill))
-                            .bg(t.colors.surface)
-                            .when(on, |d| d.ml(px(t.controls.xsmall * 0.55))),
+                            .bg(paint(look.thumb))
+                            .shadow(vec![box_shadow(shadow)]),
                     ),
             )
             .child(
                 div()
                     .text_size(px(t.typography.body))
-                    .text_color(if disabled { t.colors.disabled } else { t.colors.text })
+                    .font_weight(gpui_pre::FontWeight::MEDIUM)
+                    .text_color(paint(t.colors.text))
                     .child(label),
             )
     }

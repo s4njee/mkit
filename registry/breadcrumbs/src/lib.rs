@@ -1,6 +1,9 @@
 //! Stateless breadcrumb trail using shared theme tokens.
 extern crate gpui_pre as gpui;
-use gpui_pre::{IntoElement, KeyBinding, RenderOnce, actions, div, prelude::*, px};
+use gpui_pre::{
+    IntoElement, KeyBinding, PathBuilder, RenderOnce, Rgba, actions, canvas, div, point,
+    prelude::*, px,
+};
 use mkit_core::theme::Theme;
 use std::rc::Rc;
 
@@ -9,6 +12,28 @@ actions!(breadcrumbs, [Activate]);
 
 pub fn default_key_bindings() -> [KeyBinding; 1] {
     [KeyBinding::new("enter", Activate, Some(KEY_CONTEXT))]
+}
+
+/// Decorative chevron-right separator drawn as a vector path so it stays
+/// crisp at every scale. Geometry follows Lucide `chevron-right` on a 24-unit
+/// grid (9,6 → 15,12 → 9,18) inside a square `size` box.
+fn chevron_separator(size: f32, stroke: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(px(stroke));
+            path.move_to(origin + point(unit * 9.0, unit * 6.0));
+            path.line_to(origin + point(unit * 15.0, unit * 12.0));
+            path.line_to(origin + point(unit * 9.0, unit * 18.0));
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -49,6 +74,8 @@ impl RenderOnce for Breadcrumbs {
     fn render(self, _: &mut gpui_pre::Window, cx: &mut gpui_pre::App) -> impl IntoElement {
         let t = *cx.global::<Theme>();
         let last = self.items.len().saturating_sub(1);
+        let hairline = px(t.borders.hairline);
+        let separator_color = if self.disabled { t.colors.disabled } else { t.colors.text_muted };
         let mut list = div()
             .id("mkit-breadcrumb-list")
             .role(gpui_pre::accesskit::Role::List)
@@ -78,6 +105,13 @@ impl RenderOnce for Breadcrumbs {
                     .role(gpui_pre::accesskit::Role::Link)
                     .tab_stop(true)
                     .tab_index(i as isize)
+                    // Reserve a transparent focus border and cancel its layout
+                    // footprint so focus never moves the trail's text.
+                    .border(hairline)
+                    .m(-hairline)
+                    .rounded(px(t.radii.small))
+                    .border_color(gpui_pre::transparent_black())
+                    .hover(|s| s.text_color(t.colors.text))
                     .focus_visible(|s| s.border_color(t.colors.focus));
                 if let (Some(target), Some(callback)) =
                     (item.target.clone(), self.on_navigate.clone())
@@ -103,7 +137,11 @@ impl RenderOnce for Breadcrumbs {
                     .gap(px(t.spacing.small))
                     .child(node)
                     .when(i + 1 < self.items.len(), |e| {
-                        e.child(div().text_color(t.colors.text_muted).child("/"))
+                        e.child(chevron_separator(
+                            t.typography.body,
+                            t.borders.hairline,
+                            separator_color,
+                        ))
                     }),
             );
         }

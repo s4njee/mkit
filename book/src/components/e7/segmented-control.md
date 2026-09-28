@@ -1,6 +1,6 @@
 # Segmented control
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 Use a segmented control for one choice among a few compact alternatives. Unlike tabs, arrow navigation also changes the selected choice.
 
@@ -38,12 +38,12 @@ Labeled radiogroup with horizontal or vertical orientation. Each item is a radio
 
 ## Theme
 
-Theme surface, text, border, accent, accent text, focus, disabled; spacing, borders, radii, controls, typography tokens.
+The segmented control shares the Tabs styling: a borderless, rounded track filled with a muted mix of text over background, and the checked option as a raised pill (background fill with a small shadow in light themes; a 15% text fill and border in dark themes). Unchecked labels use muted text, disabled options render at 50% opacity, and keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps a bordered track, an accent-filled checked option, and an opaque focus ring. Colours, radii, spacing, control height, and typography come from theme tokens; the spec's theme table lists each mapping.
 
 ## Verification and limits
 
 Eight generated keyboard cases pass through a real GPUI adapter, covering arrow selection, Home/End, and Space; three package tests pass alongside them. The screenshot matrix passes 36/36 comparisons across six states, three themes, and two scales.
 
-Optional deselection is unsupported; the component follows a radio-group model, and the removal of the earlier `allow_empty` API needs maintainer review. The generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. The full E5 conformance matrix and maintainer API, spec, and visual review are outstanding.
+Optional deselection is unsupported; the component follows a radio-group model, and the removal of the earlier `allow_empty` API needs maintainer review. The generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. The full conformance matrix and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/segmented-control/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/segmented-control/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

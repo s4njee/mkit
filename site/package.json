@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "content": "node scripts/generate-content.mjs && node scripts/generate-theme.mjs",
+    "content": "node scripts/generate-content.mjs && node scripts/generate-theme.mjs && node scripts/generate-health.mjs && node scripts/generate-llms.mjs",
     "predev": "npm run content",
     "dev": "vite",
-    "prebuild": "npm run content",
+    "prebuild": "npm run content && node scripts/generate-health.mjs --run-check",
     "build": "vite build",
     "preview": "vite preview",
     "pretypecheck": "npm run content",

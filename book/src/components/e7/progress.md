@@ -1,6 +1,6 @@
 # Progress
 
-Show task completion without accepting input. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Show task completion without accepting input. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Progress dark theme baseline](../../images/e7/progress.png)
 
@@ -34,4 +34,4 @@ Global border/accent colors, radii.pill, spacing.xsmall. The centered 35% indete
 
 ## Verification and limits
 
-24/24 declared screenshot comparisons passed. No input adapter is applicable; platform announcements remain unverified. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/progress/spec.md` and `docs/E7_AUDIT.md` in the repository.
+24/24 declared screenshot comparisons passed. No input adapter is applicable; platform announcements remain unverified. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/progress/spec.md` and `docs/E7_AUDIT.md` in the repository.

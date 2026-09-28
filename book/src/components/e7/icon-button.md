@@ -1,6 +1,6 @@
 # Icon button
 
-Trigger a compact icon action when surrounding context makes placement useful. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Trigger a compact icon action when surrounding context makes placement useful. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Icon button dark theme baseline](../../images/e7/icon-button.png)
 
@@ -24,7 +24,7 @@ Requests button role and the supplied accessible name. The icon is decorative. D
 
 ## Theme tokens
 
-Colors: surface, text, border, accent, focus, danger, disabled. Spacing: small/medium. Radius: small. Border: regular.
+Icon buttons share `Button`'s shadcn/ui variant colours, shadows, hover fills, 50% disabled opacity, and focus ring. They are square: 32, 36, or 40px (`controls.small`, `controls.medium`, `controls.large`) with `radii.medium` corners. The high-contrast theme keeps solid, white-bordered variants. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -34,4 +34,4 @@ Colors: surface, text, border, accent, focus, danger, disabled. Spacing: small/m
 
 ## Verification and limits
 
-Enter/Space adapter and focused pointer tests passed. 12/12 declared screenshot comparisons passed; platform accessibility remains open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/icon-button/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Enter/Space adapter and focused pointer tests passed. 12/12 declared screenshot comparisons passed; platform accessibility remains open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/icon-button/spec.md` and `docs/E7_AUDIT.md` in the repository.

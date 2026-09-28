@@ -23,7 +23,7 @@ accessibility:
       value: label
 controlled: Stateless RenderOnce builder; no controlled or uncontrolled state contract.
 events: []
-theme_tokens: [elevated_surface, text, border, focus, spacing.small, spacing.xsmall, radii.small, borders.hairline, typography.caption]
+theme_tokens: [accent, accent_text, background, text, border, spacing.xsmall, spacing.small, spacing.medium, radii.medium, borders.hairline, typography.caption]
 open_questions: []
 ---
 
@@ -59,7 +59,28 @@ The wrapper sets an accessible description with the label; the child keeps its o
 
 ## Theme tokens used
 
-`elevated_surface`, `text`, `border`, `spacing.small`, `spacing.xsmall`, `radii.small`, `borders.hairline`, and `typography.caption` come from GPUI `Theme`.
+The popup follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-tooltip` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`), which is shadcn/ui's
+tooltip: a primary-filled label. `high-contrast` is selected by theme name (the convention other
+registry components use); no light/dark derivation is needed because the popup reads the same
+tokens in both. No mkit-core API or tokens are added.
+
+| Part | Light and dark | High contrast |
+|---|---|---|
+| Fill | `accent` (shadcn `primary`) | `background` |
+| Text | `accent_text` (shadcn `primary-foreground`) | `text` |
+| Border | none | `borders.hairline` in `border` |
+| Shadow | none (shadcn draws none) | none |
+
+- **Geometry**: horizontal padding `spacing.medium` (12px, shadcn `px-3`); vertical padding is the
+  midpoint of `spacing.xsmall` and `spacing.small` (6px, shadcn `py-1.5`), because there is no 6px
+  token and either neighbour visibly changes the label's proportions; radius `radii.medium`
+  (shadcn `rounded-md`); label `typography.caption` (12px, shadcn `text-xs`). The label does not wrap
+  in the web preview; GPUI sizes the popup to its content. The optional shadcn arrow is not drawn:
+  GPUI owns the popup placement and does not report which side it chose.
+- **High contrast** keeps the popup legible against any content by using the theme's solid
+  `background` and `text` with a `border` outline (2px there) instead of the yellow `accent` fill.
+- The focused child's own focus cue is unchanged; the tooltip does not style the child.
 
 ## WAI-ARIA pattern reference
 

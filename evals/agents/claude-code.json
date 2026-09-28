@@ -1,0 +1,8 @@
+{
+  "name": "claude-code",
+  "description": "Claude Code in print mode. Tools are limited to the workspace, cargo, and the mkit-inspector MCP server; web tools are disallowed. Verify the flags against the installed Claude Code version before a paid run.",
+  "command": "claude -p --model {model} --output-format stream-json --verbose --mcp-config {mcp_config} --strict-mcp-config --permission-mode acceptEdits --allowedTools 'Read,Edit,Write,Glob,Grep,Bash(cargo build:*),Bash(cargo test:*),Bash(cargo check:*),Bash(cargo run:*),mcp__mkit-inspector' --disallowedTools 'WebFetch,WebSearch' < {prompt_file}",
+  "token_parser": "claude-stream-json",
+  "default_model": null,
+  "env": {}
+}

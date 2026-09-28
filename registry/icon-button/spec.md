@@ -70,7 +70,27 @@ Button role and required accessible name. The icon is decorative to assistive te
 
 ## Theme tokens used
 
-`Theme.colors` surface/text/border/accent/accent_text/focus/danger/disabled; `Theme.spacing` small/medium; `Theme.radii.small`; `Theme.borders.regular`.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-btn--icon` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved from
+the installed `Theme` in three variants. `high-contrast` is selected by theme name (the convention
+other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `secondary`/`accent`/`muted`: `text` mixed 4% (light) or
+12% (dark) into `background`.
+
+Colours, hover, focus, and high-contrast treatment are identical to `Button` (see its spec) for the
+shared variants (`default`, `secondary`, `outline`, `ghost`, `destructive`): accent, muted, and
+danger fills; an outline border of `border` (light) or `text` at 10% (dark); `shadows.small` on
+every variant except ghost; a `focus` border plus a 3px ring of `focus` at 50% (opaque in high
+contrast) over an opaque fill; disabled at 50% opacity, or solid `background`/`disabled`
+colours in high contrast. The destructive glyph uses the theme's near-white (light `background`,
+dark `text`) and `accent_text` in high contrast.
+
+Geometry: a square of `controls.small`/`controls.medium`/`controls.large` (32/36/40, shadcn
+`size-8`, `size-9`, `size-10`), radius `radii.medium`, a `borders.regular` border (transparent unless
+the variant draws one), and `typography.body` text size so text-glyph icons match 14px labels. The
+caller's icon element is centred and keeps its own size (the web preview uses 16px icons).
 
 ## WAI-ARIA pattern reference
 

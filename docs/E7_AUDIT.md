@@ -1,8 +1,8 @@
 # E7 progress audit — 2026-09-25
 
-E7 has source drafts for all 32 everyday components named in [the plan](../plan.md#e7--everyday-components). The [registry catalog](../registry/registry.json) has 33 entries: these 32, including the E5 combobox pilot, plus the E8 scrubbable-number-field pilot. Every entry is `implementation_in_progress`; none is `source_ready` or installable through `cargo mkit add`. A source file, spec, and generated conformance manifest exist for each entry. Those files establish draft coverage, not completed E5 conformance or approved public contracts. The E7 checkboxes in `plan.md` remain open.
+E7 has source drafts for all 32 everyday components named in [the plan](../plan.md#e7--everyday-components)'s E7.1–E7.9 stories, and for the 21 E7.10–E7.23 components recorded in the dated sections below. The [registry catalog](../registry/registry.json) has 66 entries: these 53 E7 drafts (including the E5 combobox pilot) plus 13 E8 drafts (including the scrubbable-number-field pilot). When this intro was first written the catalog had 33 entries. Every entry is `implementation_in_progress`; none is `source_ready` or installable through `cargo mkit add`. A source file, spec, and generated conformance manifest exist for each entry. Those files establish draft coverage, not completed E5 conformance or approved public contracts. The E7 checkboxes in `plan.md` remain open.
 
-The book now has an [E7 guide](../book/src/components/e7/README.md) and one draft page for each of the 32 components. Every page has three use cases and a keyboard table. Thirty-one pages show a shadcn dark 1× registry screenshot (the book and the component site are dark by default); Tooltip has no visual popup capture because the current harness cannot produce a genuine one. `check_book.py` verifies copied E7 PNG bytes against dark-1× cases in the registry conformance manifests; `scripts/sync_e7_book_images.py` regenerates the images from the matching dark baselines. On 2026-09-25, `mdbook build book` and the full `python3 scripts/check_book.py --built-html` passed (129 pages, 14 compiling example crates). `npm run build:gpui` placed the book at `dist/GPUI`, and `wrangler pages deploy dist --project-name mk7s --branch main` deployed it to the existing Cloudflare Pages project. The production [E7 guide](https://mk7s.dev/GPUI/components/e7/) and sampled component pages and image returned HTTP 200 after deployment. These prose use cases are not a substitute for the plan's three examples per component; book accuracy still requires maintainer review.
+The book now has an [E7 guide](../book/src/components/e7/README.md) and one draft page for each of the 32 components. Every page has three use cases and a keyboard table. Thirty-one pages show a shadcn dark 2× registry screenshot (the book and the component site are dark by default); Tooltip has no visual popup capture because the current harness cannot produce a genuine one. `check_book.py` verifies copied E7 PNG bytes against dark-2× cases in the registry conformance manifests; `scripts/sync_e7_book_images.py` regenerates the images from the matching dark baselines. On 2026-09-25, `mdbook build book` and the full `python3 scripts/check_book.py --built-html` passed (129 pages, 14 compiling example crates). `npm run build:gpui` placed the book at `dist/GPUI`, and `wrangler pages deploy dist --project-name mk7s --branch main` deployed it to the existing Cloudflare Pages project. The production [E7 guide](https://mk7s.dev/GPUI/components/e7/) and sampled component pages and image returned HTTP 200 after deployment. These prose use cases are not a substitute for the plan's three examples per component; book accuracy still requires maintainer review.
 
 | Story | Draft paths | Current boundary |
 | --- | --- | --- |
@@ -36,6 +36,7 @@ Before marking an E7 story complete, run the remaining applicable E5 adapter cas
 
 - `python3 scripts/check_component_specs.py` — passed after the full E7 source sync: `checked 33 registry component specs and conformance manifests`.
 - `python3 scripts/check_registry.py` — passed after the full E7 source sync: `registry check passed: 33 components`.
+- 2026-09-27 re-run with the E7.10–E7.23 and E8 drafts in the catalog: `python3 scripts/check_component_specs.py` passed (`checked 66 registry component specs and conformance manifests`; the earlier stale Node Editor manifest no longer blocks it) and `python3 scripts/check_registry.py` passed (`registry check passed: 66 components`).
 - `python3 scripts/generate_conformance.py registry/button/spec.md --output registry/button/tests/conformance.json --check` — passed: two keyboard, three accessibility, and 18 screenshot cases match the committed manifest.
 - `python3 scripts/run_conformance.py registry/button/tests/conformance.json --adapter 'python3 registry/button/tests/adapter.py' --kind keyboard` — passed: both generated Enter and Space cases. The adapter also checks disabled/loading suppression during each case.
 - The same `run_conformance.py` keyboard command with the corresponding `registry/icon-button`, `registry/toggle-button`, and `registry/toggle-group` manifests and adapters — passed: 2/2, 2/2, and 6/6 cases, respectively. Toggle-group cases also assert cross-axis arrow no-op, disabled suppression, and controlled request behavior.
@@ -90,7 +91,7 @@ These checks do not complete the E5 state × theme × scale, keyboard, and acces
 
 The Select, MultiSelect, and Combobox specs now explicitly require pointer hit testing to preserve source-option identity after scrolling through a virtualized list. Added focused GPUI tests exercise pointer selection from the final viewport in 120-option Select/MultiSelect collections and a 128-option filtered Combobox result set. Select and Combobox commit and close; MultiSelect toggles membership and stays open. The Combobox test also asserts the committed ID comes from the filtered mapping. The corresponding component sources were copied into `crates/mkit/src/generated/` to keep registry and crate implementations aligned.
 
-Checks passed: `cargo test -p mkit-registry-select -p mkit-registry-multi-select --offline --locked -j 2` (20 tests); `cargo test -p mkit --features 'select multi-select combobox' --lib --offline --locked -j 2` (189 tests); and `cargo test -p mkit --features combobox --test combobox_interactions --offline --locked -j 2` (3 tests). Focused E7.4 spec-to-manifest generation checks, registry/generated source comparisons, and `rustfmt --check` on the six changed Rust files passed. The repo-wide spec checker remains blocked by a pre-existing stale Node Editor manifest; the workspace-wide format check encounters formatting changes in concurrent Node Editor and Timeline work. These checks add pointer evidence only; active-platform accessibility, screen-reader behavior, and maintainer contract/baseline review remain open.
+Checks passed: `cargo test -p mkit-registry-select -p mkit-registry-multi-select --offline --locked -j 2` (20 tests); `cargo test -p mkit --features 'select multi-select combobox' --lib --offline --locked -j 2` (189 tests); and `cargo test -p mkit --features combobox --test combobox_interactions --offline --locked -j 2` (3 tests). Focused E7.4 spec-to-manifest generation checks, registry/generated source comparisons, and `rustfmt --check` on the six changed Rust files passed. At the time, the repo-wide spec checker was blocked by a pre-existing stale Node Editor manifest (resolved: on 2026-09-27 `python3 scripts/check_component_specs.py` passed, `checked 66 registry component specs and conformance manifests`); the workspace-wide format check encounters formatting changes in concurrent Node Editor and Timeline work. These checks add pointer evidence only; active-platform accessibility, screen-reader behavior, and maintainer contract/baseline review remain open.
 
 ## 2026-09-27 E7 gallery Select popups
 
@@ -194,6 +195,17 @@ Link hover/focus states are distinct. Book images are byte-identical to dark 2×
 KeyHint rendering is present, but reuse by menus, CommandPalette, and ShortcutEditor remains
 open, as do native AX and maintainer reviews.
 
+Update: KeyHint now owns the shared shortcut formatter (`KeyChord::parse`/`label`,
+`shortcut_label`) and an inline text presentation. DropdownMenu, ContextMenu, CommandPalette, and
+ShortcutEditor render shortcuts through it, keeping their string APIs and muted text columns.
+Focused GPUI tests confirm parsed labels render via KeyHint and unparseable text stays verbatim.
+Menu matrices match all 48 baselines unchanged. CommandPalette (12 cases, `⇧⌘S` ordering) and
+ShortcutEditor (36 cases, `⌘O` instead of `cmd-o`) candidates were inspected but await maintainer
+acceptance, as do the dependent book images and four `apps/gallery/snapshots/e8-command-shadcn-*`
+snapshots; those screenshot tests fail until then. The key-hint registry dependency is a draft
+exception pending approval; MenuBar adoption, `aria_keyshortcuts`, and macOS key glyphs remain
+open. GPUI drops role-less nodes, so KeyHint's own label does not reach the accessibility tree.
+
 TagInput has typed add/remove events, validation and maximum-count behavior, and a disabled-aware
 suggestion list. Eight focused tests pass. Its 48-case matrix compares across seven states,
 three themes, and two scales. Inspection led to an inline validation message and an inset,
@@ -218,6 +230,15 @@ Inspection exposed an invisible Back button in dark/high-contrast themes; Theme 
 corrected it before baseline acceptance. The book preview is byte-identical to the accepted
 middle/dark/2× image. Direct jumps, asynchronous validation, native screen-reader timing,
 dialog/sheet focus trapping, and maintainer API/spec/visual/book review remain open.
+
+Update: Stepper now works inside a Dialog and a Sheet, with gaps. `examples/e7_compositions`
+hosts it in both without a registry→registry dependency. Five GPUI tests check focus after every
+Tab/Shift+Tab, Escape dismissal, focus return, the host-owned step surviving reopen, and a host
+close after Finish. Twelve new harness screenshots need maintainer review. Fixed Stepper bugs: the
+navigation buttons were not Tab stops, `focus_handle` panicked before the first render, and the
+Alt+Left/Right shortcuts only worked on the matching button. Open: Sheet's fixed focus stops
+exclude the conditional Back button, Dialog Shift+Tab from its surface does not wrap to the last
+control, and Stepper buttons have no visible focus indicator.
 
 ## 2026-09-27 E7.20 ReorderableList draft
 

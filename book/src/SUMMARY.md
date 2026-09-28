@@ -79,7 +79,7 @@
 
 - [Own component source from the registry](components/source-registry.md)
 - [Everyday component drafts](components/everyday-components.md)
-- [E7 component guide](components/e7/README.md)
+- [Everyday component guide](components/e7/README.md)
   - [Button](components/e7/button.md)
   - [IconButton](components/e7/icon-button.md)
   - [ToggleButton](components/e7/toggle-button.md)
@@ -131,7 +131,7 @@
   - [In-window menu bar](components/e7/menu-bar.md)
   - [Status bar](components/e7/status-bar.md)
   - [Stepper](components/e7/stepper.md)
-- [E8 pro-app component guide](components/e8/README.md)
+- [Pro-app component guide](components/e8/README.md)
   - [Viewport](components/e8/viewport.md)
   - [Precision slider](components/e8/precision-slider.md)
   - [Curve editor](components/e8/curve-editor.md)

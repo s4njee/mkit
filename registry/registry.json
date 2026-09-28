@@ -318,9 +318,13 @@
         {
           "name": "gpui-pre",
           "version": "0.3.5"
+        },
+        {
+          "name": "mkit-registry-key-hint",
+          "version": "0.1.0"
         }
       ],
-      "component_dependencies": []
+      "component_dependencies": ["key-hint"]
     },
     {
       "name": "data-table",
@@ -381,9 +385,13 @@
         {
           "name": "gpui-pre",
           "version": "0.3.5"
+        },
+        {
+          "name": "mkit-registry-key-hint",
+          "version": "0.1.0"
         }
       ],
-      "component_dependencies": []
+      "component_dependencies": ["key-hint"]
     },
     {
       "name": "form-layout",
@@ -748,9 +756,10 @@
       "source_files": ["registry/command-palette/src/lib.rs"],
       "dependencies": [
         {"name": "mkit-core", "version": "0.1.0"},
-        {"name": "gpui-pre", "version": "0.3.5"}
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-key-hint", "version": "0.1.0"}
       ],
-      "component_dependencies": []
+      "component_dependencies": ["key-hint"]
     },
     {
       "name": "curve-editor",
@@ -787,9 +796,10 @@
       "source_files": ["registry/property-inspector/src/lib.rs"],
       "dependencies": [
         {"name": "mkit-core", "version": "0.1.0"},
-        {"name": "gpui-pre", "version": "0.3.5"}
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-disclosure", "version": "0.1.0"}
       ],
-      "component_dependencies": []
+      "component_dependencies": ["disclosure"]
     },
     {
       "name": "gradient-editor",
@@ -813,9 +823,10 @@
       "source_files": ["registry/shortcut-editor/src/lib.rs"],
       "dependencies": [
         {"name": "mkit-core", "version": "0.1.0"},
-        {"name": "gpui-pre", "version": "0.3.5"}
+        {"name": "gpui-pre", "version": "0.3.5"},
+        {"name": "mkit-registry-key-hint", "version": "0.1.0"}
       ],
-      "component_dependencies": []
+      "component_dependencies": ["key-hint"]
     },
     {
       "name": "timeline",

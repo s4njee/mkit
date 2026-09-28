@@ -1,7 +1,7 @@
 # DateTimeField
 
 DateTimeField lays out an app-configured DatePicker, a localized separator, and an app-configured
-TimeField in a named group. It reuses the E7.11 date grid and E7.14 time segments; callers keep the
+TimeField in a named group. It reuses the DatePicker date grid and TimeField time segments; callers keep the
 child entities and observe their date and time events independently.
 
 The composition does not synthesize or atomically commit a combined value. This lets applications

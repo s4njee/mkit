@@ -1,8 +1,8 @@
 # Viewport
 
-A viewport shows app-drawn content that you can pan and zoom, such as an image, map, or editor canvas. The app supplies the drawing function and content size. The viewport owns the view transform and emits changes when a person moves it. This is an E8.1 draft.
+A viewport shows app-drawn content that you can pan and zoom, such as an image, map, or editor canvas. The app supplies the drawing function and content size. The viewport owns the view transform and emits changes when a person moves it. This is a draft pro-app component.
 
-![E8 viewport and histogram preview](../../images/e8-preview-dark-2x.png)
+![Pro-app viewport and histogram preview](../../images/e8-preview-dark-2x.png)
 
 ## Use it for
 

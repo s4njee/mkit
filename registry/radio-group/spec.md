@@ -136,8 +136,37 @@ Click option or its label selects it and focuses that option. Controlled clicks 
 Group has radiogroup role/name and orientation. Each child has radio role/name, checked and disabled state. Roving focus exposes one tab stop among enabled options; a disabled group exposes no tab stops.
 
 ## Theme tokens used
+The look follows the shadcn/ui radio group and is resolved from the installed `Theme` in three
+variants, the same way Tabs does it. `high-contrast` is selected by theme name; every other theme
+is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light.
+Derived colours use `mkit_core::contrast::composite`; no new core tokens are added.
 
-Global surface, text, border, accent, accent_text, focus, disabled colors; spacing.small, radii.pill, border.hairline/regular and typography.body.
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Circle border, unselected ("input") | `border` | `text` at 15% | `border` |
+| Circle border, selected | `accent` | `accent` | `accent` |
+| Circle fill | `background` | `background` | `background` |
+| Selected dot | `accent` | `accent` | `accent` |
+| Circle shadow | `shadows.small` | `shadows.small` | `shadows.small` (transparent in this theme) |
+| Group and option labels | `text` | `text` | `text` |
+| Keyboard focus | circle border `focus` plus a 3px ring of `focus` at 50% | same | circle border `focus` plus a 3px ring of opaque `focus` |
+| Disabled option or group | circle, dot and label at 50% over `background` | same | same |
+
+Geometry: each circle is `spacing.large` (16px) with radius `radii.pill` and a `borders.hairline`
+border, matching shadcn/ui's `size-4 rounded-full border`; the selected dot is `spacing.small`
+(8px), shadcn/ui's `size-2`. The selected circle takes an `accent` border as well as the dot (the
+classic shadcn/ui radio), so selection does not rest on the 8px dot alone. The circle fill is
+opaque `background` because GPUI paints the drop shadow as a filled shape inside the element. The
+group label and option labels use `typography.body` at medium weight (500), shadcn/ui's
+`font-medium`; rows are separated by `spacing.small` because GPUI's default line height already
+makes each row taller than the web preview's. The 3px focus ring is the shadcn/ui ring width and a
+fixed component value. Each option row keeps a trailing `spacing.xsmall` of padding so its pointer
+target stays at least as wide as the earlier 16.2px indicator row.
+
+Disabled matches the web preview's `opacity: .5` applied to the control as one layer: every part's
+colour is composited opaque over `background` and then mixed 50% with it, and the shadow alpha is
+halved. GPUI element opacity is not used because it dims each painted part separately, so a thumb
+or mark would show the part beneath it.
 
 ## WAI-ARIA pattern reference
 

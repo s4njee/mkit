@@ -24,8 +24,8 @@ are removed from layout and the accessibility tree, with no overflow menu in thi
   status text and the high-priority Export action.
 - `python3 scripts/check_component_specs.py`: passed with the StatusBar spec and generated manifest.
 - The StatusBar book image was directly verified byte-for-byte against the dark 2× full-state
-  baseline, and the page's relative links pass. The full `python3 scripts/check_book.py` gate is
-  currently blocked by the unrelated existing `book/src/images/e7/search-field.png` provenance
-  mismatch (no matching E7 registry dark-2× screenshot baseline), before it reaches the book build.
+  baseline, and the page's relative links pass. The earlier `book/src/images/e7/search-field.png`
+  provenance mismatch that blocked the full book gate is resolved: on 2026-09-27
+  `python3 scripts/check_book.py --skip-cargo` passed (168 pages, 15 example crates).
 - Native accessibility snapshots and spoken polite-announcement timing remain pending. Public API,
   `available_width` estimation, and omission-versus-overflow behavior need maintainer review.

@@ -8,10 +8,27 @@ import sys
 
 
 case = json.load(sys.stdin)
+if case.get("kind") == "accessibility_cases":
+    # Captures the AccessKit tree GPUI delivers to an active adapter and compares
+    # it with tests/baselines/a11y/<state>.txt (see docs/E5_A11Y_CAPTURE.md).
+    result = subprocess.run(
+        ["cargo", "test", "--quiet", "-p", "mkit", "--test", "a11y_conformance"],
+        input=json.dumps(case),
+        text=True,
+        capture_output=True,
+        env=os.environ.copy(),
+        check=False,
+    )
+    if result.returncode:
+        sys.stderr.write(result.stderr)
+        sys.stderr.write(result.stdout)
+        raise SystemExit(result.returncode)
+    print(result.stdout.strip().splitlines()[-1])
+    raise SystemExit(0)
 if case.get("kind") != "keyboard_cases":
     print(json.dumps({
         "status": "unsupported",
-        "reason": "active-platform accessibility and per-state screenshots are not available",
+        "reason": "per-state screenshots are not available",
     }))
     raise SystemExit(0)
 

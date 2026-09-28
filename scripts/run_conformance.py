@@ -75,6 +75,19 @@ def verify_actual(case: dict[str, Any], actual: Any) -> tuple[bool, str]:
             name, value = prop.get("name"), prop.get("value")
             if name not in actual_properties or actual_properties[name] != value:
                 return False, f"accessibility property {name!r} mismatch: expected {value!r}, got {actual_properties.get(name)!r}"
+        # A captured tree snapshot is optional evidence today, but once an
+        # adapter reports one it must name the component's per-state baseline
+        # and match it; a changed tree is a failure until a reviewed update.
+        snapshot = actual.get("snapshot_baseline")
+        if snapshot is not None:
+            component, state = case.get("component"), case.get("state")
+            expected_path = f"registry/{component}/tests/baselines/a11y/{state}.txt"
+            if snapshot != expected_path:
+                return False, f"accessibility snapshot baseline mismatch: expected {expected_path!r}, got {snapshot!r}"
+            if actual.get("snapshot_matched") is not True:
+                reason = actual.get("snapshot_error", "captured tree differs from the baseline")
+                return False, f"accessibility snapshot {snapshot} not matched: {reason}"
+            return True, "matched accessibility assertions and tree snapshot"
         return True, "matched accessibility assertions"
     if kind == "screenshot_cases":
         baseline = case.get("baseline")

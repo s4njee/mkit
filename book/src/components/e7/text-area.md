@@ -1,6 +1,6 @@
 # Text area
 
-Edit multiline text with wrapping and vertical caret scrolling. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Edit multiline text with wrapping and vertical caret scrolling. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Text area dark theme baseline](../../images/e7/text-area.png)
 
@@ -27,7 +27,7 @@ Requests MultilineTextInput role, label, current text value, description or vali
 
 ## Theme tokens
 
-Global surface/text/muted/border/focus/danger/accent colors; spacing.xsmall/small/medium, controls.large, radii.medium, borders.strong, typography.heading. Fixed hit-test inset needs review.
+Text areas use the same look as text fields: a one-pixel input border, `radii.medium` corners, a small shadow, 14px text (`typography.body`), 12px by 8px padding, a focus-coloured border and 3px ring on focus, and a danger border and faint danger ring when invalid. Disabled areas render at 50% strength, and high contrast keeps solid borders and a solid focus ring. The editor keeps a fixed 120px height (`controls.large` × 3) and scrolls. The fixed 12px hit-test inset still needs review. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -37,4 +37,4 @@ Global surface/text/muted/border/focus/danger/accent colors; spacing.xsmall/smal
 
 ## Verification and limits
 
-8/8 generated keyboard cases, 10/10 registry tests, and 42/42 screenshot comparisons passed. Live native IME placement and full accessibility contract remain open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/text-area/spec.md` and `docs/E7_AUDIT.md` in the repository.
+8/8 generated keyboard cases, 10/10 registry tests, and 42/42 screenshot comparisons passed. Live native IME placement and full accessibility contract remain open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/text-area/spec.md` and `docs/E7_AUDIT.md` in the repository.

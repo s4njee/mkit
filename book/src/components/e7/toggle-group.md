@@ -1,6 +1,6 @@
 # Toggle group
 
-Choose at most one pressed item from a related set. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Choose at most one pressed item from a related set. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Toggle group dark theme baseline](../../images/e7/toggle-group.png)
 
@@ -25,7 +25,7 @@ Requests a labelled group of button-role items with pressed state. One enabled i
 
 ## Theme tokens
 
-Colors: surface, text, border, accent, focus, disabled. Spacing: small. Radius: medium. Borders: regular/hairline. Controls: medium.
+Toggle groups follow shadcn/ui's outline toggle group. Items are joined, with shared borders and rounded outer corners only. The group has a small shadow. The selected item uses a muted accent fill, and unselected items show a muted hover fill. Items are 36px tall (`controls.medium`) with 14px medium-weight labels. Disabled items or groups render at 50% opacity, and keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps white borders and a solid accent selection. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -35,4 +35,4 @@ Colors: surface, text, border, accent, focus, disabled. Spacing: small. Radius: 
 
 ## Verification and limits
 
-Six generated keyboard cases passed, including cross-axis no-op and controlled requests. 12/12 declared screenshots matched. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/toggle-group/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Six generated keyboard cases passed, including cross-axis no-op and controlled requests. 12/12 declared screenshots matched. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/toggle-group/spec.md` and `docs/E7_AUDIT.md` in the repository.

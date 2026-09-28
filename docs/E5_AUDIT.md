@@ -93,6 +93,13 @@ test GPUI tree generation; native screen-reader behavior would still need a
 desktop check. Generated accessibility cases must remain pending until such a
 hook exists.
 
+Update: `mkit_harness::AccessibilitySession` now captures the real
+`TreeUpdate` headlessly on macOS through a harness-owned platform window and
+GPUI's public `VisualTestAppContext::new`, without a GPUI patch. `button`,
+`checkbox`, and `slider` accessibility cases now run against reviewed-pending
+text baselines. See `docs/E5_A11Y_CAPTURE.md` for the approach and remaining
+gaps.
+
 ## Live generator smoke run
 
 The [overlay fixture](../examples/interaction/conformance/overlay-dismissal.spec.md)

@@ -1,6 +1,6 @@
 # Curve editor
 
-A curve editor lets someone reshape an input-to-output mapping by moving points. It can serve a photo tone curve, an audio response curve, or another app-defined mapping. The app supplies named channels and interprets the normalized coordinates. This is an E8.4 draft.
+A curve editor lets someone reshape an input-to-output mapping by moving points. It can serve a photo tone curve, an audio response curve, or another app-defined mapping. The app supplies named channels and interprets the normalized coordinates. This is a draft pro-app component.
 
 ![Tone curve with control points in the dark theme](../../images/e8-curve-editor-dark-2x.png)
 

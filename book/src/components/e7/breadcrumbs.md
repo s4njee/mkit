@@ -1,6 +1,6 @@
 # Breadcrumbs
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 Breadcrumbs show where the current page sits in a hierarchy. Earlier locations can link back; the final crumb names the current page.
 
@@ -38,7 +38,9 @@ Navigation landmark with accessible label containing an ordered list. Ancestors 
 
 ## Theme
 
-Theme text, muted text, accent, focus, disabled; spacing and typography tokens.
+Theme text, muted text, focus, disabled; spacing, radii, borders and typography tokens.
+
+Ancestors use muted text and change to full text colour on hover. The current page uses full text colour. Separators are chevrons drawn as vector paths, so they stay crisp at 1× and 2×. They use muted text and are sized from the body text token. Linked ancestors show a `focus`-coloured border when keyboard focused. Collapsing middle crumbs into a "…" button is not supported yet.
 
 ## Verification and limits
 
@@ -46,4 +48,4 @@ The generated Enter case passes 1/1 through a real GPUI adapter, and four GPUI i
 
 The app supplies route targets and navigation callbacks. Native current-page and URL properties remain pending, as does focus behavior when the trail changes shape. The generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. Broader visual coverage and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/breadcrumbs/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/breadcrumbs/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

@@ -4,7 +4,7 @@ use gpui_pre::{
 };
 use mkit::{
     core::theme,
-    slider::{ChangeRequested, Slider, default_key_bindings},
+    slider::{ChangeRequested, InteractionEnded, InteractionStarted, Slider, default_key_bindings},
 };
 use serde_json::{Value, json};
 use std::{
@@ -19,7 +19,8 @@ struct Host {
     disabled: bool,
     slider: Option<Entity<Slider>>,
     events: Rc<RefCell<Vec<Vec<f64>>>>,
-    _subscription: Option<Subscription>,
+    sequence: Rc<RefCell<Vec<&'static str>>>,
+    _subscriptions: Vec<Subscription>,
 }
 
 impl Host {
@@ -30,7 +31,8 @@ impl Host {
             disabled,
             slider: None,
             events: Rc::new(RefCell::new(Vec::new())),
-            _subscription: None,
+            sequence: Rc::new(RefCell::new(Vec::new())),
+            _subscriptions: Vec::new(),
         }
     }
 }
@@ -54,10 +56,21 @@ impl Render for Host {
             .disabled(self.disabled);
             let slider = cx.new(|_| component);
             let events = self.events.clone();
-            self._subscription =
-                Some(cx.subscribe(&slider, move |_, _, event: &ChangeRequested, _| {
+            let sequence = self.sequence.clone();
+            let started = self.sequence.clone();
+            let ended = self.sequence.clone();
+            self._subscriptions = vec![
+                cx.subscribe(&slider, move |_, _, _: &InteractionStarted, _| {
+                    started.borrow_mut().push("interaction_started")
+                }),
+                cx.subscribe(&slider, move |_, _, event: &ChangeRequested, _| {
+                    sequence.borrow_mut().push("change_requested");
                     events.borrow_mut().push(event.0.clone())
-                }));
+                }),
+                cx.subscribe(&slider, move |_, _, _: &InteractionEnded, _| {
+                    ended.borrow_mut().push("interaction_ended")
+                }),
+            ];
             self.slider = Some(slider);
         }
         div()
@@ -106,11 +119,11 @@ fn main() {
         cx.bind_keys(default_key_bindings());
     });
     let mut window = app.open_window(|_, _| Host::new(range, false, false));
-    let (slider, events) = window.update(|host, window, cx| {
+    let (slider, events, sequence) = window.update(|host, window, cx| {
         let slider = host.slider.as_ref().expect("rendered slider").clone();
         window.focus_next(cx);
         assert!(slider.focus_handle(cx).is_focused(window), "first thumb is a tab stop");
-        (slider, host.events.clone())
+        (slider, host.events.clone(), host.sequence.clone())
     });
     window.simulate_keystroke(keystroke);
     let values = window.update(|_, _, cx| slider.read(cx).values().to_vec());
@@ -118,6 +131,7 @@ fn main() {
     assert_values(&values, &expected, keystroke);
     assert_eq!(emitted.len(), 1, "one keyboard change request");
     assert_values(&emitted[0], &expected, "emitted change request");
+    let event_sequence = sequence.borrow().join(" \u{2192} ");
 
     let mut controlled_window = app.open_window(|_, _| Host::new(range, true, false));
     let (controlled_slider, controlled_events) = controlled_window.update(|host, window, cx| {
@@ -161,6 +175,6 @@ fn main() {
 
     println!(
         "{}",
-        json!({"passed":true,"actual":{"event":"change_requested","values":values,"events":emitted}})
+        json!({"passed":true,"actual":{"event":event_sequence,"values":values,"events":emitted}})
     );
 }

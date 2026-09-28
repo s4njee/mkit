@@ -1,6 +1,6 @@
 # Colour tools
 
-Colour tools let someone choose a colour and adjust separate tonal ranges. This E8.5 draft combines a hue and saturation wheel, numeric sRGB/HSL/OKLCH fields, and grading wheels for shadows, midtones, and highlights.
+Colour tools let someone choose a colour and adjust separate tonal ranges. This draft combines a hue and saturation wheel, numeric sRGB/HSL/OKLCH fields, and grading wheels for shadows, midtones, and highlights.
 
 ![Colour tools in the dark theme](../../images/e8-colour-tools-dark-2x.png)
 

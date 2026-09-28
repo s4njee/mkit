@@ -72,8 +72,36 @@ Clicking track, thumb, or label toggles. Disabled suppresses interaction.
 Switch role with stable accessible name, checked state (`aria-checked`), an AccessKit disabled property, and a disabled description. The disabled-off fixture reports `aria-checked: false`; a disabled-on switch must continue to report `aria-checked: true`. Do not encode on/off in the accessible name.
 
 ## Theme tokens used
+The look follows the shadcn/ui switch and is resolved from the installed `Theme` in three variants,
+the same way Tabs does it. `high-contrast` is selected by theme name; every other theme is dark
+when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived
+colours use `mkit_core::contrast::composite`; no new core tokens are added.
 
-Global surface, text, border, accent, accent_text, focus, disabled colors; spacing.xsmall/small, radii.pill, border.hairline, typography.body.
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Track, off ("input") | `border` | `text` at 15% over `background`, opaque | `background` |
+| Track, on | `accent` | `accent` | `accent` |
+| Track border | transparent | transparent | `border` when off, `accent` when on |
+| Thumb, off | `background` | `text` | `text` |
+| Thumb, on | `background` | `background` | `accent_text` |
+| Track and thumb shadow | `shadows.small` | `shadows.small` | `shadows.small` (transparent in this theme) |
+| Label | `text` | `text` | `text` |
+| Keyboard focus | track border `focus` plus a 3px ring of `focus` at 50% | same | track border `focus` plus a 3px ring of opaque `focus` |
+| Disabled | track, thumb and label at 50% over `background` | same | same |
+
+Geometry: the thumb is a `spacing.large` (16px) circle. The track is `spacing.xxlarge` (32px) wide
+and one thumb plus two `borders.hairline` borders tall (18px; 20px in high contrast, whose hairline
+is 2px), matching shadcn/ui's `h-[1.15rem] w-8` pill with a transparent 1px border. The thumb sits
+at the start of the track when off and at the end when on. Track fills are opaque because GPUI
+paints the track shadow as a filled shape inside the element. The label is `typography.body` at
+medium weight (500) with a `spacing.small` gap. The 3px focus ring is the shadcn/ui ring width and a
+fixed component value. The row keeps a trailing `spacing.xsmall` of padding so its pointer target
+stays at least as wide as the earlier 36px-track row.
+
+Disabled matches the web preview's `opacity: .5` applied to the control as one layer: every part's
+colour is composited opaque over `background` and then mixed 50% with it, and the shadow alpha is
+halved. GPUI element opacity is not used because it dims each painted part separately, so a thumb
+or mark would show the part beneath it.
 
 ## WAI-ARIA pattern reference
 

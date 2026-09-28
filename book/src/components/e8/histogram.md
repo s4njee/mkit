@@ -1,8 +1,8 @@
 # Histogram
 
-A histogram shows how image values are distributed. The application calculates the bins and provides a short text summary. The component renders the plot without taking keyboard focus. This is an E8.7 draft seeded from Laika's existing histogram footprint.
+A histogram shows how image values are distributed. The application calculates the bins and provides a short text summary. The component renders the plot without taking keyboard focus. This is a draft seeded from Laika's existing histogram footprint.
 
-![Luminance histogram next to the E8 viewport](../../images/e8-preview-dark-2x.png)
+![Luminance histogram next to the viewport](../../images/e8-preview-dark-2x.png)
 
 ## Use it for
 
@@ -25,4 +25,4 @@ A histogram shows how image values are distributed. The application calculates t
 
 The root requests an image role with the supplied name and summary. Individual bars are decorative. Keep the summary synchronized with the data and include the clipping result in it. Live platform accessibility output has not yet been verified.
 
-The plot uses the current theme's surface, border, accent, and semantic colors. The shared [E8 preview](./) compares in light and dark. A dedicated harness matrix now covers luminance, RGB, clipping, and empty states in light, dark, and high contrast at 1× and 2×. The exact draft contract is in `registry/histogram/spec.md` in the source workspace.
+The plot uses the current theme's surface, border, accent, and semantic colors. The shared [pro-app preview](./) compares in light and dark. A dedicated harness matrix now covers luminance, RGB, clipping, and empty states in light, dark, and high contrast at 1× and 2×. The exact draft contract is in `registry/histogram/spec.md` in the source workspace.

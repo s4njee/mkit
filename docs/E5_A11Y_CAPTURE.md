@@ -2,69 +2,146 @@
 
 ## Current result
 
-`mkit_harness::AccessibilitySnapshot::capture(&Window)` reads the serialized
-AccessKit tree that GPUI retained for the last active accessibility frame. It
-does not construct semantics from GPUI element state. It returns `Inactive`
-when GPUI has not activated the accessibility adapter and `NoFrame` when the
-adapter is active but has not produced a tree yet. The JSON serializer only
-normalizes a tree returned by GPUI; malformed or inconsistent node references
-are errors.
+Headless capture of the real AccessKit tree now works on macOS without
+patching GPUI. `mkit_harness::AccessibilitySession` opens a view in a
+harness-owned platform window. That window keeps the activation callbacks GPUI
+passes to `PlatformWindow::a11y_init`, activates them like a platform adapter
+does, and records every `TreeUpdate` that GPUI sends to
+`PlatformWindow::a11y_tree_update`. `AccessibilityTree::from_tree_update`
+normalizes the recorded update into a deterministic snapshot. The snapshot
+contains the role, the accessible name, and the states and values GPUI exposed.
+It also contains relations and supported actions. The harness does not build
+or infer any node.
 
-This capture path is usable in an application window when its platform
-accessibility adapter has activated. It cannot currently capture a component
-tree in the workspace's headless `TestAppContext`.
+`button`, `checkbox`, and `slider` use this path for their generated
+`accessibility_cases`. Their per-state snapshots are in
+`registry/<component>/tests/baselines/a11y/<state>.txt`. No other component
+has an accessibility adapter yet.
 
-## Evidence from pinned GPUI
+`AccessibilitySnapshot::capture(&Window)`, which reads GPUI's debug JSON, is
+unchanged. It now returns a tree for windows opened by `AccessibilitySession`,
+because accessibility is active in those windows.
 
-The workspace pins `gpui-pre` 0.3.5. Its public `Window` API exposes
-`is_a11y_active()` and `debug_a11y_tree_json()` (`src/window.rs`, around lines
-6674–6680). The debug method serializes the last `TreeUpdate` retained by the
-internal `A11yDebug` object (`src/window/a11y/debug.rs`). It does not build a
-tree on demand.
+## Why the plain test window cannot capture
 
-The `A11y` object creates its `active_flag` as false. During window creation,
-GPUI passes activation and deactivation callbacks to
+The workspace pins `gpui-pre` 0.3.5. GPUI builds an AccessKit tree only while
+the window's accessibility flag is active. The flag is set by the activation
+callback in `A11yCallbacks`, which `Window::new` passes to
 `PlatformWindow::a11y_init` (`src/window.rs`, around lines 1591–1635). The
-activation callback flips the flag and schedules a fresh frame; that active
-frame builds and retains the actual AccessKit `TreeUpdate`. The public
-`A11yCallbacks` type is the platform adapter contract. The default
-`PlatformWindow::a11y_init` implementation does nothing (`src/platform.rs`,
-around line 1066).
+crate-private `TestWindow` behind `TestAppContext`, `TestApp`, and
+`HeadlessAppContext` uses the default no-op `a11y_init`
+(`src/platform.rs`, around line 1066). These contexts construct
+`TestPlatform` internally. No public API reaches that callback. The regression
+test `gpui_test_window_does_not_expose_a_captured_accessibility_tree` still
+confirms the `Inactive` result for that path.
 
-The `TestWindow` used by `TestAppContext` is crate-private and does not
-override that no-op `a11y_init` (`src/platform/test/window.rs`). The public
-test context has no method to request accessibility activation. GPUI also
-exposes `Application::new_inaccessible`, which explicitly disables
-accessibility; it is not an activation mechanism. The harness integration test
-`gpui_test_window_does_not_expose_a_captured_accessibility_tree` confirms that
-the headless test window reports inactive, has no debug tree, and yields the
-explicit `Inactive` result.
+## Supported route used
 
-## API barrier and upstream proposal
+`Platform`, `PlatformWindow`, `A11yCallbacks`, and `PlatformAtlas` are public
+traits and types. `VisualTestAppContext::new(Rc<dyn Platform>)` is public under
+`test-support` on macOS. It wraps any supplied platform in
+`VisualTestPlatform`, which provides deterministic `TestDispatcher` executors,
+the clipboard, and credentials.
 
-There is no supported way for a downstream harness to flip a `TestWindow`
-active or supply an activation callback. The active flag and `A11yDebug` are
-private GPUI state, and `TestWindow` itself is private. Reconstructing
-AccessKit nodes from the rendered GPUI tree would test a second, fabricated
-tree and is not a valid substitute.
+`crates/mkit-harness/src/a11y_capture.rs` provides a minimal `CapturePlatform`
+and `CaptureWindow`:
 
-The smallest useful GPUI change is a test-support-only accessibility activation
-hook on `TestAppContext` (or its test platform):
+- Text shaping uses the real macOS text system from
+  `gpui_platform::current_platform(true)`. Layout-dependent semantics, such as
+  virtualized rows, therefore match the application.
+- The window has no displays, cursor, or pixels. It uses fake atlas tiles and
+  ignores `draw`. It stores `A11yCallbacks` in `a11y_init` and the last
+  `TreeUpdate` in `a11y_tree_update`.
+- The session calls GPUI's activation callback. It then runs the refresh task
+  that GPUI scheduled and draws a frame. `update` and `dispatch_keystroke` draw
+  again after each change. `deactivate` calls GPUI's deactivation callback.
 
-1. Retain the `A11yCallbacks` passed to `TestWindow::a11y_init`.
-2. Expose a method that invokes the activation callback and returns control
-   after the scheduled frame has run.
-3. Expose a matching deactivation method so tests can cover inactive behavior.
+GPUI's own frame lifecycle produces the recorded payload. It is the same
+payload a platform adapter receives. For example, the synthetic disabled flag
+set by `a11y_synthetic_children` appears in this payload, but GPUI's debug JSON
+omits it.
 
-This keeps activation and tree creation inside GPUI's existing callback and
-frame lifecycle. It does not require a public production API or a second tree
-serializer. Once available, the harness can add a real capture assertion for
-role, accessible name, value, and child order while retaining its current
-inactive and malformed-tree checks.
+Rejected alternatives:
+
+- `bench_platform` from the `bench-support` feature returns a `TestPlatform`.
+  It would still need a wrapper, and the feature adds `criterion` and the
+  profiler to the shared GPUI build.
+- Vendoring or patching `gpui-pre` would copy about 2.9 MB of source to change
+  three test-only methods.
+- Reconstructing nodes from rendered elements would test a second, fabricated
+  tree.
+
+## Snapshot format
+
+The snapshot has one line per node, in preorder, indented by depth. Each line
+has the AccessKit role and optional `#N` and `[focused]` markers. The markers
+are followed by `name=` and then by fields present on the node, in a fixed
+order:
+
+1. Text fields
+2. Flags such as `disabled`
+3. `selected`, `expanded`, and enum states such as `toggled`
+4. Numeric values and set or table positions
+5. Relations, such as `labelled_by=[#1]`
+6. `actions=[...]`
+
+A relation refers to its target by the target's preorder index, not by the
+GPUI `NodeId`. A node has a `#N` marker only when a relation refers to it. The
+name is the label; if there is no label, it is the text of the
+`labelled_by` targets. The normalizer returns an error for any of these update
+problems:
+
+- Duplicate nodes
+- Missing nodes
+- Unreachable nodes
+- Cyclic or multiply parented nodes
+- Dangling relation targets
+
+The conformance adapter reports the first node below the window root.
+`AccessibilityNode::aria_role` and `aria_properties` project that node onto ARIA
+names for `run_conformance.py`. The keys include `name`, `description`, and
+`value`. They also include `aria-checked` or `aria-pressed` from `toggled`,
+`aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-disabled` and the
+`disabled` alias, and the relation attributes.
+
+## Conformance wiring
+
+- `crates/mkit/tests/a11y_conformance.rs` (`harness = false`) reads one case,
+  builds its fixture, captures the tree, and compares it with the state
+  baseline. `MKIT_UPDATE_A11Y_BASELINES=1` writes a changed baseline. On
+  platforms other than macOS, it reports `unsupported`, so those cases stay
+  pending.
+- The `button`, `checkbox`, and `slider` `tests/adapter.py` scripts send
+  `accessibility_cases` to that test.
+- `scripts/run_conformance.py` checks role and properties as before. When an
+  adapter reports `snapshot_baseline`, the script also requires the component
+  and state's baseline path and `snapshot_matched: true`.
+
+## Remaining gaps
+
+- Capture is macOS-only, because `VisualTestAppContext` is macOS-gated in GPUI
+  0.3.5. The session must be created on the main thread because of the macOS
+  text system, so test targets need `harness = false`. On Linux and Windows,
+  capture needs `Application::with_platform` plus a public way to reach the
+  `App`, or the upstream hook below.
+- 63 components still need fixtures in `a11y_conformance.rs` and reviewed
+  baselines. Baselines must not be mass-generated.
+- This checks the tree GPUI hands to AccessKit. It does not check AccessKit's
+  macOS or Windows adapter mapping or screen-reader output. Those still need
+  the desktop AX check (`scripts/assert_macos_e7_ax.py`) or a manual
+  VoiceOver or NVDA check.
+- Recommended upstream change, which would make the harness platform
+  unnecessary: a `test-support` hook on `TestWindow` or `TestAppContext` that
+  retains `A11yCallbacks`, exposes activate and deactivate methods, and returns
+  the last `TreeUpdate`.
 
 ## Checks
 
-`cargo test -p mkit-harness --test accessibility --locked` passes all four
-tests. Those results cover normalization, invalid references, and the explicit
-headless `Inactive` path. They do not constitute a captured component-tree
-result; that remains blocked on the GPUI test-support hook described above.
+- `cargo test -p mkit-harness`: the unit tests cover `TreeUpdate`
+  normalization, the ARIA projection, and rejection of malformed trees. The
+  `a11y_capture` target checks capture, state changes, agreement with GPUI's
+  debug JSON, and deactivation. The existing inactive-path and JSON tests also
+  pass.
+- `python3 scripts/run_conformance.py registry/<c>/tests/conformance.json --adapter "python3 registry/<c>/tests/adapter.py" --kind accessibility`
+  passes 3/3 cases for `button`, 4/4 for `checkbox`, and 5/5 for `slider`. An
+  edited baseline fails with `snapshot ... not matched`.

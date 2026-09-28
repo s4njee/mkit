@@ -110,7 +110,36 @@ Use a labelled group containing button-role toggle items with toggled state mapp
 
 ## Theme tokens used
 
-`Theme.colors` surface/text/border/accent/accent_text/focus/disabled; `Theme.spacing.small`; `Theme.radii.medium`; `Theme.borders.regular/hairline`; `Theme.controls.medium`; `Theme.typography.body`.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-toggle-group--outline` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved from
+the installed `Theme` in three variants. `high-contrast` is selected by theme name (the convention
+other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `secondary`/`accent`/`muted`: `text` mixed 4% (light) or
+12% (dark) into `background`.
+
+The group renders shadcn's outline toggle group: items are joined edge to edge, each item has a
+`borders.hairline` border but every item after the first drops its leading edge (left when
+horizontal, top when vertical), and only the outer corners use `radii.medium`. The group draws
+`shadows.small` (shadcn `shadow-xs`) and therefore an opaque `background` fill, because GPUI fills
+the inside of drop shadows.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Item border | light `border`; dark `text` at 10% | `border`; `disabled` for unavailable items |
+| Unselected item | transparent, `text`; hover muted fill with `text_muted` | `background`, `text`; hover border `accent` |
+| Selected item | muted fill (shadcn `accent`), `text` | `accent` fill, `accent_text` |
+| Disabled | item at 50% opacity; a disabled group is dimmed once at the group level | unselected `disabled` text; selected `disabled` fill with `accent_text` |
+| Focus | border `focus` plus a 3px ring of `focus` at 50%, over an opaque fill (muted or `background`) | border `focus` plus a 3px ring of opaque `focus` |
+| Group shadow | `shadows.small` | `shadows.small` (transparent in this theme) |
+
+Item geometry follows shadcn's toggle (`h-9 min-w-9 px-2`): height and minimum width
+`controls.medium`, horizontal padding `spacing.small`, icon gap `spacing.small`, and
+`typography.body` at medium weight (500). GPUI paints later siblings over the focus ring, so the
+next item's top and bottom borders overlap the ring by up to 3px where CSS would raise the focused
+item with `z-index`. The borderless default (non-outline) group in the web preview is not
+implemented because `ToggleGroup` has no variant API; see open questions.
 
 ## WAI-ARIA pattern reference
 
@@ -122,4 +151,4 @@ Orientation determines arrow navigation. Host applications may rebind the named 
 
 ## Open questions
 
-Maintainer review should confirm whether empty-selection is the desired default for all future use cases and whether selecting during arrow navigation matches the intended accessibility contract.
+Maintainer review should confirm whether empty-selection is the desired default for all future use cases and whether selecting during arrow navigation matches the intended accessibility contract. Visual proposal needing an API decision: the web preview also shows a borderless default group variant; `ToggleGroup` renders only the outline look until a variant API is approved.

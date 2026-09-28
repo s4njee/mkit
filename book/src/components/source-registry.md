@@ -3,8 +3,8 @@
 The component registry in `registry/` is a catalog checked into this
 repository. A `source_ready` entry can supply files that your application
 owns and can edit. The source CLI is implemented and checked with fixtures.
-The catalog currently has 33 entries: 32 E7 everyday component drafts and the
-E8 scrubbable number field pilot. Every entry is
+The catalog currently has 66 entries: 53 everyday component drafts and 13
+pro-app drafts, including the scrubbable number field pilot. Every entry is
 `implementation_in_progress`, so none can be installed yet.
 
 ## The add command
@@ -75,7 +75,7 @@ dependency has an incompatible package or version, update stops before changing
 any files. Resolve the declaration in the project or workspace manifest, then
 rerun update. `--check` reports available updates without editing files.
 
-For exploration through a normal crate dependency, `mkit` mirrors all 33 draft
+For exploration through a normal crate dependency, `mkit` mirrors all 66 draft
 sources. Each registry component has its own feature flag; all are enabled by
 default. The sync check verifies that the feature flags and public module
 exports match the catalog. These drafts still require contract and public API

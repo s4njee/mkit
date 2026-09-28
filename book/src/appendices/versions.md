@@ -1,6 +1,6 @@
 # Versions
 
-The E0 baseline is `gpui-pre` **0.3.5** and GPUI Kit (`gpui-kit`) **0.6.4**. The published `gpui-kit` 0.6.4 manifest depends on the `gpui-pre` package at version `0.3.5`, under the dependency name `gpui`. mkit uses the same `gpui-pre` release to allow both libraries in one app.
+The baseline is `gpui-pre` **0.3.5** and GPUI Kit (`gpui-kit`) **0.6.4**. The published `gpui-kit` 0.6.4 manifest depends on the `gpui-pre` package at version `0.3.5`, under the dependency name `gpui`. mkit uses the same `gpui-pre` release to allow both libraries in one app.
 
 In a Cargo manifest, the intended direct dependency is:
 

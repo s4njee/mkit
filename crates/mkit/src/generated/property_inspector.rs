@@ -1,21 +1,33 @@
 //! Typed, theme-driven property panel for pro applications.
 extern crate gpui_pre as gpui;
 
+#[cfg(feature = "mkit-mirror")]
+use crate::disclosure::{
+    DisclosurePanel, DisclosureTrigger, default_key_bindings as disclosure_key_bindings,
+};
 use gpui_pre::{
     Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement, KeyBinding,
     KeyDownEvent, Render, Window, actions, div, prelude::*, px,
 };
 use mkit_core::theme::Theme;
+#[cfg(not(feature = "mkit-mirror"))]
+use mkit_registry_disclosure::{
+    DisclosurePanel, DisclosureTrigger, default_key_bindings as disclosure_key_bindings,
+};
 
 pub const KEY_CONTEXT: &str = "PropertyInspector";
 actions!(property_inspector, [NextProperty, PreviousProperty, ToggleBoolean, ResetProperty]);
 
-pub fn default_key_bindings() -> [KeyBinding; 4] {
+/// Inspector bindings followed by the shared Disclosure bindings used by group headers.
+pub fn default_key_bindings() -> [KeyBinding; 6] {
+    let [disclosure_space, disclosure_enter] = disclosure_key_bindings();
     [
         KeyBinding::new("down", NextProperty, Some(KEY_CONTEXT)),
         KeyBinding::new("up", PreviousProperty, Some(KEY_CONTEXT)),
         KeyBinding::new("space", ToggleBoolean, Some(KEY_CONTEXT)),
         KeyBinding::new("r", ResetProperty, Some(KEY_CONTEXT)),
+        disclosure_space,
+        disclosure_enter,
     ]
 }
 
@@ -205,6 +217,17 @@ impl PropertyInspector {
 
     fn property_mut(&mut self, id: &str) -> Option<&mut Property> {
         self.groups.iter_mut().flat_map(|g| &mut g.properties).find(|p| p.id == id)
+    }
+
+    fn toggle_group(&mut self, id: &str, cx: &mut Context<Self>) {
+        if self.disabled {
+            return;
+        }
+        if let Some(group) = self.groups.iter_mut().find(|group| group.id == id) {
+            group.expanded = !group.expanded;
+            self.reconcile_active();
+            cx.notify();
+        }
     }
 
     fn visible_property_ids(&self) -> Vec<String> {
@@ -973,60 +996,41 @@ impl Render for PropertyInspector {
             .border_color(theme.colors.border)
             .bg(theme.colors.surface);
 
+        let entity = cx.entity().downgrade();
         for group_index in 0..self.groups.len() {
             let label = self.groups[group_index].label.clone();
             let expanded = self.groups[group_index].expanded;
             let group_id = self.groups[group_index].id.clone();
-            let key_group_id = group_id.clone();
+            let toggle_entity = entity.clone();
+            let toggle_group_id = group_id.clone();
             root = root.child(
-                div()
-                    .id(format!("group-{group_id}"))
-                    .debug_selector({
-                        let selector = format!("group-{group_id}");
-                        move || selector.clone()
+                DisclosureTrigger::new(format!("group-{group_id}"), label.clone())
+                    .expanded(expanded)
+                    .disabled(disabled)
+                    .on_toggle(move |_, cx| {
+                        toggle_entity
+                            .update(cx, |this, cx| this.toggle_group(&toggle_group_id, cx))
+                            .ok();
                     })
-                    .role(gpui_pre::accesskit::Role::Button)
-                    .aria_label(label.clone())
-                    .aria_expanded(expanded)
-                    .tab_index(if disabled { -1 } else { 0 })
-                    .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| {
-                        if !matches!(event.keystroke.key.as_str(), "enter" | "space")
-                            || this.disabled
-                        {
-                            return;
-                        }
-                        if let Some(group) = this.groups.iter_mut().find(|g| g.id == key_group_id) {
-                            group.expanded = !group.expanded;
-                            this.reconcile_active();
-                            cx.notify();
-                        }
-                    }))
-                    .w_full()
-                    .h(px(theme.controls.small))
-                    .px(px(theme.spacing.medium))
-                    .flex()
-                    .items_center()
-                    .justify_between()
                     .bg(theme.colors.elevated_surface)
                     .text_color(theme.colors.text)
-                    .text_size(px(theme.typography.body_emphasis))
-                    .when(group_index == 0, |el| el.rounded_t(px(theme.radii.medium)))
-                    .when(!disabled, |el| {
-                        el.on_click(cx.listener(move |this, _, _, cx| {
-                            if let Some(group) = this.groups.iter_mut().find(|g| g.id == group_id) {
-                                group.expanded = !group.expanded;
-                                this.reconcile_active();
-                                cx.notify();
-                            }
-                        }))
-                    })
-                    .child(label)
-                    .child(if expanded { "⌄" } else { "›" }),
+                    .when(group_index == 0, |el| el.rounded_t(px(theme.radii.medium))),
             );
             if expanded {
-                for property_index in 0..self.groups[group_index].properties.len() {
-                    root = root.child(self.render_property(group_index, property_index, theme, cx));
-                }
+                let rows = (0..self.groups[group_index].properties.len())
+                    .map(|property_index| {
+                        self.render_property(group_index, property_index, theme, cx)
+                            .into_any_element()
+                    })
+                    .collect::<Vec<_>>();
+                root = root.child(
+                    DisclosurePanel::new(format!("group-panel-{group_id}"), label)
+                        .p_0()
+                        .w_full()
+                        .flex()
+                        .flex_col()
+                        .children(rows),
+                );
             }
         }
         root
@@ -1186,6 +1190,7 @@ mod tests {
     #[gpui_pre::test]
     fn gpui_group_collapse_and_boolean_editor_work_by_pointer(cx: &mut TestAppContext) {
         cx.update(mkit_core::theme::set_light_theme);
+        cx.update(|app| app.bind_keys(default_key_bindings()));
         let (inspector, visual) = cx.add_window_view(|_, _| PropertyInspector::new(fixture()));
         visual.update(|window, cx| window.draw(cx).clear(cx));
 
@@ -1207,6 +1212,57 @@ mod tests {
         visual.simulate_click(heading.center(), Modifiers::default());
         visual.simulate_keystrokes("space");
         assert!(!inspector.read_with(visual, |view, _| view.groups[0].expanded));
+    }
+
+    #[gpui_pre::test]
+    fn group_headers_use_the_shared_disclosure_trigger_and_toggle_action(cx: &mut TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        cx.update(|app| app.bind_keys(default_key_bindings()));
+        let (inspector, visual) = cx.add_window_view(|_, _| PropertyInspector::new(fixture()));
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        assert!(visual.debug_bounds("boolean-visible").is_some());
+
+        // Focus the header through its element-owned focus handle, as Tab or a click would.
+        let heading = visual.debug_bounds("group-transform").expect("group heading is rendered");
+        visual.simulate_click(heading.center(), Modifiers::default());
+        assert!(!inspector.read_with(visual, |view, _| view.groups[0].expanded));
+
+        // Space and Enter on a focused header toggle the group through `disclosure::Toggle`,
+        // which outranks the root Space binding, so the boolean property is untouched.
+        visual.simulate_keystrokes("space");
+        assert!(inspector.read_with(visual, |view, _| view.groups[0].expanded));
+        visual.simulate_keystrokes("enter");
+        assert!(!inspector.read_with(visual, |view, _| view.groups[0].expanded));
+        assert_eq!(
+            inspector.read_with(visual, |view, _| view.groups[0].properties[0].value.clone()),
+            PropertyValue::Boolean(false)
+        );
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        assert!(visual.debug_bounds("boolean-visible").is_none());
+    }
+
+    #[gpui_pre::test]
+    fn disabled_inspector_group_headers_do_not_toggle(cx: &mut TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        cx.update(|app| app.bind_keys(default_key_bindings()));
+        let (inspector, visual) =
+            cx.add_window_view(|_, _| PropertyInspector::new(fixture()).disabled(true));
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        let heading = visual.debug_bounds("group-transform").expect("group heading is rendered");
+        visual.simulate_click(heading.center(), Modifiers::default());
+        visual.simulate_keystrokes("enter");
+        assert!(inspector.read_with(visual, |view, _| view.groups[0].expanded));
+    }
+
+    #[test]
+    fn default_bindings_append_the_shared_disclosure_bindings() {
+        let bindings = default_key_bindings();
+        assert_eq!(bindings.len(), 6);
+        assert_eq!(
+            bindings[4].keystrokes()[0].unparse(),
+            disclosure_key_bindings()[0].keystrokes()[0].unparse()
+        );
+        assert_eq!(bindings[5].keystrokes()[0].unparse(), "enter");
     }
 
     #[gpui_pre::test]

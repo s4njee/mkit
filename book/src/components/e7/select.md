@@ -1,6 +1,6 @@
 # Select
 
-Choose one value from a bounded option list. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Choose one value from a bounded option list. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Select dark theme baseline](../../images/e7/select.png)
 
@@ -27,7 +27,7 @@ Requests a named combobox trigger with expanded state and selected option label 
 
 ## Theme tokens
 
-Theme surface/elevated surface/text/muted/border/accent/focus/disabled, spacing, radii, borders, controls. Popup shows up to eight virtualized rows and flips above near the window bottom.
+Select follows the shadcn/ui select. The trigger is a 36px (`controls.medium`) input-style box with 12px padding, `radii.medium` corners, a light "input" border, a small shadow, 14px text, a muted placeholder, and a vector chevron. The popup uses the popover surface with a border, `radii.medium` corners, a medium shadow, and 4px padding. Its 32px (`controls.small`) rows have `radii.small` corners; the active row takes a muted fill, and the selected row shows a vector check at its end. Disabled parts render at 50%. Keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps white borders and a solid accent row. The popup shows up to eight virtualized rows and flips above near the window bottom. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -37,4 +37,4 @@ Theme surface/elevated surface/text/muted/border/accent/focus/disabled, spacing,
 
 ## Verification and limits
 
-5/5 keyboard cases, 10/10 registry tests, and 18/18 screenshot comparisons passed. Active-platform accessibility remains open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/select/spec.md` and `docs/E7_AUDIT.md` in the repository.
+5/5 keyboard cases, 10/10 registry tests, and 18/18 screenshot comparisons passed. Active-platform accessibility remains open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/select/spec.md` and `docs/E7_AUDIT.md` in the repository.

@@ -1,6 +1,6 @@
 # Split pane
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A split pane gives two panels a draggable divider so someone can decide how much room each gets.
 
@@ -52,4 +52,4 @@ Ten generated keyboard cases pass through a real GPUI adapter, covering horizont
 
 Pointer capture beyond the application window still needs review. Five declared accessibility cases are pending, and the generated accessibility cases cannot pass on the headless test platform because it does not activate the accessibility tree. Active-platform accessibility and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/split-pane/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/split-pane/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

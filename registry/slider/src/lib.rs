@@ -3,10 +3,61 @@ extern crate gpui_pre as gpui;
 
 use gpui_pre::{
     Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render, Subscription,
-    Window, actions, canvas, div, prelude::*, px, relative,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render, Rgba, Subscription,
+    Window, actions, canvas, div, point, prelude::*, px, relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved track colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    track: Rgba,
+    track_border: Option<Rgba>,
+    ring: Rgba,
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look { track: c.background, track_border: Some(c.border), ring: c.focus };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        track: composite(c.text.opacity(if dark { 0.12 } else { 0.04 }), c.background),
+        track_border: None,
+        ring: c.focus.opacity(0.5),
+    }
+}
+/// Disabled controls render at 50% opacity as one layer, like the web preview's `opacity: .5`.
+/// GPUI applies element opacity to each painted part separately, so overlapping parts would show
+/// through each other; instead each colour is composited opaque over `background` first.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. {
+        color
+    } else {
+        composite(composite(color, background).opacity(0.5), background)
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+fn focus_ring(color: Rgba, width: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(width),
+        inset: false,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "Slider";
 actions!(
@@ -342,8 +393,16 @@ impl Render for Slider {
         };
         let start = if values.len() == 1 { min } else { values.first().copied().unwrap_or(min) };
         let end = values.last().copied().unwrap_or(max);
-        let track_height = theme.borders.strong;
-        let thumb_size = theme.controls.xsmall * 0.6;
+        let look = look(&theme);
+        let keyboard = window.last_input_was_keyboard();
+        let paint =
+            |color: Rgba| if disabled { dim(color, theme.colors.background) } else { color };
+        let mut shadow = theme.shadows.small;
+        if disabled {
+            shadow.color = shadow.color.opacity(0.5);
+        }
+        let track_height = theme.spacing.xsmall + theme.borders.strong;
+        let thumb_size = theme.spacing.large;
 
         let mut track = div()
             .id("slider-track")
@@ -358,14 +417,17 @@ impl Render for Slider {
                     .w_full()
                     .h(px(track_height))
                     .rounded(px(theme.radii.pill))
-                    .bg(theme.colors.border)
+                    .bg(paint(look.track))
+                    .when_some(look.track_border, |el, color| {
+                        el.border(px(theme.borders.hairline)).border_color(paint(color))
+                    })
                     .child(
                         div()
                             .h_full()
                             .ml(relative(pct(start)))
                             .w(relative((pct(end) - pct(start)).max(0.0)))
                             .rounded(px(theme.radii.pill))
-                            .bg(if disabled { theme.colors.disabled } else { theme.colors.accent }),
+                            .bg(paint(theme.colors.accent)),
                     ),
             );
 
@@ -377,7 +439,7 @@ impl Render for Slider {
             } else {
                 format!("{label} maximum")
             };
-            let focused = self.active == index;
+            let focus_visible = !disabled && keyboard && focus[index].is_focused(window);
             let thumb = div()
                 .id(if index == 0 { "slider-thumb-0" } else { "slider-thumb-1" })
                 .absolute()
@@ -386,9 +448,14 @@ impl Render for Slider {
                 .top(px((theme.controls.small - thumb_size) / 2.0))
                 .size(px(thumb_size))
                 .rounded(px(theme.radii.pill))
-                .border(px(if focused { theme.borders.regular } else { theme.borders.hairline }))
-                .border_color(if focused { theme.colors.focus } else { theme.colors.text_muted })
-                .bg(if disabled { theme.colors.disabled } else { theme.colors.surface })
+                .border(px(theme.borders.hairline))
+                .border_color(paint(theme.colors.accent))
+                .bg(theme.colors.background)
+                .shadow(if focus_visible {
+                    vec![focus_ring(look.ring, theme.spacing.xsmall)]
+                } else {
+                    vec![box_shadow(shadow)]
+                })
                 .role(gpui_pre::accesskit::Role::Slider)
                 .aria_label(value_name)
                 .aria_numeric_value(value)

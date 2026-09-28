@@ -1,6 +1,6 @@
 # Toast
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A toast gives short feedback after an action, such as a successful save. The app chooses where it appears in the window.
 
@@ -37,10 +37,10 @@ The open root exposes AccessKit `status` role with polite live-region priority b
 
 ## Theme
 
-The renderer reads `elevated_surface`, `text`, `border`, `spacing.medium`, `spacing.large`, `radii.large`, `borders.regular`, `typography.body`, and `typography.heading_small` from GPUI `Theme`.
+Toast follows the shadcn/ui look: the `surface` colour with a hairline border, large radius, large shadow, and 16px padding. The title is semibold and the content is muted. In dark themes the hairline is text at 10% opacity. The high-contrast theme uses a solid background with a `border` outline. Colours, radii, spacing, shadows, and typography come from theme tokens; the spec's theme table lists each mapping.
 
 ## Current limits
 
 The five-second timeout is fixed. Placement, a close button, and pointer dismissal are host responsibilities; platform live-region announcements remain unverified.
 
-For the exact state and event contract, see the checked-in `registry/toast/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full E5 conformance matrix has passed.
+For the exact state and event contract, see the checked-in `registry/toast/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full conformance matrix has passed.

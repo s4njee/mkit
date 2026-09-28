@@ -1,6 +1,6 @@
 # Scroll area
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A scroll area keeps overflow inside one bounded panel while the rest of the screen stays put.
 
@@ -46,4 +46,4 @@ Six generated keyboard cases (PageDown, PageUp, End, Home, ArrowDown, ArrowUp) p
 
 Keep a stable ID and scroll handle across rerenders if scroll position should persist. Keyboard wiring needs checks on all supported platforms, and the generated accessibility cases are pending because the headless test platform does not activate the accessibility tree. Active-platform accessibility and maintainer API, spec, and visual review are outstanding.
 
-For the exact state and event contract, see the checked-in `registry/scroll-area/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/scroll-area/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.

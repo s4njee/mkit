@@ -19,7 +19,7 @@ The examples target the workspace's pinned `gpui-pre` version. Read [Versions](a
 | [VII. Async, data and persistence](async/executors-and-tasks.md) | Keep slow work off the UI thread and bring results back safely. |
 | [VIII. Windows, platform and shipping](windows-platform-shipping/windows-and-appearance.md) | Work with windows, accessibility, diagnostics, and packaging. |
 | [IX. Testing GPUI apps](testing/test-contexts.md) | Test state and input, then compare screenshots on supported platforms. |
-| [X. Components](components/e7/) | Browse E7 everyday controls and the new E8 pro-app drafts, with behavior and captures. |
+| [X. Components](components/e7/) | Browse everyday controls and the new pro-app drafts, with behavior and captures. |
 | [XI. Coming from another UI framework](coming-from/react.md) | Connect GPUI ideas to React, Tauri, iced, and egui. |
 | [XII. Architecture internals](architecture/frame-pipeline.md) | Follow a frame, text rendering, and an entity's lifetime. |
 | [XIII. Cookbook](cookbook/state/entity-counter.md) | Copy short, tested recipes for common tasks. |

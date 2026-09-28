@@ -51,6 +51,24 @@ class RunConformanceTests(unittest.TestCase):
             case, {"role": "switch", "properties": {"checked": True}}
         )[0])
 
+    def test_accessibility_snapshot_evidence_must_name_state_baseline_and_match(self):
+        case = {
+            "kind": "accessibility_cases",
+            "component": "switch",
+            "state": "on",
+            "expected_semantics": {"role": "switch", "properties": []},
+        }
+        baseline = "registry/switch/tests/baselines/a11y/on.txt"
+        actual = {"role": "switch", "properties": {}, "snapshot_baseline": baseline}
+        self.assertFalse(run_conformance.verify_actual(case, {**actual, "snapshot_matched": False})[0])
+        self.assertFalse(run_conformance.verify_actual(
+            case, {**actual, "snapshot_baseline": "registry/switch/tests/baselines/a11y/off.txt",
+                   "snapshot_matched": True}
+        )[0])
+        ok, message = run_conformance.verify_actual(case, {**actual, "snapshot_matched": True})
+        self.assertTrue(ok)
+        self.assertIn("tree snapshot", message)
+
     def test_screenshot_requires_expected_baseline_and_match_evidence(self):
         case = {"kind": "screenshot_cases", "baseline": "toggle/on/light-1x.png"}
         self.assertFalse(run_conformance.verify_actual(case, {"baseline": case["baseline"], "matched": False})[0])

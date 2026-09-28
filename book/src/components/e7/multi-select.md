@@ -1,6 +1,6 @@
 # Multi-select
 
-Choose zero or more IDs from a bounded option list. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Choose zero or more IDs from a bounded option list. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Multi-select dark theme baseline](../../images/e7/multi-select.png)
 
@@ -27,7 +27,7 @@ Requests a named combobox trigger with expanded state and selected labels joined
 
 ## Theme tokens
 
-Theme surface/elevated surface/text/muted/border/accent/focus/disabled, spacing, radii, borders, controls. Popup shows up to eight virtualized rows and flips above near the window bottom.
+Multi-select shares Select's input-style trigger, popover surface, and 32px rows. Selected values appear in the trigger as small secondary chips (12px medium text, `radii.medium` corners), with a muted placeholder when nothing is selected and a vector up-down chevron. Each row leads with a decorative checkbox that matches Checkbox, and the active row takes a muted fill. Disabled parts render at 50%. Keyboard focus adds a focus-coloured border and a 3px ring. The high-contrast theme keeps white borders, outlined chips, and a solid accent row. The popup shows up to eight virtualized rows and flips above near the window bottom. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -37,4 +37,4 @@ Theme surface/elevated surface/text/muted/border/accent/focus/disabled, spacing,
 
 ## Verification and limits
 
-9/9 keyboard cases, 8/8 registry tests, and 24/24 screenshot comparisons passed. Active-platform accessibility remains open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/multi-select/spec.md` and `docs/E7_AUDIT.md` in the repository.
+9/9 keyboard cases, 8/8 registry tests, and 24/24 screenshot comparisons passed. Active-platform accessibility remains open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/multi-select/spec.md` and `docs/E7_AUDIT.md` in the repository.

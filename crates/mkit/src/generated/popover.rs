@@ -3,16 +3,86 @@ extern crate gpui_pre as gpui;
 use std::{cell::RefCell, rc::Rc};
 
 use gpui_pre::{
-    Anchor, AnchoredPositionMode, Bounds, ClickEvent, Context, EventEmitter, FocusHandle,
-    Focusable, IntoElement, KeyBinding, MouseDownEvent, Pixels, Render, Size, WeakFocusHandle,
-    Window, actions, anchored, deferred, div, point, prelude::*, px,
+    Anchor, AnchoredPositionMode, Bounds, BoxShadow, ClickEvent, Context, EventEmitter,
+    FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding, MouseDownEvent, Pixels, Render,
+    Rgba, Size, WeakFocusHandle, Window, actions, anchored, deferred, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 
 pub const KEY_CONTEXT: &str = "Popover";
 actions!(popover, [Dismiss]);
 pub fn default_key_bindings() -> [KeyBinding; 1] {
     [KeyBinding::new("escape", Dismiss, Some(KEY_CONTEXT))]
+}
+
+/// Resolved colours for the trigger and surface; see the spec's theme table.
+#[derive(Clone, Copy)]
+struct Look {
+    trigger_border: Rgba,
+    trigger_hover_bg: Option<Rgba>,
+    trigger_hover_border: Option<Rgba>,
+    ring: Rgba,
+    surface_bg: Rgba,
+    border: Rgba,
+    /// Whether the trigger and surface draw their shadow tokens.
+    shadows: bool,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            trigger_border: c.border,
+            trigger_hover_bg: None,
+            trigger_hover_border: Some(c.accent),
+            ring: c.focus,
+            surface_bg: c.background,
+            border: c.border,
+            shadows: false,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let hairline = if dark { c.text.opacity(0.1) } else { c.border };
+    Look {
+        trigger_border: hairline,
+        trigger_hover_bg: Some(mix(c.text, c.background, if dark { 0.12 } else { 0.04 })),
+        trigger_hover_border: None,
+        ring: c.focus.opacity(0.5),
+        surface_bg: c.surface,
+        border: hairline,
+        shadows: true,
+    }
+}
+
+fn box_shadow(shadow: ShadowToken) -> BoxShadow {
+    BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
+/// shadcn/ui focus ring width, drawn outside the trigger (the same value Button uses).
+const FOCUS_RING_WIDTH: f32 = 3.0;
+
+fn focus_ring(color: Rgba) -> BoxShadow {
+    BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -174,20 +244,42 @@ impl Render for Popover {
         }
         self.last_open = self.open;
 
+        let look = look(&theme);
         let trigger = div()
             .id("mkit-popover-trigger")
             .debug_selector(|| "mkit-popover-trigger".into())
             .role(gpui_pre::accesskit::Role::Button)
             .track_focus(&trigger_focus)
             .tab_stop(true)
-            .px(px(theme.spacing.medium))
-            .py(px(theme.spacing.small))
+            // shadcn outline button, matching the Button component's outline variant.
+            .flex()
+            .flex_none()
+            .items_center()
+            .justify_center()
+            .h(px(theme.controls.medium))
+            .px(px(theme.spacing.large))
             .rounded(px(theme.radii.medium))
             .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface)
+            .border_color(look.trigger_border)
+            .bg(theme.colors.background)
+            .when(look.shadows, |e| e.shadow(vec![box_shadow(theme.shadows.small)]))
             .text_color(theme.colors.text)
             .text_size(px(theme.typography.body))
+            .font_weight(FontWeight::MEDIUM)
+            .whitespace_nowrap()
+            .hover(move |s| {
+                let s = match look.trigger_hover_bg {
+                    Some(color) => s.bg(color),
+                    None => s,
+                };
+                match look.trigger_hover_border {
+                    Some(color) => s.border_color(color),
+                    None => s,
+                }
+            })
+            .focus_visible(move |s| {
+                s.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .on_mouse_down(gpui_pre::MouseButton::Left, cx.listener(Self::trigger_down))
             .on_click(cx.listener(Self::trigger_click))
             .child(self.trigger.clone());
@@ -203,20 +295,21 @@ impl Render for Popover {
             .role(gpui_pre::accesskit::Role::Dialog)
             .flex()
             .flex_col()
-            .gap(px(theme.spacing.medium))
+            .gap(px(theme.spacing.xsmall))
             .p(px(theme.spacing.large))
-            .rounded(px(theme.radii.large))
+            .rounded(px(theme.radii.medium))
             .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.elevated_surface)
+            .border_color(look.border)
+            .bg(look.surface_bg)
+            .when(look.shadows, |e| e.shadow(vec![box_shadow(theme.shadows.medium)]))
             .text_color(theme.colors.text)
             .text_size(px(theme.typography.body))
             // The deferred child is measured during its first prepaint, after anchored
             // placement has already been selected. Keep that measurement frame invisible
             // so the first visible frame can use the measured height and flip correctly.
             .when(surface_height.is_none(), |surface| surface.opacity(0.))
-            .child(div().text_size(px(theme.typography.heading_small)).child(self.title.clone()))
-            .child(div().child(self.content.clone()));
+            .child(div().font_weight(FontWeight::SEMIBOLD).child(self.title.clone()))
+            .child(div().text_color(theme.colors.text_muted).child(self.content.clone()));
 
         let measured_anchor = self
             .trigger_bounds
@@ -272,6 +365,8 @@ impl Render for Popover {
                 }
             })
             .id(("mkit-popover", cx.entity().entity_id()))
+            // A row lets the outline trigger size to its label instead of stretching.
+            .flex()
             .key_context(KEY_CONTEXT)
             .on_action(cx.listener(Self::dismiss))
             .child(trigger)

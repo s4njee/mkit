@@ -54,8 +54,9 @@
   GPUI Kit coexistence pair (`gpui-kit` 0.6.4 and `gpui-pre` 0.3.5). Unknown
   compatibility and other warnings cause a nonzero exit.
 - **E6.6 `mkit` crate: implemented for the current catalog.** The crate mirrors
-  all 33 registry sources through `scripts/sync_mkit_components.py`: 32 E7
-  everyday component drafts and the E8 scrubbable number field pilot. Each
+  all 66 registry sources through `scripts/sync_mkit_components.py`: 53 E7
+  everyday component drafts and 13 E8 drafts, including the scrubbable
+  number field pilot. Each
   has an independent feature flag, and all are enabled by default. The sync
   check now also verifies that these features and the public generated-module
   exports cover the catalog exactly once. The existing combobox and
@@ -63,7 +64,7 @@
   draft does not make its API approved or its source installable.
 
 E6.1–E6.6 are implemented for the current catalog, with CLI workflows checked
-against fixtures. All 33 catalog entries are currently
+against fixtures. All 66 catalog entries are currently
 `implementation_in_progress`; none can be installed by `cargo mkit add`.
 An end-to-end release workflow with a real component remains blocked until a
 component reaches `source_ready` and receives maintainer review. See the

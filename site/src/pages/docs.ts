@@ -1,13 +1,21 @@
-import { statusClass, previousNext, everydayCards, proCards } from '../catalog'
+import {
+  everydayCards,
+  kindLabel,
+  previousNext,
+  proCards,
+  registryStatusLabel,
+  statusClass,
+  statusLabel,
+} from '../catalog'
 import { demos } from '../demos'
 import { icon } from '../icons'
+import { bookBlobUrl, bookSourceUrl, registryBlobUrl, repoUrl } from '../links'
 import { isLightMode } from '../theme'
 import { mountBehaviors } from '../ui/behaviors'
 import { installUiTokens } from '../ui/tokens'
-import type { CatalogCard, ComponentDoc, DocSection } from '../types'
+import type { CatalogCard, ComponentDoc, DocSection, RegistryContract } from '../types'
 
 const base = import.meta.env.BASE_URL || '/'
-const bookBlob = 'https://github.com/mk7s/mkit/blob/main/book/src'
 
 const slugify = (value: string) =>
   value
@@ -24,28 +32,34 @@ function prepareHtml(html: string) {
 
 const draftNote = (card: CatalogCard) =>
   card.status === 'ready'
-    ? 'API, keyboard map, and accessibility contract are documented but still need maintainer sign-off.'
-    : 'This is a work-in-progress draft. The API and conformance evidence will change.'
+    ? '<b>Pre-release.</b> The API, keyboard map, and accessibility contract are documented but still need maintainer sign-off. Every registry entry is still <code>implementation_in_progress</code>, so none can be installed yet.'
+    : '<b>Pre-release, in progress.</b> This is a draft. The API and conformance evidence will change, and the registry entry cannot be installed yet.'
 
-function sidebarLink(card: CatalogCard, activeSlug: string) {
-  const active = card.slug === activeSlug
-  return `<a class="docs-nav-link${active ? ' active' : ''}" href="${base}components/${card.slug}"${active ? ' aria-current="page"' : ''}>
-    <span class="docs-nav-name">${card.name}</span>
-    <span class="docs-nav-group">${card.group}</span>
+function pageLink(href: string, label: string, active: boolean, meta = '') {
+  return `<a class="docs-nav-link${active ? ' active' : ''}" href="${href}"${active ? ' aria-current="page"' : ''}>
+    <span class="docs-nav-name">${label}</span>${meta ? `<span class="docs-nav-group">${meta}</span>` : ''}
   </a>`
 }
 
+function sidebarLink(card: CatalogCard, activeSlug: string) {
+  const active = card.slug === activeSlug
+  const count = card.components.length > 1 ? String(card.components.length) : ''
+  const link = pageLink(`${base}components/${card.slug}`, card.name, active, count)
+  if (!active || card.components.length < 2) return link
+  const children = card.components
+    .map((doc) => `<a class="docs-nav-sublink" href="#${componentAnchor(doc)}">${doc.name}</a>`)
+    .join('')
+  return `${link}<div class="docs-nav-children">${children}</div>`
+}
+
 export function docsSidebar(activeSlug: string) {
-  const themingActive = activeSlug === 'theming'
-  return `<aside class="docs-sidebar" aria-label="Documentation">
+  return `<aside class="docs-sidebar" id="docs-sidebar" aria-label="Documentation">
     <div class="docs-sidebar-inner">
-      <nav class="docs-nav">
+      <nav class="docs-nav" aria-label="Documentation pages">
         <div class="docs-nav-group-block">
-          <span class="docs-nav-heading">Theming</span>
-          <a class="docs-nav-link${themingActive ? ' active' : ''}" href="${base}theming"${themingActive ? ' aria-current="page"' : ''}>
-            <span class="docs-nav-name">Design language</span>
-            <span class="docs-nav-group">E9.1</span>
-          </a>
+          <span class="docs-nav-heading">Guides</span>
+          ${pageLink(`${base}theming`, 'Design language', activeSlug === 'theming')}
+          ${pageLink(`${base}health`, 'Book health', activeSlug === 'health')}
         </div>
         <div class="docs-nav-group-block">
           <span class="docs-nav-heading">Everyday</span>
@@ -57,7 +71,8 @@ export function docsSidebar(activeSlug: string) {
         </div>
       </nav>
     </div>
-  </aside>`
+  </aside>
+  <div class="docs-scrim" data-close-nav hidden></div>`
 }
 
 function componentAnchor(doc: ComponentDoc) {
@@ -74,7 +89,7 @@ function sectionHtml(section: DocSection) {
 function figureHtml(doc: ComponentDoc) {
   if (!doc.image) return ''
   return `<figure class="doc-figure">
-    <img src="${prepareHtml(doc.image.src)}" alt="${doc.image.alt}" loading="lazy" />
+    <img src="${prepareHtml(doc.image.src)}" alt="${doc.image.alt}"${doc.image.width ? ` width="${doc.image.width}" height="${doc.image.height}"` : ''} loading="lazy" />
     ${doc.image.caption ? `<figcaption>${doc.image.caption}</figcaption>` : ''}
   </figure>`
 }
@@ -92,7 +107,7 @@ function previewHtml(doc: ComponentDoc) {
   const gpuiPane = doc.image
     ? `<div class="preview-pane preview-pane--gpui" id="${id}-gpui" role="tabpanel" aria-labelledby="${id}-tab-gpui" hidden>${figureHtml(doc)}</div>`
     : ''
-  return `<div class="preview-block" data-demo="${doc.demoKey}">
+  return `<div class="preview-block" data-demo="${doc.demoKey}" role="region" aria-label="${doc.name} preview">
     <div class="preview-toolbar">
       <div class="preview-tabs" role="tablist" aria-label="${doc.name} preview">
         <button class="preview-tab" role="tab" aria-selected="true" id="${id}-tab-live" aria-controls="${id}-live">Preview</button>
@@ -105,26 +120,79 @@ function previewHtml(doc: ComponentDoc) {
     </div>
     ${gpuiPane}
   </div>
-  <p class="preview-note">Web preview styled with mkit-core's <code>shadcn</code> theme tokens. ${doc.image ? 'The GPUI render tab shows the harness capture of the real component.' : ''}</p>`
+  <p class="preview-note">A web illustration styled with mkit-core's <code>shadcn</code> theme tokens, not the GPUI component itself.${doc.image ? ' The GPUI render tab shows the harness capture of the real component.' : ''}</p>`
 }
 
-function installHtml(doc: ComponentDoc) {
-  if (!doc.registryName) return ''
-  const command = `cargo mkit add ${doc.registryName}`
-  return `<div class="install-line">
-    <span class="install-label">Install</span>
-    <code>${command}</code>
-    <button class="install-copy" type="button" data-copy-command="${command}" aria-label="Copy install command">${icon('copy', 14)}</button>
+// Registry entries are not installable until they are `source_ready`, so show
+// the entry and its status instead of an install command.
+function registryHtml(contracts: RegistryContract[]) {
+  if (!contracts.length) return ''
+  const rows = contracts
+    .map(
+      (contract) => `<li>
+        <code>${contract.name}</code>
+        <span class="registry-status">${registryStatusLabel(contract.status)}</span>
+        ${contract.spec ? `<a href="${registryBlobUrl}/${contract.spec}" target="_blank" rel="noreferrer">Spec<span class="sr-only"> for ${contract.name} (opens in a new tab)</span> ${icon('external', 12)}</a>` : ''}
+      </li>`,
+    )
+    .join('')
+  return `<div class="registry-line">
+    <span class="install-label">Registry</span>
+    <ul>${rows}</ul>
+    <p>Not installable yet: <code>cargo mkit add</code> rejects entries until they are <code>source_ready</code>.</p>
   </div>`
 }
 
-function componentHtml(doc: ComponentDoc) {
+const hasSection = (doc: ComponentDoc, pattern: RegExp) => doc.sections.some((section) => pattern.test(section.title))
+
+function contractHtml(contract: RegistryContract, open: boolean, showName: boolean) {
+  if (!contract.keys.length && !contract.role) return ''
+  const keys = contract.keys.length
+    ? `<table>
+        <caption class="sr-only">Keyboard map for ${contract.name}</caption>
+        <thead><tr><th scope="col">Key</th><th scope="col">When</th><th scope="col">Result</th></tr></thead>
+        <tbody>${contract.keys
+          .map((row) => `<tr><td><kbd>${row.keys.split('+').join('</kbd>+<kbd>')}</kbd></td><td>${row.when}</td><td>${row.action}</td></tr>`)
+          .join('')}</tbody>
+      </table>`
+    : '<p>No keyboard interaction: this component is not a tab stop.</p>'
+  const properties = contract.properties.length
+    ? `<ul>${contract.properties.map((property) => `<li><code>${property.name}</code>: ${property.value}</li>`).join('')}</ul>`
+    : ''
+  const states = contract.states.length
+    ? `<p class="contract-states">Declared states: ${contract.states.map((state) => `<code>${state}</code>`).join(' ')}</p>`
+    : ''
+  return `<details class="contract"${open ? ' open' : ''}>
+    <summary>${icon('keyboard', 15)}<span>${showName ? `<code>${contract.name}</code> ` : ''}Keyboard and accessibility contract</span><small>from the draft spec</small></summary>
+    <div class="contract-body">
+      <h4>Keyboard</h4>
+      ${keys}
+      <h4>Accessibility</h4>
+      ${contract.role ? `<p>Role: <code>${contract.role}</code></p>` : ''}
+      ${properties}
+      ${states}
+      <p class="contract-note">Generated from <code>${contract.spec || `registry/${contract.name}/spec.md`}</code> through its conformance manifest. Pending maintainer review; platform accessibility snapshots are not all recorded yet.</p>
+    </div>
+  </details>`
+}
+
+function contractsHtml(doc: ComponentDoc, contracts: RegistryContract[]) {
+  // Open the summary when the chapter has no keyboard section of its own.
+  const open = !hasSection(doc, /keyboard/i)
+  return contracts.map((contract) => contractHtml(contract, open, contracts.length > 1)).join('')
+}
+
+// Paged chapters (timeline, node editor) share one registry entry; show its
+// registry line and contract once, on the first chapter.
+function componentHtml(doc: ComponentDoc, seen: Set<string>) {
+  const contracts = doc.contracts.filter((contract) => !seen.has(contract.name))
+  contracts.forEach((contract) => seen.add(contract.name))
   const notes = doc.notes.length
     ? `<div class="doc-notes">${doc.notes.map((note) => `<p>${prepareHtml(note)}</p>`).join('')}</div>`
     : ''
   const intro = doc.intro ? `<div class="doc-intro">${prepareHtml(doc.intro)}</div>` : ''
   const source = doc.sourcePath
-    ? `<a class="doc-source" href="${bookBlob}/${doc.sourcePath}" target="_blank" rel="noreferrer">Book chapter ${icon('external', 13)}</a>`
+    ? `<a class="doc-source" href="${bookBlobUrl}/${doc.sourcePath}" target="_blank" rel="noreferrer">Book chapter<span class="sr-only"> (opens in a new tab)</span> ${icon('external', 13)}</a>`
     : ''
   return `<section class="doc-component" id="${componentAnchor(doc)}">
     <div class="doc-component-head">
@@ -134,9 +202,10 @@ function componentHtml(doc: ComponentDoc) {
     ${notes}
     ${doc.lede ? `<p class="doc-lede">${prepareHtml(doc.lede)}</p>` : ''}
     ${previewHtml(doc)}
-    ${installHtml(doc)}
+    ${registryHtml(contracts)}
     ${intro}
     ${doc.sections.map(sectionHtml).join('')}
+    ${contractsHtml(doc, contracts)}
   </section>`
 }
 
@@ -155,20 +224,57 @@ function tocHtml(card: CatalogCard) {
   </aside>`
 }
 
-export function docsTopbar(rightMeta: string) {
-  return `<header class="docs-topbar">
-    <a class="brand" href="${base}" aria-label="mkit home"><span class="brand-mark"><i></i><i></i><i></i></span><span>mkit</span><em>for GPUI</em></a>
-    <nav class="docs-topnav" aria-label="Main navigation">
+export const skipLink = '<a class="skip-link" href="#main">Skip to content</a>'
+
+export function docsTopbar(rightMeta: string, withSidebar = true) {
+  const menu = withSidebar
+    ? `<button class="icon-button docs-menu" type="button" aria-controls="docs-sidebar" aria-expanded="false" aria-label="Open documentation menu">${icon('menu')}</button>`
+    : ''
+  return `${skipLink}<header class="docs-topbar">
+    ${menu}
+    <a class="brand" href="${base}" aria-label="mkit home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>mkit</span><em>for GPUI</em></a>
+    <nav class="docs-topnav" aria-label="Main">
       <a href="${base}#components">Components</a>
       <a href="${base}theming">Theming</a>
-      <a href="https://github.com/mk7s/mkit/tree/main/book/src" target="_blank" rel="noreferrer">Book</a>
-      <a href="https://github.com/mk7s/mkit" target="_blank" rel="noreferrer">GitHub</a>
+      <a href="${base}health">Book health</a>
+      <a href="${bookSourceUrl}" target="_blank" rel="noreferrer">Book source<span class="sr-only"> (opens in a new tab)</span></a>
+      <a href="${repoUrl}" target="_blank" rel="noreferrer">GitHub<span class="sr-only"> (opens in a new tab)</span></a>
     </nav>
     <div class="docs-topactions">
       <span class="docs-topmeta">${rightMeta}</span>
-      <button class="icon-button theme-toggle" aria-label="Toggle light mode">${icon('sun')}</button>
+      <button class="docs-search" type="button" data-open-search aria-label="Search components and pages" aria-keyshortcuts="Meta+K Control+K">${icon('search', 14)}<span>Search</span><kbd>⌘K</kbd></button>
+      <button class="icon-button theme-toggle" type="button" aria-label="Switch to light mode">${icon('sun')}</button>
     </div>
   </header>`
+}
+
+/** Mobile drawer for the docs sidebar. Returns a cleanup. */
+export function mountDocsNav() {
+  const shell = document.querySelector<HTMLElement>('.docs-shell')
+  const button = document.querySelector<HTMLButtonElement>('.docs-menu')
+  const scrim = document.querySelector<HTMLElement>('.docs-scrim')
+  const sidebar = document.getElementById('docs-sidebar')
+  if (!shell || !button || !sidebar) return () => {}
+  const setOpen = (open: boolean) => {
+    shell.classList.toggle('nav-open', open)
+    button.setAttribute('aria-expanded', String(open))
+    button.setAttribute('aria-label', open ? 'Close documentation menu' : 'Open documentation menu')
+    if (scrim) scrim.hidden = !open
+    if (open) (sidebar.querySelector<HTMLElement>('[aria-current="page"]') ?? sidebar.querySelector<HTMLElement>('a'))?.focus()
+  }
+  button.addEventListener('click', () => setOpen(!shell.classList.contains('nav-open')))
+  scrim?.addEventListener('click', () => setOpen(false))
+  sidebar.addEventListener('click', (event) => {
+    if ((event.target as HTMLElement).closest('a')) setOpen(false)
+  })
+  const onKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && shell.classList.contains('nav-open')) {
+      setOpen(false)
+      button.focus()
+    }
+  }
+  document.addEventListener('keydown', onKeydown)
+  return () => document.removeEventListener('keydown', onKeydown)
 }
 
 function pagerHtml(slug: string) {
@@ -184,27 +290,32 @@ function pagerHtml(slug: string) {
 }
 
 export function renderDocs(card: CatalogCard) {
-  const kindLabel = card.kind === 'pro' ? 'Pro-app' : 'Everyday'
+  const kind = kindLabel(card.kind)
+  const count = card.components.length
   return `<div class="docs-shell">
-    ${docsTopbar(`${card.group} · ${kindLabel}`)}
+    ${docsTopbar(`${kind} · pre-release`)}
     <div class="docs-layout">
       ${docsSidebar(card.slug)}
-      <main class="docs-main" id="top">
+      <main class="docs-main" id="main" tabindex="-1">
         <nav class="docs-breadcrumb" aria-label="Breadcrumb">
-          <a href="${base}">Components</a><span>/</span><span>${kindLabel}</span><span>/</span><b>${card.name}</b>
+          <a href="${base}#components">Components</a><span aria-hidden="true">/</span><span>${kind}</span><span aria-hidden="true">/</span><b aria-current="page">${card.name}</b>
         </nav>
         <header class="docs-header">
-          <span class="docs-kicker">${card.group} · ${kindLabel}</span>
+          <span class="docs-kicker">${kind} ${count > 1 ? `· ${count} components` : 'component'}</span>
           <h1>${card.name}</h1>
           <div class="docs-meta">
-            <span class="status ${statusClass(card.status)}"><i></i>${card.status}</span>
+            <span class="status ${statusClass(card.status)}"><i aria-hidden="true"></i>${statusLabel(card.status)}</span>
+            <span class="status prerelease"><i aria-hidden="true"></i>Pre-release</span>
             ${card.tags.map((tag) => `<span class="docs-tag">${tag}</span>`).join('')}
           </div>
           <p class="docs-lede">${card.description}</p>
           <div class="docs-callout">${icon('book', 15)}<span>${draftNote(card)}</span></div>
         </header>
         <article class="docs-article">
-          ${card.components.map(componentHtml).join('')}
+          ${(() => {
+            const seen = new Set<string>()
+            return card.components.map((doc) => componentHtml(doc, seen)).join('')
+          })()}
         </article>
         ${pagerHtml(card.slug)}
       </main>
@@ -213,16 +324,16 @@ export function renderDocs(card: CatalogCard) {
   </div>`
 }
 
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 export function renderNotFound(pathname: string) {
   return `<div class="docs-shell">
-    <header class="docs-topbar">
-      <a class="brand" href="${base}"><span class="brand-mark"><i></i><i></i><i></i></span><span>mkit</span><em>for GPUI</em></a>
-      <nav class="docs-topnav"><a href="${base}#components">Components</a></nav>
-    </header>
-    <main class="docs-notfound">
+    ${docsTopbar('', false)}
+    <main class="docs-notfound" id="main" tabindex="-1">
       <span class="section-kicker">404</span>
-      <h1>That component isn't here.</h1>
-      <p>The page <code>${pathname}</code> doesn't match a component in the catalog.</p>
+      <h1>That page isn't here.</h1>
+      <p>The page <code>${escapeHtml(pathname)}</code> doesn't match a component or guide. Try search, or go back to the catalog.</p>
       <a class="button primary" href="${base}#components">Back to components ${icon('arrow', 16)}</a>
     </main>
   </div>`
@@ -268,12 +379,6 @@ export function mountDocs() {
       toggle.setAttribute('aria-label', `Switch preview to ${next === 'dark' ? 'light' : 'dark'} theme`)
     })
   })
-  document.querySelectorAll<HTMLButtonElement>('[data-copy-command]').forEach((button) =>
-    button.addEventListener('click', async () => {
-      await navigator.clipboard?.writeText(button.dataset.copyCommand ?? '')
-      button.innerHTML = icon('check', 14)
-      setTimeout(() => (button.innerHTML = icon('copy', 14)), 1300)
-    }),
-  )
+  cleanups.push(mountDocsNav())
   return () => cleanups.forEach((cleanup) => cleanup())
 }

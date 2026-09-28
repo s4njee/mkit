@@ -1,6 +1,6 @@
 # Switch
 
-Turn a setting on or off immediately. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Turn a setting on or off immediately. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Switch dark theme baseline](../../images/e7/switch.png)
 
@@ -35,4 +35,4 @@ Global surface, text, border, accent, focus, disabled; spacing.xsmall/small, rad
 
 ## Verification and limits
 
-Space adapter passed. 18/18 screenshot comparisons passed; active-platform accessibility remains open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/switch/spec.md` and `docs/E7_AUDIT.md` in the repository.
+Space adapter passed. 18/18 screenshot comparisons passed; active-platform accessibility remains open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/switch/spec.md` and `docs/E7_AUDIT.md` in the repository.

@@ -185,6 +185,7 @@ def render(groups: list[Group]) -> str:
     used_routes = set()
     for group in groups:
         heading = re.sub(r" \(\d+\)$", "", group.heading)
+        heading = re.sub(r"^E\d+(?:\.\d+)*: ", "", heading)
         output.append(f"## {heading} ({len(group.items)})")
         output.extend(("", "| Public item | Kind | Teaching route |", "| --- | --- | --- |"))
         for item in group.items:

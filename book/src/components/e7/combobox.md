@@ -1,6 +1,6 @@
 # Combobox
 
-Type to filter a single-value option list, with optional custom text. This E7 component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
+Type to filter a single-value option list, with optional custom text. This everyday component is a draft with an `implementation_in_progress` registry entry. Its public contract needs maintainer review.
 
 ![Combobox dark theme baseline](../../images/e7/combobox.png)
 
@@ -29,7 +29,7 @@ Requests EditableComboBox role, name, query value, expanded state and list autoc
 
 ## Theme tokens
 
-Rendering reads GPUI Global control, text, list, surface/popover, selection, spacing, radius, and focus tokens. Popup uses an eight-row virtualized viewport.
+The input follows the shadcn/ui input: 36px (`controls.medium`) tall with 12px padding, `radii.medium` corners, a light "input" border, and a small shadow. Focus adds a focus-coloured border and a 3px ring. The inline popup uses the popover surface with a border, `radii.medium` corners, a medium shadow, and 4px padding. Its 32px (`controls.small`) rows have `radii.small` corners; the active row takes a muted fill, and the committed option shows a vector check. The empty-state message is centred and muted. Disabled parts render at 50%. The high-contrast theme keeps white borders and a solid accent row. The popup shows up to eight virtualized rows. The spec's theme table lists each token mapping.
 
 ## Usage scenarios
 
@@ -39,4 +39,4 @@ Rendering reads GPUI Global control, text, list, surface/popover, selection, spa
 
 ## Verification and limits
 
-9/9 generated keyboard cases, three GPUI interaction tests, five unit tests, and 48/48 screenshot comparisons passed. Platform accessibility and announcements remain open. These are focused draft checks, not release approval. The full E5 conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/combobox/spec.md` and `docs/E7_AUDIT.md` in the repository.
+9/9 generated keyboard cases, three GPUI interaction tests, five unit tests, and 48/48 screenshot comparisons passed. Platform accessibility and announcements remain open. These are focused draft checks, not release approval. The full conformance matrix and maintainer review are outstanding. The current contract and evidence are in `registry/combobox/spec.md` and `docs/E7_AUDIT.md` in the repository.

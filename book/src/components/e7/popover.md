@@ -1,6 +1,6 @@
 # Popover
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A popover opens a small, nonmodal panel from its own trigger. It is useful for extra information or a short interaction while the rest of the page stays available.
 
@@ -38,10 +38,10 @@ The open surface has AccessKit `dialog` role. The trigger has button role and is
 
 ## Theme
 
-The outlined trigger reads `surface`, `text`, `border`, `spacing.small/medium`, `radii.medium`, `borders.regular`, and `typography.body` from GPUI `Theme`. The floating surface reads `elevated_surface`, `text`, `border`, `spacing.medium/large`, `radii.large`, `borders.regular`, `typography.body`, and `typography.heading_small`.
+Popover follows the shadcn/ui look. The trigger matches Button's outline variant (background fill, hairline border, small shadow, muted hover, and a 3px focus ring). The floating surface uses the `surface` colour with a hairline border, medium radius, medium shadow, and 16px padding; the title is semibold and the body text is muted. In dark themes the hairline is text at 10% opacity. The high-contrast theme uses solid background fills, `border` outlines, and an opaque focus ring. Colours, radii, spacing, control height, shadows, and typography come from theme tokens; the spec's theme table lists each mapping.
 
 ## Current limits
 
 This surface does not trap focus; the host is responsible for ordering nested overlays.
 
-For the exact state and event contract, see the checked-in `registry/popover/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full E5 conformance matrix has passed.
+For the exact state and event contract, see the checked-in `registry/popover/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence; these pages are documentation drafts, not a claim that the full conformance matrix has passed.

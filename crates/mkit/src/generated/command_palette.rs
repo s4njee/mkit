@@ -2,12 +2,16 @@
 
 extern crate gpui_pre as gpui;
 
+#[cfg(feature = "mkit-mirror")]
+use crate::key_hint::{KeyChord, KeyHint, shortcut_label};
 use gpui_pre::{
     Bounds, Context, ElementInputHandler, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
     IntoElement, KeyBinding, Pixels, Render, UTF16Selection, WeakFocusHandle, Window, actions,
     canvas, div, point, prelude::*, px, size,
 };
 use mkit_core::theme::Theme;
+#[cfg(not(feature = "mkit-mirror"))]
+use mkit_registry_key_hint::{KeyChord, KeyHint, shortcut_label};
 use std::ops::Range;
 
 pub const KEY_CONTEXT: &str = "CommandPalette";
@@ -544,18 +548,7 @@ impl Render for CommandPalette {
                 let mut row = div()
                     .id(format!("command-{id}"))
                     .role(gpui_pre::accesskit::Role::ListBoxOption)
-                    .aria_label({
-                        let mut n = label.clone();
-                        if let Some(g) = &group {
-                            n.push(' ');
-                            n.push_str(g);
-                        }
-                        if let Some(k) = &key {
-                            n.push(' ');
-                            n.push_str(k);
-                        }
-                        n
-                    })
+                    .aria_label(option_name(&label, group.as_deref(), key.as_deref()))
                     .aria_selected(selected)
                     .h(px(theme.controls.medium))
                     .w_full()
@@ -593,7 +586,7 @@ impl Render for CommandPalette {
                                 theme.colors.text_muted
                             })
                             .text_size(px(theme.typography.caption))
-                            .child(key),
+                            .child(shortcut_hint(&key)),
                     );
                 }
                 list = list.child(row.on_click(move |_, _, cx| {
@@ -646,6 +639,30 @@ impl Render for CommandPalette {
     }
 }
 
+/// Result option accessible name: label, optional group, and the KeyHint-formatted
+/// keybinding, so the name matches the visible row text.
+fn option_name(label: &str, group: Option<&str>, keybinding: Option<&str>) -> String {
+    let mut name = label.to_owned();
+    if let Some(group) = group {
+        name.push(' ');
+        name.push_str(group);
+    }
+    if let Some(keybinding) = keybinding {
+        name.push(' ');
+        name.push_str(&shortcut_label(keybinding));
+    }
+    name
+}
+
+/// Renders a display-only shortcut through KeyHint's shared platform
+/// formatter, keeping text KeyHint cannot parse verbatim.
+fn shortcut_hint(shortcut: &str) -> gpui_pre::AnyElement {
+    match KeyChord::parse(shortcut) {
+        Some(chord) => KeyHint::new(chord).inline().into_any_element(),
+        None => shortcut.to_owned().into_any_element(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -663,6 +680,28 @@ mod tests {
         assert!(fuzzy_matches(&action, "doc"));
         assert!(!fuzzy_matches(&action, "xyz"));
         assert!(fuzzy_matches(&action, "  "));
+    }
+
+    #[test]
+    fn option_names_use_the_shared_key_hint_label() {
+        assert_eq!(
+            option_name("Save As", Some("File"), Some("⌘⇧S")),
+            format!("Save As File {}", shortcut_label("cmd-shift-s"))
+        );
+        assert_eq!(option_name("Open", None, Some("cmd-k cmd-o")), "Open cmd-k cmd-o");
+        assert_eq!(option_name("Open", None, None), "Open");
+        #[cfg(target_os = "macos")]
+        assert_eq!(option_name("Save As", None, Some("⌘⇧S")), "Save As ⇧⌘S");
+    }
+
+    #[gpui_pre::test]
+    fn keybindings_render_through_the_shared_key_hint(cx: &mut TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        let (_, visual) = cx.add_window_view(|_, _| {
+            CommandPalette::new(vec![CommandAction::new("save", "Save").keybinding("cmd-s")], true)
+        });
+        visual.run_until_parked();
+        assert!(visual.debug_bounds("mkit-key-hint").is_some());
     }
 
     #[test]

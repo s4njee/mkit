@@ -65,7 +65,7 @@ accessibility:
       when: interactive
 controlled: Owner supplies open state through controlled constructor and set_open; uncontrolled dismissal updates state before emitting.
 events: [OpenChanged]
-theme_tokens: [elevated_surface, surface, text, border, accent, spacing.xsmall, spacing.small, spacing.medium, spacing.large, radii.medium, radii.large, borders.regular, typography.body, typography.heading_small]
+theme_tokens: [background, text, text_muted, border, accent, spacing.xsmall, spacing.small, spacing.large, spacing.xlarge, radii.none, radii.medium, borders.regular, typography.body, typography.heading_small, shadows.large]
 open_questions: []
 ---
 
@@ -77,7 +77,7 @@ A titled modal sheet for a host-managed workflow that manages initial focus, Esc
 
 ## Anatomy
 
-An `Entity<Sheet>` renders a viewport-sized modal layer with an elevated panel aligned to the bottom edge and containing a title and either string content or caller-built content. The layer consumes pointer interaction outside the panel and requests dismissal. Closed state renders a zero-size root. The panel keeps a `key_context` and Escape action.
+An `Entity<Sheet>` renders a viewport-sized modal layer with a full-width panel aligned to the bottom edge and containing a title and either string content or caller-built content. The layer consumes pointer interaction outside the panel and requests dismissal. Closed state renders a zero-size root. The panel keeps a `key_context` and Escape action.
 
 ## States
 
@@ -101,7 +101,40 @@ The open panel exposes AccessKit `dialog` role with the supplied title as its ac
 
 ## Theme tokens used
 
-The renderer reads `elevated_surface`, `surface`, `text`, `border`, `accent`, `spacing.xsmall`, `spacing.small`, `spacing.medium`, `spacing.large`, `radii.medium`, `radii.large`, `borders.regular`, `typography.body`, and `typography.heading_small` from GPUI `Theme`. The backdrop uses the text color token with reduced opacity.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-overlay` and
+`the inline sheet panel style` in `site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved
+from the installed `Theme` in three variants. `high-contrast` is selected by theme name (the
+convention other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Hairline" is shadcn's `border`: the `border` token in light themes and `text` at
+10% in dark themes. "Muted" is shadcn's `muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`. "Ink" is the theme's near-black: `text` in light themes and `background` in dark and
+high-contrast themes (the web uses literal black).
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Backdrop | ink at 50% (shadcn `bg-black/50`) | ink (`background`) at 50% |
+| Panel fill | `background` (shadcn and the preview) | `background` |
+| Panel border | hairline on the inner (top) edge only | `border` on the inner edge |
+| Panel shadow | `shadows.large` (shadcn `shadow-lg`) | none (the token is transparent) |
+| Title | `text`, semibold | `text`, semibold |
+| String content | `text_muted` (shadcn `SheetDescription`) | `text_muted` |
+| Caller-built content | inherits `text`; the caller styles it | same |
+| Busy status | muted fill, `text_muted` text, `radii.medium`, `accent` dot | `background` fill, `border` outline, `text_muted` text, `accent` dot |
+
+GPUI paints drop shadows as filled shapes that are not clipped to the element's outside, so the
+panel fill is always opaque.
+
+Geometry: the panel keeps its bottom-edge placement (shadcn `side="bottom"`): full width, square
+corners (`radii.none`), a `borders.regular` border on the edge that faces the content, and
+`spacing.xlarge` padding (shadcn `p-6`). The web preview shows shadcn's default right-side panel;
+the side is a placement contract, and changing it needs a spec decision. Header and content are
+separated by `spacing.large` (shadcn `gap-4`); the title and string content form the header with a
+gap at the midpoint of `spacing.xsmall` and `spacing.small` (6px, shadcn `gap-1.5`), because there is
+no 6px token. The title uses `typography.heading_small` (16px, shadcn `text-base` and the preview's
+sheet title); string content uses `typography.body` (14px). Semibold (600) is shadcn's
+`font-semibold`; there is no font-weight token yet.
 
 ## WAI-ARIA pattern reference
 

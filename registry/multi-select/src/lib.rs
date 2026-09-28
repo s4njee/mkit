@@ -2,11 +2,148 @@
 extern crate gpui_pre as gpui;
 use gpui_pre::{
     Anchor, AnchoredPositionMode, Bounds, Context, EventEmitter, FocusHandle, Focusable,
-    InteractiveElement, IntoElement, Pixels, Render, ScrollStrategy, UniformListScrollHandle,
-    Window, actions, anchored, deferred, div, point, prelude::*, px, uniform_list,
+    FontWeight, InteractiveElement, IntoElement, PathBuilder, Pixels, Render, Rgba, ScrollStrategy,
+    UniformListScrollHandle, Window, actions, anchored, canvas, deferred, div, point, prelude::*,
+    px, uniform_list,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::{cell::RefCell, rc::Rc};
+
+/// Resolved trigger, chip, and popup colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    background: Rgba,
+    /// shadcn "input": trigger and unselected option checkbox border.
+    input: Rgba,
+    text: Rgba,
+    placeholder: Rgba,
+    icon: Rgba,
+    chip_bg: Rgba,
+    chip_border: Option<Rgba>,
+    popup_bg: Rgba,
+    popup_border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for enabled rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    accent: Rgba,
+    accent_text: Rgba,
+    focus: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            background: c.background,
+            input: c.border,
+            text: c.text,
+            placeholder: c.text_muted,
+            icon: c.text,
+            chip_bg: c.background,
+            chip_border: Some(c.border),
+            popup_bg: c.background,
+            popup_border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            accent: c.accent,
+            accent_text: c.accent_text,
+            focus: c.focus,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        background: c.background,
+        input: if dark { c.text.opacity(0.15) } else { c.border },
+        text: c.text,
+        placeholder: c.text_muted,
+        icon: c.text_muted,
+        chip_bg: muted,
+        chip_border: None,
+        popup_bg: c.surface,
+        popup_border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        accent: c.accent,
+        accent_text: c.accent_text,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the trigger.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid, stroked `stroke` units wide.
+fn icon(
+    size: f32,
+    stroke: f32,
+    lines: &'static [&'static [(f32, f32)]],
+    color: Rgba,
+) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * stroke);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevrons-up-down`.
+const CHEVRONS_UP_DOWN: &[&[(f32, f32)]] =
+    &[&[(7., 15.), (12., 20.), (17., 15.)], &[(7., 9.), (12., 4.), (17., 9.)]];
+/// Lucide `check`.
+const CHECK: &[&[(f32, f32)]] = &[&[(20., 6.), (9., 17.), (4., 12.)]];
 pub const KEY_CONTEXT: &str = "MkitMultiSelect";
 actions!(multi_select, [Next, Previous, First, Last, Toggle, Close, TabForward, TabBackward]);
 pub fn default_key_bindings() -> [gpui_pre::KeyBinding; 9] {
@@ -227,19 +364,87 @@ impl Render for MultiSelect {
             .join(", ");
         let disabled = self.disabled;
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_stop(!disabled)).clone();
+        let look = look(&t);
+        // `:focus-visible`: the trigger shows the ring while the control owns keyboard focus.
+        let focus_visible =
+            !disabled && focus.is_focused(window) && window.last_input_was_keyboard();
+        let bg = look.background;
+        let (border, text, placeholder, chevrons, chip_bg, chip_border) = if !disabled {
+            (look.input, look.text, look.placeholder, look.icon, look.chip_bg, look.chip_border)
+        } else if look.high_contrast {
+            let d = look.disabled;
+            (d, d, d, d, look.chip_bg, Some(d))
+        } else {
+            (
+                dim(look.input, bg),
+                dim(look.text, bg),
+                dim(look.placeholder, bg),
+                dim(look.icon, bg),
+                dim(look.chip_bg, bg),
+                None,
+            )
+        };
+        let chips = self
+            .options
+            .iter()
+            .filter(|o| self.values.contains(&o.id))
+            .map(|o| {
+                div()
+                    .h(px(t.spacing.xlarge))
+                    .px(px(t.spacing.small))
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .rounded(px(t.radii.medium))
+                    .bg(chip_bg)
+                    .when_some(chip_border, |chip, color| {
+                        chip.border(px(t.borders.hairline)).border_color(color)
+                    })
+                    .text_size(px(t.typography.caption))
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
+                    .child(o.label.clone())
+            })
+            .collect::<Vec<_>>();
         let trigger = div()
             .id("mkit-multi-select-trigger")
             .debug_selector(|| "mkit-multi-select-trigger".into())
-            .h(px(t.controls.medium))
+            .min_h(px(t.controls.medium))
+            .py(px(t.spacing.xsmall))
             .px(px(t.spacing.small))
             .flex()
+            .flex_wrap()
             .items_center()
+            .gap(px(t.spacing.xsmall))
             .border(px(t.borders.regular))
-            .border_color(t.colors.border)
-            .rounded(px(t.radii.small))
-            .bg(t.colors.surface)
-            .text_color(if self.disabled { t.colors.disabled } else { t.colors.text })
-            .child(if summary.is_empty() { self.label.clone() } else { summary.clone() });
+            .border_color(if focus_visible { look.focus } else { border })
+            .rounded(px(t.radii.medium))
+            .bg(bg)
+            .shadow(if focus_visible {
+                vec![focus_ring(look.ring)]
+            } else if look.high_contrast {
+                Vec::new()
+            } else {
+                vec![box_shadow(t.shadows.small, if disabled { 0.5 } else { 1.0 })]
+            })
+            .text_size(px(t.typography.body))
+            .text_color(text)
+            .when(chips.is_empty(), |e| {
+                e.child(
+                    div()
+                        .ml(px(t.spacing.xsmall))
+                        .text_color(placeholder)
+                        .whitespace_nowrap()
+                        .child(self.label.clone()),
+                )
+            })
+            .children(chips)
+            .child(div().ml_auto().pr(px(t.spacing.xsmall)).child(icon(
+                t.spacing.large,
+                2.0,
+                CHEVRONS_UP_DOWN,
+                chevrons,
+            )));
         let mut root = div()
             .id(("mkit-multi-select", cx.entity().entity_id()))
             .debug_selector(|| "mkit-multi-select".into())
@@ -273,6 +478,9 @@ impl Render for MultiSelect {
                 }
             }));
         if self.open {
+            let rows = self.options.len().min(8) as f32;
+            let row_height = t.controls.small;
+            let chrome = 2. * (t.spacing.xsmall + t.borders.regular);
             let list = div()
                 .id("mkit-multi-select-popup")
                 .debug_selector(|| "mkit-multi-select-popup".into())
@@ -281,9 +489,13 @@ impl Render for MultiSelect {
                 .a11y_synthetic_children(|builder| {
                     builder.parent_node().set_multiselectable();
                 })
+                .p(px(t.spacing.xsmall))
                 .border(px(t.borders.regular))
-                .border_color(t.colors.border)
-                .bg(t.colors.elevated_surface)
+                .border_color(look.popup_border)
+                .rounded(px(t.radii.medium))
+                .bg(look.popup_bg)
+                .when(!look.high_contrast, |e| e.shadow(vec![box_shadow(t.shadows.medium, 1.0)]))
+                .text_size(px(t.typography.body))
                 .on_mouse_down_out(cx.listener(|s, _, _, cx| s.visibility(false, cx)));
             let n = self.options.len();
             let options = self.options.clone();
@@ -303,6 +515,50 @@ impl Render for MultiSelect {
                                 let selector_id = id.clone();
                                 let is_active = i == active;
                                 let is_selected = values.contains(&o.id);
+                                // (text, checkbox border, selected fill, check mark)
+                                let (fg, box_border, box_fill, mark) = if o.disabled {
+                                    if look.high_contrast {
+                                        let d = look.disabled;
+                                        (d, d, d, look.background)
+                                    } else {
+                                        let base = look.popup_bg;
+                                        (
+                                            dim(look.text, base),
+                                            dim(look.input, base),
+                                            dim(look.accent, base),
+                                            dim(look.accent_text, base),
+                                        )
+                                    }
+                                } else if is_active && look.high_contrast {
+                                    // Invert the checkbox so it stays visible on the accent row.
+                                    (
+                                        look.active_text,
+                                        look.accent_text,
+                                        look.accent_text,
+                                        look.accent,
+                                    )
+                                } else {
+                                    let fg = if is_active { look.active_text } else { look.text };
+                                    (fg, look.input, look.accent, look.accent_text)
+                                };
+                                let checkbox = div()
+                                    .size(px(t.spacing.large))
+                                    .flex()
+                                    .flex_none()
+                                    .items_center()
+                                    .justify_center()
+                                    .rounded(px(t.radii.small))
+                                    .border(px(t.borders.hairline))
+                                    .border_color(if is_selected { box_fill } else { box_border })
+                                    .when(is_selected, |b| {
+                                        b.bg(box_fill).child(icon(
+                                            t.spacing.medium,
+                                            3.0,
+                                            CHECK,
+                                            mark,
+                                        ))
+                                    });
+                                let hover_bg = look.hover_bg.filter(|_| !o.disabled && !is_active);
                                 div()
                                     .id(("mkit-multi-select-option", i))
                                     .debug_selector(move || {
@@ -317,25 +573,20 @@ impl Render for MultiSelect {
                                         })
                                     })
                                     .when(is_active, |row| row.aria_active_descendant())
-                                    .h(px(t.controls.medium))
+                                    .h(px(row_height))
+                                    .w_full()
                                     .px(px(t.spacing.small))
-                                    .bg(if is_active {
-                                        t.colors.accent
-                                    } else {
-                                        t.colors.elevated_surface
-                                    })
-                                    .text_color(if o.disabled {
-                                        t.colors.disabled
-                                    } else if is_active {
-                                        t.colors.accent_text
-                                    } else {
-                                        t.colors.text
-                                    })
-                                    .child(format!(
-                                        "{}{}",
-                                        if is_selected { "✓ " } else { "" },
-                                        o.label
-                                    ))
+                                    .flex()
+                                    .items_center()
+                                    .gap(px(t.spacing.small))
+                                    .rounded(px(t.radii.small))
+                                    .when(is_active, |row| row.bg(look.active_bg))
+                                    .when_some(hover_bg, |row, bg| row.hover(move |s| s.bg(bg)))
+                                    .text_color(fg)
+                                    .child(checkbox)
+                                    .child(
+                                        div().flex_1().min_w_0().truncate().child(o.label.clone()),
+                                    )
                                     .on_click(move |_, _, cx| {
                                         cx.stop_propagation();
                                         ent.update(cx, |s, cx| {
@@ -361,10 +612,10 @@ impl Render for MultiSelect {
                 )
                 .track_scroll(&scroll)
                 .w_full()
-                .h(px(t.controls.medium * n.min(8) as f32)),
+                .h(px(row_height * rows)),
             );
             let trigger_bounds = self.trigger_bounds.borrow();
-            let popup_height = px(t.controls.medium * n.min(8) as f32);
+            let popup_height = px(row_height * rows + chrome);
             let margin = px(t.spacing.medium);
             let gap = px(t.spacing.small);
             let window_height = window.bounds().size.height;

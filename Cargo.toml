@@ -88,6 +88,7 @@ members = [
     "examples/number_field_screenshot",
     "examples/pilot_components",
     "examples/e8_components",
+    "examples/e7_compositions",
 ]
 
 [workspace.package]

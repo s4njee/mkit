@@ -1,4 +1,8 @@
 //! Platform-aware, noninteractive keyboard shortcut display.
+//!
+//! Besides the `KeyHint` element, this module exposes the shared shortcut
+//! formatter used by menus, CommandPalette, and ShortcutEditor:
+//! [`KeyChord::parse`], [`KeyChord::label`], and [`shortcut_label`].
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{App, IntoElement, RenderOnce, Window, div, prelude::*, px};
@@ -35,6 +39,65 @@ impl KeyChord {
     pub fn command(mut self) -> Self {
         self.command = true;
         self
+    }
+
+    /// Parses one shortcut written as a GPUI keystroke (`cmd-shift-s`,
+    /// `secondary-k`), a `+`-separated label (`Ctrl+Shift+P`), or a macOS glyph
+    /// label (`⌘⇧S`).
+    ///
+    /// Returns `None` for empty text, text with inner whitespace (such as
+    /// multi-keystroke sequences), and unrecognized modifiers such as `fn`, so
+    /// callers can show the original text instead.
+    pub fn parse(text: &str) -> Option<Self> {
+        let mut rest = text.trim();
+        let mut chord = KeyChord::new("");
+        'modifiers: loop {
+            for (glyph, modifier) in GLYPH_MODIFIERS {
+                if rest.len() > glyph.len_utf8()
+                    && let Some(after) = rest.strip_prefix(*glyph)
+                {
+                    modifier.apply(&mut chord);
+                    rest = after;
+                    continue 'modifiers;
+                }
+            }
+            for (name, modifier) in NAMED_MODIFIERS {
+                let Some(head) = rest.get(..name.len()) else { continue };
+                let after = &rest[name.len()..];
+                if head.eq_ignore_ascii_case(name)
+                    && after.len() > 1
+                    && (after.starts_with('-') || after.starts_with('+'))
+                {
+                    modifier.apply(&mut chord);
+                    rest = &after[1..];
+                    continue 'modifiers;
+                }
+            }
+            break;
+        }
+        let single_char = rest.chars().count() == 1;
+        if rest.is_empty()
+            || rest.contains(char::is_whitespace)
+            || (!single_char && (rest.contains('-') || rest.contains('+')))
+        {
+            return None;
+        }
+        chord.key = display_key(rest);
+        Some(chord)
+    }
+
+    /// Compact platform label: `⇧⌘S` on macOS, `Shift+Super+S` elsewhere.
+    pub fn label(&self) -> String {
+        let mut parts = self.visible_parts();
+        parts.push(self.key.clone());
+        if cfg!(target_os = "macos") { parts.concat() } else { parts.join("+") }
+    }
+
+    /// Spoken platform label, for example `Shift plus Command plus S`.
+    pub fn spoken_label(&self) -> String {
+        let mut parts = self.spoken_parts().into_iter().map(str::to_owned).collect::<Vec<_>>();
+        parts.push(self.key.clone());
+        parts.join(" plus ")
     }
 
     fn visible_parts(&self) -> Vec<String> {
@@ -108,33 +171,130 @@ impl KeyChord {
     }
 }
 
+/// Formats shortcut text with the platform label used by every mkit shortcut
+/// surface. Text that [`KeyChord::parse`] cannot read is returned trimmed but
+/// otherwise unchanged.
+pub fn shortcut_label(text: &str) -> String {
+    KeyChord::parse(text).map_or_else(|| text.trim().to_owned(), |chord| chord.label())
+}
+
+#[derive(Clone, Copy)]
+enum Modifier {
+    Control,
+    Alt,
+    Shift,
+    Command,
+    /// GPUI's `secondary`: Command on macOS, Control elsewhere.
+    Secondary,
+}
+
+impl Modifier {
+    fn apply(self, chord: &mut KeyChord) {
+        match self {
+            Self::Control => chord.control = true,
+            Self::Alt => chord.alt = true,
+            Self::Shift => chord.shift = true,
+            Self::Command => chord.command = true,
+            Self::Secondary if cfg!(target_os = "macos") => chord.command = true,
+            Self::Secondary => chord.control = true,
+        }
+    }
+}
+
+const GLYPH_MODIFIERS: &[(char, Modifier)] = &[
+    ('⌃', Modifier::Control),
+    ('⌥', Modifier::Alt),
+    ('⇧', Modifier::Shift),
+    ('⌘', Modifier::Command),
+];
+
+const NAMED_MODIFIERS: &[(&str, Modifier)] = &[
+    ("ctrl", Modifier::Control),
+    ("control", Modifier::Control),
+    ("alt", Modifier::Alt),
+    ("option", Modifier::Alt),
+    ("opt", Modifier::Alt),
+    ("shift", Modifier::Shift),
+    ("cmd", Modifier::Command),
+    ("command", Modifier::Command),
+    ("super", Modifier::Command),
+    ("win", Modifier::Command),
+    ("meta", Modifier::Command),
+    ("platform", Modifier::Command),
+    ("secondary", Modifier::Secondary),
+];
+
+fn display_key(key: &str) -> String {
+    if key.chars().count() == 1 {
+        return key.to_uppercase();
+    }
+    if key.chars().any(char::is_uppercase) {
+        return key.to_owned();
+    }
+    let named = match key {
+        "up" => "↑",
+        "down" => "↓",
+        "left" => "←",
+        "right" => "→",
+        "escape" | "esc" => "Esc",
+        "pageup" => "Page Up",
+        "pagedown" => "Page Down",
+        _ => "",
+    };
+    if !named.is_empty() {
+        return named.to_owned();
+    }
+    let mut chars = key.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
 #[derive(IntoElement)]
 pub struct KeyHint {
     id: usize,
     chord: KeyChord,
     accessible_name: Option<String>,
+    inline: bool,
 }
 
 impl KeyHint {
     pub fn new(chord: KeyChord) -> Self {
-        Self { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), chord, accessible_name: None }
+        Self {
+            id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
+            chord,
+            accessible_name: None,
+            inline: false,
+        }
     }
 
     pub fn aria_label(mut self, label: impl Into<String>) -> Self {
         self.accessible_name = Some(label.into());
         self
     }
+
+    /// Renders the platform label as one text run without keycaps. The text
+    /// inherits color and size from its parent, for dense rows such as menus.
+    pub fn inline(mut self) -> Self {
+        self.inline = true;
+        self
+    }
 }
 
 impl RenderOnce for KeyHint {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+        let accessible_name = self.accessible_name.unwrap_or_else(|| self.chord.spoken_label());
+        if self.inline {
+            return div()
+                .id(("mkit-key-hint", self.id))
+                .debug_selector(|| "mkit-key-hint".into())
+                .aria_label(accessible_name)
+                .child(self.chord.label());
+        }
         let theme = *cx.global::<Theme>();
         let mut visible = self.chord.visible_parts();
         visible.push(self.chord.key.clone());
-        let mut spoken =
-            self.chord.spoken_parts().into_iter().map(str::to_owned).collect::<Vec<_>>();
-        spoken.push(self.chord.key.clone());
-        let accessible_name = self.accessible_name.unwrap_or_else(|| spoken.join(" plus "));
         let mut row = div()
             .id(("mkit-key-hint", self.id))
             .debug_selector(|| "mkit-key-hint".into())
@@ -178,5 +338,63 @@ mod tests {
         let chord = KeyChord::new("Escape");
         assert!(chord.visible_parts().is_empty());
         assert_eq!(chord.key, "Escape");
+    }
+
+    #[test]
+    fn parse_reads_gpui_keystrokes_glyph_labels_and_plus_labels() {
+        let expected = KeyChord::new("S").shift().command();
+        assert_eq!(KeyChord::parse("cmd-shift-s"), Some(expected.clone()));
+        assert_eq!(KeyChord::parse(" CMD-Shift-S "), Some(expected.clone()));
+        assert_eq!(KeyChord::parse("⌘⇧S"), Some(expected.clone()));
+        assert_eq!(KeyChord::parse("Shift+Super+S"), Some(expected));
+        assert_eq!(
+            KeyChord::parse("ctrl-alt-delete"),
+            Some(KeyChord::new("Delete").control().alt())
+        );
+        assert_eq!(KeyChord::parse("option-up"), Some(KeyChord::new("↑").alt()));
+        assert_eq!(KeyChord::parse("F2"), Some(KeyChord::new("F2")));
+        assert_eq!(KeyChord::parse("f12"), Some(KeyChord::new("F12")));
+        assert_eq!(KeyChord::parse("⌘]"), Some(KeyChord::new("]").command()));
+        assert_eq!(KeyChord::parse("ctrl--"), Some(KeyChord::new("-").control()));
+        assert_eq!(KeyChord::parse("cmd-+"), Some(KeyChord::new("+").command()));
+        assert_eq!(KeyChord::parse("escape"), Some(KeyChord::new("Esc")));
+    }
+
+    #[test]
+    fn parse_maps_secondary_to_the_platform_primary_modifier() {
+        let chord = KeyChord::parse("secondary-k").expect("secondary chord");
+        assert_eq!(chord.command, cfg!(target_os = "macos"));
+        assert_eq!(chord.control, !cfg!(target_os = "macos"));
+    }
+
+    #[test]
+    fn parse_rejects_sequences_unknown_modifiers_and_empty_text() {
+        assert_eq!(KeyChord::parse(""), None);
+        assert_eq!(KeyChord::parse("   "), None);
+        assert_eq!(KeyChord::parse("cmd-k cmd-s"), None);
+        assert_eq!(KeyChord::parse("⌘ N"), None);
+        assert_eq!(KeyChord::parse("fn-f1"), None);
+        assert_eq!(KeyChord::parse("cmd-"), None);
+        assert_eq!(shortcut_label("fn-f1"), "fn-f1");
+        assert_eq!(shortcut_label(" ⌘ N "), "⌘ N");
+    }
+
+    #[test]
+    fn labels_follow_the_platform_modifier_order() {
+        let chord = KeyChord::parse("⌘⇧S").unwrap();
+        #[cfg(target_os = "macos")]
+        {
+            assert_eq!(chord.label(), "⇧⌘S");
+            assert_eq!(chord.spoken_label(), "Shift plus Command plus S");
+            assert_eq!(shortcut_label("cmd-o"), "⌘O");
+            assert_eq!(shortcut_label("ctrl-alt-shift-cmd-p"), "⌃⌥⇧⌘P");
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            assert_eq!(chord.label(), "Shift+Super+S");
+            assert_eq!(chord.spoken_label(), "Shift plus Super plus S");
+            assert_eq!(shortcut_label("cmd-o"), "Super+O");
+            assert_eq!(shortcut_label("ctrl-alt-shift-cmd-p"), "Ctrl+Alt+Shift+Super+P");
+        }
     }
 }

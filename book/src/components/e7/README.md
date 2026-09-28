@@ -1,6 +1,6 @@
-# E7 component guide
+# Everyday component guide
 
-E7 is mkit's draft collection of everyday desktop controls. These pages help you choose a control, understand its interaction contract, and inspect available gallery screenshots. They describe the current workspace source; **the components are still drafts**. The registry marks their implementations as `implementation_in_progress`, so they are not released through `cargo mkit add`. Keyboard tests and many screenshot comparisons have passed, while full platform accessibility checks and maintainer approval remain open. The detailed progress audit is in `docs/E7_AUDIT.md` in the source workspace.
+This is mkit's draft collection of everyday desktop controls. These pages help you choose a control, understand its interaction contract, and inspect available gallery screenshots. They describe the current workspace source; **the components are still drafts**. The registry marks their implementations as `implementation_in_progress`, so they are not released through `cargo mkit add`. Keyboard tests and many screenshot comparisons have passed, while full platform accessibility checks and maintainer approval remain open. The detailed progress audit is in `docs/E7_AUDIT.md` in the source workspace.
 
 ## Find a component
 
@@ -31,4 +31,4 @@ E7 is mkit's draft collection of everyday desktop controls. These pages help you
 
 The [everyday component overview](../everyday-components.md) explains how the gallery and conformance work fit together. Each page below uses the checked-in spec and implementation as its source. Examples are usage situations, not Rust code to copy. The public APIs, accessibility contracts, and visual baselines still need maintainer review.
 
-The E7 inputs gallery scene includes real open-popup previews for Select and MultiSelect alongside their closed and disabled controls. These captures use the components' keyboard actions to open the retained fixtures.
+The inputs gallery scene includes real open-popup previews for Select and MultiSelect alongside their closed and disabled controls. These captures use the components' keyboard actions to open the retained fixtures.

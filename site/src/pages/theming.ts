@@ -2,10 +2,10 @@ import { theming } from '../generated/components'
 import { themeOrder, themes } from '../generated/theme'
 import type { ThemeTokens } from '../generated/theme'
 import { icon } from '../icons'
-import { docsSidebar, docsTopbar } from './docs'
+import { bookBlobUrl } from '../links'
+import { docsSidebar, docsTopbar, mountDocsNav } from './docs'
 
 const base = import.meta.env.BASE_URL || '/'
-const bookBlob = 'https://github.com/mk7s/mkit/blob/main/book/src'
 
 const defaultTheme = 'dark'
 
@@ -168,11 +168,11 @@ function tokenBoard() {
       <p>These values are read from <code>crates/mkit-core/src/theme.rs</code> at build time. Switch a theme to preview the same tokens a component reads at runtime.</p>
     </div>
     <div class="theme-board" data-theme="${defaultTheme}">
-      <div class="theme-switcher" role="tablist" aria-label="Built-in theme">
+      <div class="theme-switcher" role="group" aria-label="Built-in theme">
         ${themeOrder
           .map(
             (key) =>
-              `<button class="theme-option${key === defaultTheme ? ' active' : ''}" role="tab" aria-selected="${key === defaultTheme}" data-theme-key="${key}">${themes[key].label}</button>`,
+              `<button type="button" class="theme-option${key === defaultTheme ? ' active' : ''}" aria-pressed="${key === defaultTheme}" data-theme-key="${key}">${themes[key].label}</button>`,
           )
           .join('')}
       </div>
@@ -197,8 +197,8 @@ function tokenBoard() {
             </div>
             <p>Components read these tokens; the theme decides the values.</p>
             <div class="theme-card-actions">
-              <button class="theme-mock-button primary">Apply</button>
-              <button class="theme-mock-button">Cancel</button>
+              <span class="theme-mock-button primary">Apply</span>
+              <span class="theme-mock-button">Cancel</span>
             </div>
           </div>
         </div>
@@ -233,19 +233,19 @@ function themingToc() {
 
 export function renderTheming() {
   return `<div class="docs-shell">
-    ${docsTopbar('E9 · Design language')}
+    ${docsTopbar('Design language')}
     <div class="docs-layout">
       ${docsSidebar('theming')}
-      <main class="docs-main" id="top">
+      <main class="docs-main" id="main" tabindex="-1">
         <nav class="docs-breadcrumb" aria-label="Breadcrumb">
-          <a href="${base}">Home</a><span>/</span><span>Theming</span><span>/</span><b>Design language</b>
+          <a href="${base}">Home</a><span aria-hidden="true">/</span><span>Theming</span><span aria-hidden="true">/</span><b aria-current="page">Design language</b>
         </nav>
         <header class="docs-header">
-          <span class="docs-kicker">E9.1 · Theming &amp; design language</span>
+          <span class="docs-kicker">Theming &amp; design language</span>
           <h1>${theming.title}</h1>
           <p class="docs-lede">${theming.lede}</p>
-          <div class="docs-callout">${icon('book', 15)}<span>E9.2 (a redistributable icon set) and E9.3 (theme authoring) are not shipped yet. Token values below are generated from the library source.</span></div>
-          <a class="doc-source" href="${bookBlob}/${theming.sourcePath}" target="_blank" rel="noreferrer">Read the book chapter ${icon('external', 13)}</a>
+          <div class="docs-callout">${icon('book', 15)}<span>A redistributable icon set and theme authoring tools are not shipped yet. Token values below are generated from the library source.</span></div>
+          <a class="doc-source" href="${bookBlobUrl}/${theming.sourcePath}" target="_blank" rel="noreferrer">Read the book chapter<span class="sr-only"> (opens in a new tab)</span> ${icon('external', 13)}</a>
         </header>
         <article class="docs-article">
           ${theming.intro ? `<div class="doc-intro">${theming.intro}</div>` : ''}
@@ -259,8 +259,9 @@ export function renderTheming() {
 }
 
 export function mountTheming() {
+  const cleanup = mountDocsNav()
   const board = document.querySelector<HTMLElement>('.theme-board')
-  if (!board) return
+  if (!board) return cleanup
   const setTheme = (key: string) => {
     board.dataset.theme = key
     const theme = themes[key]
@@ -268,7 +269,7 @@ export function mountTheming() {
     document.querySelectorAll<HTMLButtonElement>('.theme-option').forEach((button) => {
       const active = button.dataset.themeKey === key
       button.classList.toggle('active', active)
-      button.setAttribute('aria-selected', String(active))
+      button.setAttribute('aria-pressed', String(active))
     })
     board.querySelectorAll<HTMLElement>('[data-token]').forEach((element) => {
       const [group, token] = (element.dataset.token ?? '').split('.')
@@ -279,4 +280,5 @@ export function mountTheming() {
   document.querySelectorAll<HTMLButtonElement>('.theme-option').forEach((button) =>
     button.addEventListener('click', () => setTheme(button.dataset.themeKey ?? defaultTheme)),
   )
+  return cleanup
 }

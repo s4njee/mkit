@@ -1,7 +1,17 @@
 //! Stateless semantic progress indicator using shared theme tokens.
 extern crate gpui_pre as gpui;
-use gpui_pre::{IntoElement, RenderOnce, div, prelude::*, px, relative};
-use mkit_core::theme::Theme;
+use gpui_pre::{IntoElement, RenderOnce, Rgba, div, prelude::*, px, relative};
+use mkit_core::{contrast::composite, theme::Theme};
+
+/// Resolved track colours; see the spec's "Theme tokens used" table.
+fn track(t: &Theme) -> (Rgba, Option<Rgba>) {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        (c.background, Some(c.border))
+    } else {
+        (composite(c.accent.opacity(0.2), c.background), None)
+    }
+}
 #[derive(IntoElement)]
 pub struct Progress {
     label: String,
@@ -35,6 +45,7 @@ impl RenderOnce for Progress {
             self.value.map(|v| if v.is_finite() { v.clamp(self.min, self.max) } else { self.min });
         let fill = value.map_or(0.35, |v| (v - self.min) / (self.max - self.min));
         let inset = if value.is_none() { 0.325 } else { 0.0 };
+        let (track_fill, track_border) = track(&t);
         div()
             .id("progress")
             .role(gpui_pre::accesskit::Role::ProgressIndicator)
@@ -44,9 +55,12 @@ impl RenderOnce for Progress {
             .when_some(value, |d, v| d.aria_numeric_value(v as f64))
             .when(value.is_none(), |d| d.aria_description("In progress"))
             .w_full()
-            .h(px(t.spacing.xsmall))
+            .h(px(t.spacing.small))
             .rounded(px(t.radii.pill))
-            .bg(t.colors.border)
+            .bg(track_fill)
+            .when_some(track_border, |d, color| {
+                d.border(px(t.borders.hairline)).border_color(color)
+            })
             .child(
                 div()
                     .h_full()

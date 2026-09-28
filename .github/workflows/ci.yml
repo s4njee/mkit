@@ -74,6 +74,14 @@ jobs:
           python scripts/generate_gpui_inventory.py --check
           python -m unittest discover -s scripts -p 'test_*.py'
 
+      - name: Check benchmark specs and book-evaluation runner
+        run: python evals/runner/mkit_eval.py check
+
+      - name: Test book-evaluation runner
+        # The runner shells out to POSIX commands and shell quoting; Windows is not supported.
+        if: runner.os != 'Windows'
+        run: python -m unittest discover -s evals/runner -p 'test_*.py'
+
       - name: Check component specs and generated conformance cases
         run: |
           python scripts/check_e5_dod.py
@@ -317,6 +325,9 @@ jobs:
 
       - name: Build coexistence sample
         run: cargo build --manifest-path apps/coexistence/Cargo.toml --locked
+
+      - name: Test coexistence sample (same window, shared theme colours)
+        run: cargo test --manifest-path apps/coexistence/Cargo.toml --locked
 
   deny:
     name: Dependency licenses and advisories

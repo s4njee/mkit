@@ -1,11 +1,12 @@
 //! Stateful modal sheet surface with focus trapping and a blocking backdrop.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    AnyElement, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding,
-    MouseDownEvent, Render, Window, actions, div, prelude::*, px,
+    AnyElement, BoxShadow, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement,
+    KeyBinding, MouseDownEvent, Render, Rgba, Window, actions, div, point, prelude::*, px,
 };
+use mkit_core::contrast::{composite, relative_luminance};
 use mkit_core::focus::{FocusDirection, FocusScope};
-use mkit_core::theme::Theme;
+use mkit_core::theme::{ShadowToken, Theme};
 
 pub const KEY_CONTEXT: &str = "Sheet";
 actions!(sheet, [Dismiss, FocusForward, FocusBackward]);
@@ -16,6 +17,59 @@ pub fn default_key_bindings() -> [KeyBinding; 3] {
         KeyBinding::new("shift-tab", FocusBackward, Some(KEY_CONTEXT)),
     ]
 }
+/// Resolved colours for the panel; see the spec's theme table.
+#[derive(Clone, Copy)]
+struct Look {
+    backdrop: Rgba,
+    surface_bg: Rgba,
+    border: Rgba,
+    /// Whether the surface draws `shadows.large` (shadcn `shadow-lg`).
+    shadow: bool,
+    status_bg: Rgba,
+    status_border: Rgba,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    let dark = relative_luminance(c.background) < 0.5;
+    // The theme's near-black, for shadcn's `bg-black/50` backdrop.
+    let ink = if dark { c.background } else { c.text };
+    if t.name == "high-contrast" {
+        return Look {
+            backdrop: ink.opacity(0.5),
+            surface_bg: c.background,
+            border: c.border,
+            shadow: false,
+            status_bg: c.background,
+            status_border: c.border,
+        };
+    }
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        backdrop: ink.opacity(0.5),
+        surface_bg: c.background,
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        shadow: true,
+        status_bg: muted,
+        status_border: muted,
+    }
+}
+
+fn box_shadow(shadow: ShadowToken) -> BoxShadow {
+    BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OpenChanged(pub bool);
 impl EventEmitter<OpenChanged> for Sheet {}
@@ -161,6 +215,9 @@ impl Render for Sheet {
             self.restore_focus(window, cx);
         }
         self.last_open = self.open;
+        let look = look(&theme);
+        // Header gap: 6px (shadcn `gap-1.5`), the midpoint of the xsmall and small spacing tokens.
+        let header_gap = (theme.spacing.xsmall + theme.spacing.small) / 2.0;
         let mut root = div()
             .id(("mkit-sheet-overlay", cx.entity().entity_id()))
             .key_context(KEY_CONTEXT)
@@ -171,7 +228,7 @@ impl Render for Sheet {
                 element.absolute().inset_0().flex().items_end().justify_center().occlude()
             })
             .when(self.open, |element| {
-                element.child(div().absolute().inset_0().bg(theme.colors.text.opacity(0.42))).child(
+                element.child(div().absolute().inset_0().bg(look.backdrop)).child(
                     div()
                         .id(("mkit-sheet", cx.entity().entity_id()))
                         .debug_selector(|| "mkit-sheet-surface".to_owned())
@@ -183,24 +240,38 @@ impl Render for Sheet {
                         .on_mouse_down_out(cx.listener(Self::outside_down))
                         .flex()
                         .flex_col()
-                        .gap(px(theme.spacing.medium))
-                        .p(px(theme.spacing.large))
-                        .rounded(px(theme.radii.large))
-                        .border(px(theme.borders.regular))
-                        .border_color(theme.colors.border)
-                        .bg(theme.colors.elevated_surface)
+                        .gap(px(theme.spacing.large))
+                        .p(px(theme.spacing.xlarge))
+                        // shadcn `side="bottom"`: square corners and a border on the inner edge.
+                        .rounded(px(theme.radii.none))
+                        .border_t(px(theme.borders.regular))
+                        .border_color(look.border)
+                        .bg(look.surface_bg)
+                        .when(look.shadow, |e| e.shadow(vec![box_shadow(theme.shadows.large)]))
                         .text_color(theme.colors.text)
                         .text_size(px(theme.typography.body))
                         .w_full()
                         .child(
                             div()
-                                .text_size(px(theme.typography.heading_small))
-                                .child(self.title.clone()),
+                                .flex()
+                                .flex_col()
+                                .gap(px(header_gap))
+                                .child(
+                                    div()
+                                        .text_size(px(theme.typography.heading_small))
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .child(self.title.clone()),
+                                )
+                                .when(self.content_builder.is_none(), |header| {
+                                    header.child(
+                                        div()
+                                            .text_color(theme.colors.text_muted)
+                                            .child(self.content.clone()),
+                                    )
+                                }),
                         )
-                        .child(if let Some(build) = &self.content_builder {
-                            build()
-                        } else {
-                            div().child(self.content.clone()).into_any_element()
+                        .when_some(self.content_builder.as_ref(), |surface, build| {
+                            surface.child(build())
                         })
                         .when(self.busy, |surface| {
                             surface.child(
@@ -215,8 +286,8 @@ impl Render for Sheet {
                                     .p(px(theme.spacing.small))
                                     .rounded(px(theme.radii.medium))
                                     .border(px(theme.borders.regular))
-                                    .border_color(theme.colors.border)
-                                    .bg(theme.colors.surface)
+                                    .border_color(look.status_border)
+                                    .bg(look.status_bg)
                                     .text_color(theme.colors.text_muted)
                                     .child(
                                         div()

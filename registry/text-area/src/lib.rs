@@ -5,12 +5,113 @@ extern crate gpui_pre as gpui;
 use gpui_pre::{
     Bounds, ClipboardItem, Context, DispatchPhase, ElementInputHandler, EntityInputHandler,
     EventEmitter, FocusHandle, Focusable, KeyBinding, KeyDownEvent, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, Pixels, Render, ScrollHandle, UTF16Selection, Window, actions,
-    canvas, div, point, prelude::*, px, size,
+    MouseMoveEvent, MouseUpEvent, Pixels, Render, Rgba, ScrollHandle, TextStyle, UTF16Selection,
+    Window, actions, canvas, div, point, prelude::*, px, size,
+};
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
 };
 use std::ops::Range;
 
 const FIELD_TEXT_INSET: f32 = 12.;
+
+/// Resolved editor colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    fill: Rgba,
+    text: Rgba,
+    placeholder: Rgba,
+    border: Rgba,
+    focus_border: Rgba,
+    invalid_border: Rgba,
+    /// `shadows.small` with its colour adjusted for the state; transparent in high contrast.
+    shadow: ShadowToken,
+    focus_ring: Rgba,
+    /// Ring drawn around an invalid editor whether or not it is focused; `None` in high contrast,
+    /// where invalid is shown by the border and focus keeps its own ring.
+    invalid_ring: Option<Rgba>,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// A disabled editor renders at 50% opacity as one layer, like the web preview's `opacity: .5`.
+/// GPUI applies element opacity to each painted part separately, so each colour is composited
+/// opaque over `background` and then mixed 50% with it instead.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    mix(composite(color, background), background, 0.5)
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (text, placeholder, border) = if disabled {
+            (c.disabled, c.disabled, c.disabled)
+        } else {
+            (c.text, c.text_muted, c.border)
+        };
+        return Look {
+            fill: c.background,
+            text,
+            placeholder,
+            border,
+            focus_border: c.focus,
+            invalid_border: c.danger,
+            shadow: t.shadows.none,
+            focus_ring: c.focus,
+            invalid_ring: None,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "input": the light border, or text at 15% in dark themes.
+    let input = if dark { c.text.opacity(0.15) } else { c.border };
+    // shadcn `dark:bg-input/30`; light editors are transparent over the page, made opaque.
+    let fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    let look = Look {
+        fill,
+        text: c.text,
+        placeholder: c.text_muted,
+        border: composite(input, fill),
+        focus_border: c.focus,
+        invalid_border: c.danger,
+        shadow: t.shadows.small,
+        focus_ring: c.focus.opacity(0.5),
+        invalid_ring: Some(c.danger.opacity(if dark { 0.4 } else { 0.2 })),
+    };
+    if !disabled {
+        return look;
+    }
+    let bg = c.background;
+    Look {
+        fill: dim(look.fill, bg),
+        text: dim(look.text, bg),
+        placeholder: dim(look.placeholder, bg),
+        border: dim(look.border, bg),
+        invalid_border: dim(look.invalid_border, bg),
+        shadow: ShadowToken { color: look.shadow.color.opacity(0.5), ..look.shadow },
+        ..look
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the editor.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 pub const KEY_CONTEXT: &str = "TextArea";
 actions!(text_area, [SelectAll, Undo, Redo, Copy, Cut, Paste]);
 
@@ -74,6 +175,8 @@ pub struct TextArea {
     focus: Option<FocusHandle>,
     last_bounds: Option<Bounds<Pixels>>,
     scroll: ScrollHandle,
+    /// Font size set from `typography.body` during render and reused by the input handler.
+    text_size: Option<Pixels>,
     drag_anchor: Option<usize>,
 }
 
@@ -96,6 +199,7 @@ impl TextArea {
             focus: Some(cx.focus_handle()),
             last_bounds: None,
             scroll: ScrollHandle::new(),
+            text_size: None,
             drag_anchor: None,
         }
     }
@@ -119,6 +223,7 @@ impl TextArea {
             focus: None,
             last_bounds: None,
             scroll: ScrollHandle::new(),
+            text_size: None,
             drag_anchor: None,
         }
     }
@@ -223,8 +328,22 @@ impl TextArea {
         self.byte_to_utf16(range.start)..self.byte_to_utf16(range.end)
     }
 
+    /// The inherited text style at the size the editor renders with, so wrapping, hit testing,
+    /// caret scrolling, and IME bounds match the rendered rows wherever a callback runs.
+    fn text_style(&self, window: &Window) -> TextStyle {
+        let mut style = window.text_style();
+        if let Some(size) = self.text_size {
+            style.font_size = size.into();
+        }
+        style
+    }
+
+    fn line_height(&self, window: &Window) -> Pixels {
+        self.text_style(window).line_height_in_pixels(window.rem_size())
+    }
+
     fn shaped_lines(&self, window: &Window, width: Pixels) -> Vec<(usize, gpui_pre::WrappedLine)> {
-        let style = window.text_style();
+        let style = self.text_style(window);
         let font_size = style.font_size.to_pixels(window.rem_size());
         let run = style.to_run(self.text.len());
         window
@@ -277,7 +396,7 @@ impl TextArea {
         }
         let theme = cx.global::<mkit_core::theme::Theme>();
         let inset = px(theme.spacing.small);
-        let line_height = window.line_height();
+        let line_height = self.line_height(window);
         let lines =
             self.shaped_lines(window, (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)));
         let cursor = if self.reversed { self.selection.start } else { self.selection.end };
@@ -407,7 +526,7 @@ impl EntityInputHandler for TextArea {
         _: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
         let bytes = self.utf16_range_to_bytes(&range);
-        let line_height = window.line_height();
+        let line_height = self.line_height(window);
         let lines = self.shaped_lines(
             window,
             (element_bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
@@ -484,8 +603,13 @@ impl Render for TextArea {
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle()).clone();
         let show_caret = focus.is_focused(window) && !self.disabled;
         let input = cx.entity();
-        let theme = *cx.global::<mkit_core::theme::Theme>();
+        let theme = *cx.global::<Theme>();
+        self.text_size = Some(px(theme.typography.body));
         let colors = &theme.colors;
+        let look = look(&theme, self.disabled);
+        let focused = self.marked.is_some() || focus.is_focused(window);
+        let invalid = self.validation_message.is_some();
+        let caret_color = colors.accent;
         let text = if self.text.is_empty() {
             self.placeholder.as_deref().unwrap_or("")
         } else {
@@ -498,13 +622,13 @@ impl Render for TextArea {
         let content = if self.text.is_empty() {
             div()
                 .w_full()
-                .text_color(if is_placeholder { colors.text_muted } else { colors.text })
+                .text_color(if is_placeholder { look.placeholder } else { look.text })
                 .child(text.to_owned())
         } else {
             let bounds = self.last_bounds.unwrap_or_else(|| window.bounds());
             let text_width = (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.));
             let shaped_lines = self.shaped_lines(window, text_width);
-            let line_height = window.line_height();
+            let line_height = self.line_height(window);
             let marker = self
                 .marked
                 .clone()
@@ -538,8 +662,8 @@ impl Render for TextArea {
                             row = if self.marked.is_some() {
                                 row.child(
                                     div()
-                                        .border_b_2()
-                                        .border_color(colors.accent)
+                                        .border_b(px(theme.borders.strong))
+                                        .border_color(caret_color)
                                         .child(marked_text),
                                 )
                             } else {
@@ -561,10 +685,10 @@ impl Render for TextArea {
                     }) {
                         row = row.child(self.text[start..caret].to_owned()).child(
                             div()
-                                .w(px(theme.borders.strong))
+                                .w(px(theme.borders.hairline))
                                 .h(px(theme.typography.heading))
                                 .flex_shrink_0()
-                                .bg(colors.accent),
+                                .bg(caret_color),
                         );
                         if caret < end {
                             row = row.child(self.text[caret..end].to_owned());
@@ -579,13 +703,24 @@ impl Render for TextArea {
 
             div().flex().flex_col().w_full().items_start().children(rows)
         };
+        // The ring replaces the resting shadow, as in CSS; see the spec's "Theme tokens used".
+        let ring = match look.invalid_ring {
+            Some(ring) if invalid => Some(ring),
+            _ => focused.then_some(look.focus_ring),
+        };
+        let shadows = match ring {
+            Some(color) => vec![focus_ring(color)],
+            None if look.shadow.color.a > 0. => vec![box_shadow(look.shadow)],
+            None => Vec::new(),
+        };
         div()
             .w_full()
             .flex()
             .flex_col()
             .items_start()
-            .gap(px(theme.spacing.xsmall))
-            .text_color(colors.text)
+            .gap(px(theme.spacing.small))
+            .text_size(px(theme.typography.body))
+            .text_color(look.text)
             .child(
                 div()
                     .id("text-area")
@@ -598,16 +733,16 @@ impl Render for TextArea {
                     .items_start()
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll)
-                    .border_1()
-                    .border_color(if self.validation_message.is_some() {
-                        colors.danger
-                    } else if self.marked.is_some() || focus.is_focused(window) {
-                        colors.focus
+                    .border(px(theme.borders.regular))
+                    .border_color(if invalid {
+                        look.invalid_border
+                    } else if focused {
+                        look.focus_border
                     } else {
-                        colors.border
+                        look.border
                     })
                     .rounded(px(theme.radii.medium))
-                    .when(self.disabled, |e| e.opacity(0.55))
+                    .shadow(shadows)
                     .role(gpui_pre::accesskit::Role::MultilineTextInput)
                     .aria_label(self.label.clone())
                     .aria_value(self.text.clone())
@@ -630,7 +765,7 @@ impl Render for TextArea {
                         })
                     })
                     .key_context(KEY_CONTEXT)
-                    .bg(colors.surface)
+                    .bg(look.fill)
                     .when(!self.disabled, |e| e.track_focus(&focus))
                     .on_action(cx.listener(Self::select_all_action))
                     .on_action(cx.listener(Self::undo_action))
@@ -738,7 +873,7 @@ impl TextArea {
         window: &mut Window,
     ) -> Option<usize> {
         let bounds = self.last_bounds?;
-        let line_height = window.line_height();
+        let line_height = self.line_height(window);
         let lines =
             self.shaped_lines(window, (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)));
         let offset = self.scroll.offset();
@@ -1020,8 +1155,9 @@ mod gpui_tests {
                     window,
                     (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
                 );
-                let first_row = TextArea::position_for_byte(&lines, 1, window.line_height());
-                let last_row = TextArea::position_for_byte(&lines, end_byte, window.line_height());
+                let line_height = area.line_height(window);
+                let first_row = TextArea::position_for_byte(&lines, 1, line_height);
+                let last_row = TextArea::position_for_byte(&lines, end_byte, line_height);
                 assert!(last_row.y > first_row.y, "drag destination crosses visual rows");
                 let origin = |position: gpui_pre::Point<Pixels>| {
                     point(
@@ -1116,17 +1252,17 @@ mod gpui_tests {
         visual.update(|window, cx| {
             window.draw(cx).clear(cx);
             let width = px(80.);
-            let lines = area.read_with(cx, |area, _| area.shaped_lines(window, width));
+            let (lines, line_height) = area.read_with(cx, |area, _| {
+                (area.shaped_lines(window, width), area.line_height(window))
+            });
             assert_eq!(lines.len(), 2);
             assert_eq!(lines[0].0, 0);
             let first_paragraph_len =
                 "a long paragraph designed to soft wrap across multiple visual rows".len();
             assert_eq!(lines[1].0, first_paragraph_len + 1);
-            let first =
-                TextArea::position_for_byte(&lines, first_paragraph_len, window.line_height());
-            let wrapped = TextArea::position_for_byte(&lines, 20, window.line_height());
-            let second =
-                TextArea::position_for_byte(&lines, first_paragraph_len + 1, window.line_height());
+            let first = TextArea::position_for_byte(&lines, first_paragraph_len, line_height);
+            let wrapped = TextArea::position_for_byte(&lines, 20, line_height);
+            let second = TextArea::position_for_byte(&lines, first_paragraph_len + 1, line_height);
             assert!(wrapped.y > px(0.), "the long paragraph must exercise a soft wrap");
             assert!(second.y > first.y);
         });
@@ -1142,19 +1278,15 @@ mod gpui_tests {
         });
         visual.update(|window, cx| {
             window.draw(cx).clear(cx);
-            let lines = area.read_with(cx, |area, _| area.shaped_lines(window, px(300.)));
+            let (lines, line_height) = area.read_with(cx, |area, _| {
+                (area.shaped_lines(window, px(300.)), area.line_height(window))
+            });
             assert_eq!(lines.len(), 3);
             assert_eq!(lines[0].1.text.as_ref(), "first");
             assert!(lines[1].1.text.is_empty());
             assert!(lines[2].1.text.is_empty());
-            assert_eq!(
-                visual_row_boundaries(&lines[1].1, window.line_height()).windows(2).count(),
-                1
-            );
-            assert_eq!(
-                visual_row_boundaries(&lines[2].1, window.line_height()).windows(2).count(),
-                1
-            );
+            assert_eq!(visual_row_boundaries(&lines[1].1, line_height).windows(2).count(), 1);
+            assert_eq!(visual_row_boundaries(&lines[2].1, line_height).windows(2).count(), 1);
         });
     }
 
@@ -1186,13 +1318,13 @@ mod gpui_tests {
                     window,
                     (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
                 );
-                let caret =
-                    TextArea::position_for_byte(&lines, area.selection.end, window.line_height()).y
-                        + px(mkit_core::theme::SHADCN_LIGHT.spacing.small);
+                let line_height = area.line_height(window);
+                let caret = TextArea::position_for_byte(&lines, area.selection.end, line_height).y
+                    + px(mkit_core::theme::SHADCN_LIGHT.spacing.small);
                 let visible_top = -f32::from(offset.y);
                 let visible_bottom = visible_top + f32::from(bounds.size.height);
                 assert!(f32::from(caret) >= visible_top - 1.);
-                assert!(f32::from(caret) + f32::from(window.line_height()) <= visible_bottom + 1.);
+                assert!(f32::from(caret) + f32::from(line_height) <= visible_bottom + 1.);
             });
         });
     }

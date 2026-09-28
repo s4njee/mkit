@@ -65,7 +65,7 @@ accessibility:
       when: interactive
 controlled: Owner supplies open state through controlled constructor and set_open; uncontrolled dismissal updates state before emitting.
 events: [OpenChanged]
-theme_tokens: [elevated_surface, surface, text, border, accent, spacing.xsmall, spacing.small, spacing.medium, spacing.large, radii.medium, radii.large, borders.regular, typography.body, typography.heading_small]
+theme_tokens: [background, surface, text, text_muted, border, accent, spacing.xsmall, spacing.small, spacing.large, spacing.xlarge, radii.medium, radii.large, borders.regular, typography.body, typography.heading_small, typography.heading, shadows.large]
 open_questions: []
 ---
 
@@ -77,7 +77,7 @@ A titled modal dialog that manages initial focus, Escape/outside dismissal, a bl
 
 ## Anatomy
 
-An `Entity<Dialog>` renders a viewport-sized modal layer with a centered, elevated dialog card containing a title and either string content or caller-built content. The layer consumes pointer interaction outside the card and requests dismissal. Closed state renders a zero-size root. The card keeps a `key_context` and Escape action.
+An `Entity<Dialog>` renders a viewport-sized modal layer with a centered dialog card containing a title and either string content or caller-built content. The layer consumes pointer interaction outside the card and requests dismissal. Closed state renders a zero-size root. The card keeps a `key_context` and Escape action.
 
 ## States
 
@@ -101,7 +101,43 @@ The open card exposes AccessKit `dialog` role with the supplied title as its acc
 
 ## Theme tokens used
 
-The renderer reads `elevated_surface`, `surface`, `text`, `border`, `accent`, `spacing.xsmall`, `spacing.small`, `spacing.medium`, `spacing.large`, `radii.medium`, `radii.large`, `borders.regular`, `typography.body`, and `typography.heading_small` from GPUI `Theme`. The backdrop uses the text color token with reduced opacity.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-overlay` and
+``.ui-card`` in `site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and is resolved
+from the installed `Theme` in three variants. `high-contrast` is selected by theme name (the
+convention other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Hairline" is shadcn's `border`: the `border` token in light themes and `text` at
+10% in dark themes. "Muted" is shadcn's `muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`. "Ink" is the theme's near-black: `text` in light themes and `background` in dark and
+high-contrast themes (the web uses literal black).
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Backdrop | ink at 50% (shadcn `bg-black/50`) | ink (`background`) at 50% |
+| Card fill | `surface` (the preview's `card`; shadcn's `background` is identical in `shadcn-light`) | `background` |
+| Card border | hairline | `border` |
+| Card shadow | `shadows.large` (shadcn `shadow-lg`) | none (the token is transparent) |
+| Title | `text`, semibold | `text`, semibold |
+| String content | `text_muted` (shadcn `DialogDescription`) | `text_muted` |
+| Caller-built content | inherits `text`; the caller styles it | same |
+| Busy status | muted fill, `text_muted` text, `radii.medium`, `accent` dot | `background` fill, `border` outline, `text_muted` text, `accent` dot |
+
+GPUI paints drop shadows as filled shapes that are not clipped to the element's outside, so the card
+fill is always opaque.
+
+Geometry: the card has radius `radii.large` (shadcn `rounded-lg`), `spacing.xlarge` padding (shadcn
+`p-6`), a `borders.regular` border, and a `spacing.large` gap between the header and caller-built
+content or the busy status (shadcn `gap-4`). Title and string content form shadcn's header with a gap
+at the midpoint of `spacing.xsmall` and `spacing.small` (6px, the preview's and shadcn's
+`gap-1.5`), because there is no 6px token. The title uses the midpoint of `typography.heading_small`
+and `typography.heading` (18px, shadcn `text-lg`), since there is no 18px type token and either
+neighbour visibly changes the heading's weight in the card; string content uses `typography.body`
+(14px, shadcn `text-sm`). Semibold (600) is shadcn's `font-semibold`; there is no font-weight token
+yet. The card width follows its content: shadcn's `max-w-lg` and the preview's 420px have no size
+token. The preview's close button and footer buttons are caller content (or a future API) rather
+than part of this surface; adding a built-in close button would add a focus stop and an
+accessibility node, which needs a spec decision.
 
 ## WAI-ARIA pattern reference
 

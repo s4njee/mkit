@@ -133,7 +133,56 @@ The input canvas supplies hit-test and range callbacks for caret placement and s
 The root requests AccessKit `TextInput` with an accessible label and exposes the current editor text as its accessible value; placeholder text is not the value. In secure mode it requests `PasswordInput` and exposes bullets rather than the clear value. It sets a description from the validation message, or from the ordinary description when there is no validation message, and requests invalid/disabled state as applicable. These are generated conformance expectations, not verified platform snapshots. No explicit multiline property is set.
 
 ## Theme tokens used
-Rendering reads `Theme.colors.surface`, `text`, `text_muted`, `border`, `focus`, `danger`, `accent`, and `accent_text`; `spacing.xsmall/medium`, `controls.medium`, `radii.medium`, `borders.strong`, and `typography.heading`. The root and editor use `w_full()` so the field fills its parent width. Focus changes border color. The editor height is `controls.medium`; the one-pixel border is fixed. The base text inset is `spacing.medium`; an optional additive `with_leading_inset` reserves space before text for a leading adornment. The resulting total inset is used consistently for rendering, pointer hit testing, and IME candidate bounds.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-input` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`) and the shadcn/ui
+`Input`, and is resolved from the installed `Theme` in three variants, the same way Button, Checkbox
+and Tabs do it. `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Input" below is shadcn's `--input`: `border` in light themes and `text` at 15% in
+dark themes, as in the site token mapping.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Field fill | `background` (shadcn's transparent fill, made opaque) | `text` at 4.5% over `background` (shadcn `dark:bg-input/30`) | `background` |
+| Border | input (`border`) | input (`text` at 15%) | `border` |
+| Value text | `text` | `text` | `text` |
+| Placeholder | `text_muted` | `text_muted` | `text_muted` |
+| Resting shadow | `shadows.small` (shadcn `shadow-xs`) | `shadows.small` | none (`shadows.small` is transparent in this theme) |
+| Keyboard focus or IME composition | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Invalid | border `danger` plus a 3px ring of `danger` at 20%, shown whether or not focused (the web preview's `aria-invalid` style) | same with the ring at 40% (shadcn `dark:aria-invalid:ring-destructive/40`) | border `danger`; focus still adds the opaque `focus` ring |
+| Selection | `accent` fill, `accent_text` text (shadcn `selection:bg-primary`) | same | same |
+| Caret and IME underline | `accent` | `accent` | `accent` |
+| Validation message | `danger` | `danger` | `danger` |
+| Disabled | fill, border, value, and placeholder at 50% over `background`; shadow alpha halved | same | `background` fill, `disabled` border, value, and placeholder |
+
+- **Rings and shadows.** The ring replaces the resting shadow, as in CSS. GPUI paints drop shadows as
+  filled shapes that are not clipped to the element's outside, so the field fill is always opaque.
+  Ring corners use the field radius rather than CSS's radius-plus-spread.
+- **Disabled.** The web preview's `opacity: .5` applies to the input as one layer. GPUI element
+  opacity dims each painted part separately (the fill would show through the border, and the
+  selection through the text), so each colour is instead composited opaque over `background` and
+  mixed 50% with it. High contrast keeps solid colours so the value stays legible. The validation
+  message is outside the input and is not dimmed, as on the web.
+- **Geometry.** The editor height is `controls.medium` (36px, shadcn `h-9`) including a
+  `borders.regular` border (1px; 2px in high contrast), with radius `radii.medium` (shadcn
+  `rounded-md`). The base text inset is `spacing.medium` (12px, shadcn `px-3`) on both sides; text
+  is vertically centred, so shadcn's `py-1` needs no token. An optional additive
+  `with_leading_inset` reserves space before text for a leading adornment. The resulting total inset
+  is used consistently for rendering, pointer hit testing, and IME candidate bounds. The root and
+  editor use `w_full()` so the field fills its parent width, and the validation message sits
+  `spacing.small` (8px, the web preview's `.ui-field` gap and shadcn's form-item `gap-2`) below the
+  input.
+- **Text.** The value, placeholder, and validation message use `typography.body` (14px, shadcn
+  `text-sm`); the web preview's 13px error text has no token, so the message uses the body size
+  like shadcn's `FormMessage`. The size is applied explicitly and the same size is used to shape
+  text for pointer hit testing and IME candidate bounds, so geometry does not depend on the
+  inherited text style where a platform callback runs. Line height is GPUI's default relative line
+  height at that size.
+- **Caret.** A `borders.hairline` wide bar (1px like a browser caret; 2px in high contrast) that is
+  `typography.heading` (20px) tall, the web preview's 14px × 1.43 line box. The IME composition
+  underline is `borders.strong` thick. The 3px focus ring is the shadcn/ui ring width, a fixed
+  component value.
 
 ## WAI-ARIA pattern reference
 Text field follows the textbox role guidance and native single-line text input convention.

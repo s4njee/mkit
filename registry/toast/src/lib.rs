@@ -1,12 +1,13 @@
 //! Stateful toast primitive. Window-level placement and focus management remain host-owned.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    BoxShadow, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    Render, Rgba, Window, actions, div, point, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
-    theme::Theme,
+    contrast::relative_luminance,
+    theme::{ShadowToken, Theme},
 };
 use std::time::Duration;
 
@@ -17,6 +18,34 @@ actions!(toast, [Dismiss]);
 pub fn default_key_bindings() -> [KeyBinding; 1] {
     [KeyBinding::new("escape", Dismiss, Some(KEY_CONTEXT))]
 }
+/// Resolved surface colours; see the spec's theme table.
+#[derive(Clone, Copy)]
+struct Look {
+    bg: Rgba,
+    border: Rgba,
+    /// Whether the surface draws `shadows.large` (shadcn `shadow-lg`).
+    shadow: bool,
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look { bg: c.background, border: c.border, shadow: false };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look { bg: c.surface, border: if dark { c.text.opacity(0.1) } else { c.border }, shadow: true }
+}
+
+fn box_shadow(shadow: ShadowToken) -> BoxShadow {
+    BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OpenChanged(pub bool);
 impl EventEmitter<OpenChanged> for Toast {}
@@ -152,20 +181,20 @@ impl Render for Toast {
                 })
             })
             .when(self.open, |d| {
+                let look = look(&t);
                 d.flex()
                     .flex_col()
-                    .gap(px(t.spacing.medium))
+                    .gap(px(t.spacing.xsmall))
                     .p(px(t.spacing.large))
                     .rounded(px(t.radii.large))
                     .border(px(t.borders.regular))
-                    .border_color(t.colors.border)
-                    .bg(t.colors.elevated_surface)
+                    .border_color(look.border)
+                    .bg(look.bg)
+                    .when(look.shadow, |d| d.shadow(vec![box_shadow(t.shadows.large)]))
                     .text_color(t.colors.text)
                     .text_size(px(t.typography.body))
-                    .child(
-                        div().text_size(px(t.typography.heading_small)).child(self.title.clone()),
-                    )
-                    .child(div().child(self.content.clone()))
+                    .child(div().font_weight(FontWeight::SEMIBOLD).child(self.title.clone()))
+                    .child(div().text_color(t.colors.text_muted).child(self.content.clone()))
             });
         if !self.open {
             root = root.size(px(0.0));

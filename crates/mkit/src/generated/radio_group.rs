@@ -1,10 +1,58 @@
 //! Single-choice radio group with roving keyboard selection.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Rgba, Window,
+    actions, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved indicator colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    input: Rgba,
+    ring: Rgba,
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look { input: c.border, ring: c.focus };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look { input: if dark { c.text.opacity(0.15) } else { c.border }, ring: c.focus.opacity(0.5) }
+}
+/// Disabled controls render at 50% opacity as one layer, like the web preview's `opacity: .5`.
+/// GPUI applies element opacity to each painted part separately, so overlapping parts would show
+/// through each other; instead each colour is composited opaque over `background` first.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. {
+        color
+    } else {
+        composite(composite(color, background).opacity(0.5), background)
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the circle.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 pub const KEY_CONTEXT: &str = "RadioGroup";
 actions!(radio_group, [Next, Previous, Left, Right, First, Last, Select]);
 pub fn default_key_bindings() -> [KeyBinding; 7] {
@@ -192,7 +240,7 @@ impl Focusable for RadioGroup {
     }
 }
 impl Render for RadioGroup {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         while self.focus.len() < self.options.len() {
             self.focus.push(cx.focus_handle());
         }
@@ -204,6 +252,8 @@ impl Render for RadioGroup {
                 .or_else(|| self.options.iter().position(|o| !o.disabled));
         }
         let t = *cx.global::<Theme>();
+        let look = look(&t);
+        let keyboard = window.last_input_was_keyboard();
         let label = self.label.clone();
         let selected = self.selected.clone();
         let disabled = self.disabled;
@@ -235,7 +285,11 @@ impl Render for RadioGroup {
             .when(orientation == Orientation::Horizontal, |d| d.flex_row())
             .gap(px(t.spacing.small));
         root = root.child(
-            div().text_size(px(t.typography.body_emphasis)).text_color(t.colors.text).child(label),
+            div()
+                .text_size(px(t.typography.body_emphasis))
+                .font_weight(gpui_pre::FontWeight::MEDIUM)
+                .text_color(t.colors.text)
+                .child(label),
         );
         for (i, o) in options.iter().enumerate() {
             let active = selected.as_deref() == Some(&o.id);
@@ -243,6 +297,13 @@ impl Render for RadioGroup {
             let target = entity.clone();
             let focus = self.focus[i].clone();
             let debug_id = o.id.clone();
+            let focus_visible = !unavailable && keyboard && focus.is_focused(window);
+            let paint =
+                |color: Rgba| if unavailable { dim(color, t.colors.background) } else { color };
+            let mut shadow = t.shadows.small;
+            if unavailable {
+                shadow.color = shadow.color.opacity(0.5);
+            }
             root = root.child(
                 div()
                     .id(o.id.clone())
@@ -266,18 +327,43 @@ impl Render for RadioGroup {
                             target.update(cx, |group, cx| group.choose(i, window, cx))
                         })
                     })
+                    .pr(px(t.spacing.xsmall))
                     .child(
                         div()
-                            .size(px(t.controls.xsmall * 0.58))
+                            .size(px(t.spacing.large))
+                            .flex_none()
                             .rounded(px(t.radii.pill))
-                            .border(px(t.borders.regular))
-                            .border_color(if active { t.colors.accent } else { t.colors.border })
-                            .bg(if active { t.colors.accent } else { t.colors.surface }),
+                            .border(px(t.borders.hairline))
+                            .border_color(paint(if focus_visible {
+                                t.colors.focus
+                            } else if active {
+                                t.colors.accent
+                            } else {
+                                look.input
+                            }))
+                            .bg(t.colors.background)
+                            .shadow(if focus_visible {
+                                vec![focus_ring(look.ring)]
+                            } else {
+                                vec![box_shadow(shadow)]
+                            })
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .when(active, |d| {
+                                d.child(
+                                    div()
+                                        .size(px(t.spacing.small))
+                                        .rounded(px(t.radii.pill))
+                                        .bg(paint(t.colors.accent)),
+                                )
+                            }),
                     )
                     .child(
                         div()
                             .text_size(px(t.typography.body))
-                            .text_color(if unavailable { t.colors.disabled } else { t.colors.text })
+                            .font_weight(gpui_pre::FontWeight::MEDIUM)
+                            .text_color(paint(t.colors.text))
                             .child(o.label.clone()),
                     ),
             );

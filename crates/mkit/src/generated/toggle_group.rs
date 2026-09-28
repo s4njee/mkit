@@ -1,10 +1,86 @@
 //! Single-selection toggle group with typed value events.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, Render, Window, actions, div,
-    prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, Render, Rgba, Window,
+    actions, div, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved colours for one item state; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    bg: Rgba,
+    fg: Rgba,
+    border: Rgba,
+    hover_bg: Option<Rgba>,
+    hover_fg: Option<Rgba>,
+    hover_border: Option<Rgba>,
+    /// Opaque fill used while the focus ring is drawn.
+    focus_bg: Rgba,
+    ring: Rgba,
+    /// Whether the item is dimmed to 50% opacity (disabled, shadcn-style themes).
+    dim: bool,
+}
+fn look(t: &Theme, selected: bool, enabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (bg, fg, border) = match (selected, enabled) {
+            (true, true) => (c.accent, c.accent_text, c.border),
+            (false, true) => (c.background, c.text, c.border),
+            (true, false) => (c.disabled, c.accent_text, c.disabled),
+            (false, false) => (c.background, c.disabled, c.disabled),
+        };
+        return Look {
+            bg,
+            fg,
+            border,
+            hover_bg: None,
+            hover_fg: None,
+            hover_border: (!selected).then_some(c.accent),
+            focus_bg: bg,
+            ring: c.focus,
+            dim: false,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "muted"/"accent": text mixed into the background.
+    let muted = composite(c.text.opacity(if dark { 0.12 } else { 0.04 }), c.background);
+    Look {
+        bg: if selected { muted } else { c.background.opacity(0.) },
+        fg: c.text,
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        hover_bg: (!selected).then_some(muted),
+        hover_fg: (!selected).then_some(c.text_muted),
+        hover_border: None,
+        // GPUI fills the inside of drop shadows, so the fill under the focus ring is opaque.
+        focus_bg: if selected { muted } else { c.background },
+        ring: c.focus.opacity(0.5),
+        dim: !enabled,
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: gpui_pre::point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused item.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: gpui_pre::point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 pub const KEY_CONTEXT: &str = "MkitToggleGroup";
 actions!(toggle_group, [Right, Left, Down, Up, First, Last]);
 pub fn default_key_bindings() -> [gpui_pre::KeyBinding; 6] {
@@ -183,6 +259,9 @@ impl Render for ToggleGroup {
                 .tab_index(if index == self.active { 0 } else { 1 });
         }
         let row = self.orientation == Orientation::Horizontal;
+        let high_contrast = t.name == "high-contrast";
+        let last = self.items.len().saturating_sub(1);
+        let radius = px(t.radii.medium);
         let mut root = div()
             .id(("mkit-toggle-group", cx.entity().entity_id()))
             .key_context(KEY_CONTEXT)
@@ -195,8 +274,10 @@ impl Render for ToggleGroup {
             .when(row, |e| e.flex_row())
             .when(!row, |e| e.flex_col())
             .rounded(px(t.radii.medium))
-            .border(px(t.borders.regular))
-            .border_color(t.colors.border)
+            // The group draws the shadow, so its fill is opaque (GPUI fills inside shadows).
+            .bg(t.colors.background)
+            .shadow(vec![box_shadow(t.shadows.small)])
+            .when(self.disabled && !high_contrast, |e| e.opacity(0.5))
             .on_action(cx.listener(Self::right))
             .on_action(cx.listener(Self::left))
             .on_action(cx.listener(Self::down))
@@ -206,6 +287,8 @@ impl Render for ToggleGroup {
         for (index, item) in self.items.iter().enumerate() {
             let selected = self.value.as_deref() == Some(item.value.as_str());
             let enabled = !self.disabled && !item.disabled;
+            // A disabled group is dimmed once at the group level.
+            let look = look(&t, selected, enabled || !high_contrast && self.disabled);
             let entity = entity.clone();
             let element = div()
                 .id(item.value.clone())
@@ -223,22 +306,49 @@ impl Render for ToggleGroup {
                 })
                 .on_click(move |_, _, cx| entity.update(cx, |s, cx| s.request(index, cx)))
                 .h(px(t.controls.medium))
+                .min_w(px(t.controls.medium))
                 .px(px(t.spacing.small))
                 .flex()
                 .items_center()
                 .justify_center()
+                .gap(px(t.spacing.small))
+                // Joined outline: every item is bordered, later items drop the shared edge,
+                // and only the outer corners are rounded.
                 .border(px(t.borders.hairline))
-                .border_color(if selected { t.colors.accent } else { t.colors.border })
-                .bg(if selected { t.colors.accent } else { t.colors.surface })
-                .text_color(if !enabled {
-                    t.colors.disabled
-                } else if selected {
-                    t.colors.accent_text
-                } else {
-                    t.colors.text
-                })
+                .when(index > 0 && row, |e| e.border_l(px(0.)))
+                .when(index > 0 && !row, |e| e.border_t(px(0.)))
+                .when(index == 0 && row, |e| e.rounded_l(radius))
+                .when(index == 0 && !row, |e| e.rounded_t(radius))
+                .when(index == last && row, |e| e.rounded_r(radius))
+                .when(index == last && !row, |e| e.rounded_b(radius))
+                .border_color(look.border)
+                .bg(look.bg)
+                .text_color(look.fg)
                 .text_size(px(t.typography.body))
-                .focus_visible(|s| s.border_color(t.colors.focus))
+                .font_weight(FontWeight::MEDIUM)
+                .whitespace_nowrap()
+                .when(look.dim, |e| e.opacity(0.5))
+                .when(enabled, |e| {
+                    e.hover(move |s| {
+                        let s = match look.hover_bg {
+                            Some(color) => s.bg(color),
+                            None => s,
+                        };
+                        let s = match look.hover_fg {
+                            Some(color) => s.text_color(color),
+                            None => s,
+                        };
+                        match look.hover_border {
+                            Some(color) => s.border_color(color),
+                            None => s,
+                        }
+                    })
+                })
+                .focus_visible(move |s| {
+                    s.border_color(t.colors.focus)
+                        .bg(look.focus_bg)
+                        .shadow(vec![focus_ring(look.ring)])
+                })
                 .child(item.label.clone());
             root = root.child(element)
         }

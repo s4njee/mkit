@@ -4,9 +4,73 @@ use gpui_pre::{
     Context, EventEmitter, FocusHandle, Focusable, IntoElement, Render, Window, actions, div,
     prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::time::Duration;
 
+/// Resolved list and trigger colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    list_bg: gpui_pre::Rgba,
+    list_border: Option<gpui_pre::Rgba>,
+    selected_bg: gpui_pre::Rgba,
+    selected_border: gpui_pre::Rgba,
+    selected_text: gpui_pre::Rgba,
+    ring: gpui_pre::Rgba,
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            list_bg: c.background,
+            list_border: Some(c.border),
+            selected_bg: c.accent,
+            selected_border: c.accent,
+            selected_text: c.accent_text,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = composite(c.text.opacity(if dark { 0.12 } else { 0.04 }), c.background);
+    // Selected and focused fills stay opaque: GPUI drop shadows are not clipped to the
+    // element's outside, so a translucent fill would let the shadow tint the trigger.
+    let (selected_bg, selected_border) = if dark {
+        let input = c.text.opacity(0.15);
+        (composite(input, muted), input)
+    } else {
+        (c.background, c.background.opacity(0.))
+    };
+    Look {
+        list_bg: muted,
+        list_border: None,
+        selected_bg,
+        selected_border,
+        selected_text: c.text,
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: gpui_pre::point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the trigger inside the list padding.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: gpui_pre::Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: gpui_pre::point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 pub const KEY_CONTEXT: &str = "MkitSegmentedControl";
 actions!(segmented_control, [Next, Previous, NextVertical, PreviousVertical, First, Last, Select]);
 pub fn default_key_bindings() -> [gpui_pre::KeyBinding; 7] {
@@ -208,6 +272,9 @@ impl Render for SegmentedControl {
                 .tab_index(if enabled && i == self.active { 0 } else { -1 });
         }
         let row = self.orientation == Orientation::Horizontal;
+        let look = look(&t);
+        let trigger_height = t.controls.medium - 2. * t.spacing.xsmall;
+        let transparent = t.colors.background.opacity(0.);
         let mut root = div()
             .id(("mkit-segmented-control", cx.entity().entity_id()))
             .key_context(KEY_CONTEXT)
@@ -226,9 +293,12 @@ impl Render for SegmentedControl {
             .flex()
             .when(row, |e| e.flex_row())
             .when(!row, |e| e.flex_col())
-            .rounded(px(t.radii.medium))
-            .border(px(t.borders.regular))
-            .border_color(t.colors.border)
+            .p(px(t.spacing.xsmall))
+            .rounded(px(t.radii.large))
+            .bg(look.list_bg)
+            .when_some(look.list_border, |e, color| {
+                e.border(px(t.borders.hairline)).border_color(color)
+            })
             .on_action(cx.listener(Self::next))
             .on_action(cx.listener(Self::previous))
             .on_action(cx.listener(Self::next_vertical))
@@ -258,23 +328,28 @@ impl Render for SegmentedControl {
                         s.request(i, cx);
                     })
                 })
-                .h(px(t.controls.medium))
+                .h(px(trigger_height))
+                .when(row, |e| e.flex_1())
                 .px(px(t.spacing.small))
                 .flex()
                 .items_center()
                 .justify_center()
+                .rounded(px(t.radii.medium))
                 .border(px(t.borders.hairline))
-                .border_color(if selected { t.colors.accent } else { t.colors.border })
-                .bg(if selected { t.colors.accent } else { t.colors.surface })
-                .text_color(if !enabled {
-                    t.colors.disabled
-                } else if selected {
-                    t.colors.accent_text
-                } else {
-                    t.colors.text
+                .border_color(if selected { look.selected_border } else { transparent })
+                .when(selected, |e| {
+                    e.bg(look.selected_bg).shadow(vec![box_shadow(t.shadows.small)])
                 })
+                .text_color(if selected { look.selected_text } else { t.colors.text_muted })
                 .text_size(px(t.typography.body))
-                .focus_visible(|s| s.border_color(t.colors.focus))
+                .font_weight(gpui_pre::FontWeight::MEDIUM)
+                .whitespace_nowrap()
+                .when(!enabled, |e| e.opacity(0.5))
+                .focus_visible(|s| {
+                    s.border_color(t.colors.focus)
+                        .bg(if selected { look.selected_bg } else { look.list_bg })
+                        .shadow(vec![focus_ring(look.ring)])
+                })
                 .child(item.label.clone());
             if let Some(tooltip) = item.tooltip.clone() {
                 element = element

@@ -259,6 +259,9 @@ Effort for one engineer working with agents; token estimates are in §9.
       pixel-stable run to run and across machines
 - [x] Confirm `simulate_keystrokes` and `simulate_input` drive actions, focus and text input (verified with a focused `EntityInputHandler` fixture; native IME composition remains untested)
 - [ ] Confirm the accessibility tree can be read in tests (see GPUI's `window/a11y` debug module)
+      — Answer: not headlessly on pinned `gpui-pre` 0.3.5. `TestAppContext`'s test window never
+      activates the AccessKit adapter, so `debug_a11y_tree_json()` has no tree; capture works only
+      in a real window after platform activation. See [E5 accessibility capture](docs/E5_A11Y_CAPTURE.md).
 - [x] Findings written to `docs/spikes/headless.md`
 
 #### E1.2 — Screenshot tests   `P0` `M`   deps: E1.1
@@ -795,8 +798,8 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
 #### E8.14 — Seed components from Laika   `P0` `M`   deps: E5.4
 > As a maintainer, I want to start from controls already proven in a real app, so that the first
 > pro components aren't built from scratch.
-- [ ] Extract Laika's slider, histogram and segmented control (`laika-app/src/controls/`) into
-      registry components, rewritten to the spec and conformance suite
+- [ ] Extract Laika's slider, histogram and segmented control (`crates/laika-app/src/controls/`)
+      into registry components, rewritten to the spec and conformance suite
 - [ ] Laika adopts the mkit versions as the first real user
 
 ---
@@ -807,7 +810,8 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
 > As a designer, I want a distinctive default look for pro apps, so that mkit apps don't look
 > generic.
 - [ ] Dense, dark-first default suited to pro tools; a light variant
-- [ ] Documented principles: density, contrast, typography, iconography
+- [x] Documented principles: density, contrast, typography, iconography
+      ([design language](book/src/theming/design-language.md))
 
 #### E9.2 — Icons   `P1` `M`   deps: E9.1
 - [ ] An icon set (licensed for redistribution) with a consistent grid; icon component

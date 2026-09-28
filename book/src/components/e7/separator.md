@@ -1,6 +1,6 @@
 # Separator
 
-> **Draft E7 component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
+> **Draft everyday component.** Its public API, accessibility contract, and visual baselines still need maintainer review. It is not marked `source_ready` for `cargo mkit add`.
 
 A separator is a quiet line between groups of content. It does not respond to clicks or keys.
 
@@ -44,4 +44,4 @@ The registry crate check and test commands pass, and the dedicated screenshot te
 
 The semantic variant maps to AccessKit Splitter, which can imply a resizable divider; that role needs maintainer review before it becomes the final public contract, and decorative remains the default. Active-platform interpretation of the role is open.
 
-For the exact state and event contract, see the checked-in `registry/separator/spec.md`. The [E7 overview](../everyday-components.md) tracks current test evidence.
+For the exact state and event contract, see the checked-in `registry/separator/spec.md`. The [everyday components overview](../everyday-components.md) tracks current test evidence.
