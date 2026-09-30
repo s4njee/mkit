@@ -1,7 +1,10 @@
 mkit
+Copyright 2026 The mkit Authors
 
-This project is licensed under Apache License 2.0. See LICENSE.
+This project is licensed under the Apache License, Version 2.0. See LICENSE.
 
-Dependencies are distributed under their respective licenses. This file does not
-replace their license texts or attribution notices. Add required notices here when
+mkit is built on GPUI (https://github.com/zed-industries/zed), used as a
+dependency and not redistributed in this repository. Dependencies are
+distributed under their respective licenses. This file does not replace their
+license texts or attribution notices. Add required notices here when
 third-party source or assets are incorporated into this repository or a release.

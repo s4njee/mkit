@@ -31,4 +31,4 @@ mkit pins the `gpui-pre` package at `=0.3.5`, matching the GPUI version used by 
 
 ## License
 
-mkit is currently licensed under [Apache License 2.0](LICENSE). The plan's choice between Apache-2.0 alone and a future MIT/Apache-2.0 dual license remains open. [NOTICE](NOTICE) is the place for required third-party notices as source and assets are added.
+mkit is licensed under the [Apache License 2.0](LICENSE); the copyright notice is in [NOTICE](NOTICE). The plan's choice between Apache-2.0 alone and a future MIT/Apache-2.0 dual license remains open. NOTICE is also the place for required third-party notices as source and assets are added.
