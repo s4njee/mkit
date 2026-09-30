@@ -47,7 +47,7 @@ function sizeAttrs(size) {
   return size ? ` width="${size.width}" height="${size.height}"` : ''
 }
 const outFile = join(siteRoot, 'src', 'generated', 'components.ts')
-const repoBlob = 'https://github.com/mk7s/mkit/blob/main/book/src'
+const repoBlob = 'https://github.com/s4njee/mkit/blob/main/book/src'
 
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'))
 const registryEntries = JSON.parse(readFileSync(join(repoRoot, 'registry', 'registry.json'), 'utf8')).components

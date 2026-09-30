@@ -1,7 +1,5 @@
-// External links used across the site. The repository has no public remote
-// yet, so these are the intended locations; update them in one place when the
-// repository is published.
-export const repoUrl = 'https://github.com/mk7s/mkit'
+// External links used across the site. Update the repository in one place.
+export const repoUrl = 'https://github.com/s4njee/mkit'
 export const bookSourceUrl = `${repoUrl}/tree/main/book/src`
 export const bookBlobUrl = `${repoUrl}/blob/main/book/src`
 export const planUrl = `${repoUrl}/blob/main/plan.md`

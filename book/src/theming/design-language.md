@@ -75,7 +75,7 @@ Keep line length short in dense panes, and prefer `text_muted` over a lighter fo
 
 Icons are monochrome, stroke-based, and inherit `currentColor` so they match the text role beside them. Size an icon to the control it sits in: the body size in a `controls.medium` control, and one step larger for a standalone toolbar glyph.
 
-An icon is decoration when a visible label already names the action, and meaningful when it is the only label. A meaningful, icon-only control must carry an explicit accessible name; mkit components expose an `aria_label` (or equivalent) for that case and never invent a name from the glyph. mkit does not bundle an icon set yet, so today a caller supplies an `AnyElement` or SVG. The [planned icon set](https://github.com/mk7s/mkit/blob/main/plan.md) will add a licensed set with a consistent grid; until then, match the stroke weight and grid of the icons you supply yourself.
+An icon is decoration when a visible label already names the action, and meaningful when it is the only label. A meaningful, icon-only control must carry an explicit accessible name; mkit components expose an `aria_label` (or equivalent) for that case and never invent a name from the glyph. mkit does not bundle an icon set yet, so today a caller supplies an `AnyElement` or SVG. The [planned icon set](https://github.com/s4njee/mkit/blob/main/plan.md) will add a licensed set with a consistent grid; until then, match the stroke weight and grid of the icons you supply yourself.
 
 ## Built-in themes
 
