@@ -37,7 +37,7 @@ accessibility:
       value: active rendered option is exposed as the root's active descendant where supported
 controlled: Owner supplies selected IDs; requests emit SelectionChanged and apply only after set_selection. Uncontrolled mode updates selection before emitting.
 events: [ActiveChanged, SelectionChanged]
-theme_tokens: [surface, text, border, accent, accent_text, focus, spacing.small, spacing.medium]
+theme_tokens: [background, surface, text, border, accent, accent_text, focus, spacing.xsmall, spacing.small, radii.small, radii.large, borders.hairline, typography.body]
 open_questions: []
 ---
 
@@ -73,7 +73,41 @@ The focusable root has listbox role and accessible label. Rendered rows have lis
 
 ## Theme tokens used
 
-`surface`, `accent`, `accent_text`, `text`, `border`, `borders.hairline`, and `spacing.medium` come from GPUI `Theme`; row height is an API value.
+`background`, `surface`, `text`, `border`, `accent`, `accent_text`, `focus`, `borders.hairline`,
+`spacing.xsmall/small`, `radii.small/large`, and `typography.body` come from the GPUI `Theme`; row
+height is an API value.
+
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, the `virtual-list` demo: a card
+holding `.ui-menu__item` option rows, styled in `site/src/ui/ui.css` with the shadcn token mapping in
+`site/src/ui/tokens.ts`). Colours are resolved from the installed `Theme` in three variants, the way Button, Select, Tabs,
+and Sidebar do it: `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Accent" below is shadcn's `accent`/`muted`: `text` mixed 4% (light) or 12% (dark)
+into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| List fill | `surface` | `surface` | `surface` |
+| List border | `border` | `text` at 10% | `border` |
+| Row text | `text` | `text` | `text` |
+| Selected row | accent fill, `text` | accent fill, `text` | `accent` fill, `accent_text` |
+| Pointer hover (unselected) | accent fill | accent fill | row outline in `border` |
+| Active row with keyboard focus | `borders.hairline` outline in `focus` inside the row | same | same |
+| Empty list with keyboard focus | list border `focus` plus a 3px ring of `focus` at 50% | same | ring of opaque `focus` |
+
+- **Geometry.** The list is a card: radius `radii.large`, a `borders.hairline` border, and
+  `spacing.xsmall` (4px, the web's `padding: 4px`) padding inside the scroll viewport. Rows fill the
+  width, keep the API row height (default 32px, the web's 32px rows), and have radius `radii.small`,
+  `spacing.small` (8px) horizontal padding, and `typography.body` (14px) text.
+- **Active row.** The active row is the listbox's active descendant. It is outlined only while the
+  list has keyboard focus (`:focus-visible`: focused and the last input was from the keyboard), so
+  a pointer-selected row shows just its selection fill, as the web preview does. Each row reserves a
+  transparent hairline border so the outline does not shift content. A focus ring outside a row
+  would overlap its neighbours inside the scroll viewport, so rows use the inside outline instead;
+  the list itself shows the border-plus-ring focus treatment only when it has no rows to outline.
+- In high contrast the selected row keeps the solid `accent` fill with `accent_text`, and hover draws
+  the reserved row border in `border` instead of a subtle fill.
 
 ## WAI-ARIA pattern reference
 

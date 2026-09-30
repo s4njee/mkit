@@ -62,7 +62,32 @@ Generic, nonfocusable content with an accessible name describing the full chord 
 
 ## Theme tokens used
 
-Uses `Theme.colors.surface`, `elevated_surface`, `text`, `text_muted`, and `border`; `Theme.typography.caption`, `spacing.xsmall/small`, `radii.small`, and `borders.hairline`.
+The standalone keycap presentation follows the docs-site web preview (`site/src/demos/e7_expansion.ts`,
+styled by `.ui-kbd` in `site/src/ui/ui.css` with the shadcn token mapping in
+`site/src/ui/tokens.ts`), which in turn follows the shadcn/ui `Kbd`. It is resolved from the
+installed `Theme` in three variants, the same way Button, Select, and Tabs do it. `high-contrast` is
+selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Keycap fill | muted | muted | `background` |
+| Keycap border | none | none | `borders.hairline` in `border` |
+| Keycap text | `text_muted` | `text_muted` | `text` |
+
+- **Geometry.** Each keycap is 20px tall and at least 20px wide (`spacing.large +
+  spacing.xsmall`, shadcn's `h-5 min-w-5`), with `spacing.xsmall` (4px) horizontal padding (the
+  preview's 5px has no token), radius `radii.small` (shadcn `rounded-sm`), and centred
+  `typography.caption` (12px) text at medium weight (500; there is no font-weight token yet); the
+  preview's 11px has no token. Keycaps are separated by `spacing.xsmall` (shadcn `KbdGroup`'s
+  `gap-1`).
+- **Inline presentation.** `KeyHint::inline` reads no theme tokens: it is one text run that
+  inherits colour and size from its parent (menus, CommandPalette, ShortcutEditor), and its
+  rendering is unchanged by the keycap styling.
+- KeyHint is not focusable, so its screenshot matrix has no focus state.
 
 ## WAI-ARIA pattern reference
 

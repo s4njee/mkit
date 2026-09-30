@@ -6,7 +6,128 @@ use gpui_pre::{
     KeyBinding, KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels,
     Render, Rgba, StatefulInteractiveElement, Window, actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved card, handle and field colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    /// Card border and wheel outlines (the shadcn "border" role).
+    line: Rgba,
+    muted: Rgba,
+    /// `shadows.small`; transparent in high contrast.
+    shadow: ShadowToken,
+    /// Handle ring, composited opaque over `background` so it reads over any wheel hue.
+    handle_ring: Rgba,
+    field_ring: Rgba,
+    field_fill: Rgba,
+    field_border: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            line: c.border,
+            muted: c.background,
+            shadow: t.shadows.small,
+            handle_ring: c.focus,
+            field_ring: c.focus,
+            field_fill: c.background,
+            field_border: c.border,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let field_fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    Look {
+        line: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        muted: mix(c.text, c.background, if dark { 0.12 } else { 0.04 }),
+        shadow: t.shadows.small,
+        handle_ring: composite(c.focus.opacity(0.5), c.background),
+        field_ring: c.focus.opacity(0.5),
+        field_fill,
+        field_border: if dark { composite(c.text.opacity(0.15), field_fill) } else { c.border },
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside a focused handle or field.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// A Slider-thumb handle centred on `center` (relative to the wheel's top-left). GPUI keeps an
+/// element's corner radius when spreading a ring shadow, so the focus ring is its own circle.
+fn handle(
+    center: (f32, f32),
+    size: f32,
+    focused: bool,
+    look: Look,
+    theme: &Theme,
+) -> impl IntoElement {
+    let ring_size = size + FOCUS_RING_WIDTH * 2.0;
+    div()
+        .absolute()
+        .left(px(center.0 - ring_size / 2.0))
+        .top(px(center.1 - ring_size / 2.0))
+        .size(px(ring_size))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(theme.radii.pill))
+        .when(focused, |el| el.bg(look.handle_ring))
+        .child(
+            div()
+                .flex_none()
+                .size(px(size))
+                .rounded(px(theme.radii.pill))
+                .bg(theme.colors.background)
+                .border(px(theme.borders.hairline))
+                .border_color(theme.colors.accent)
+                .when(!focused, |el| el.shadow(vec![box_shadow(look.shadow)])),
+        )
+}
+/// Handle centre for a hue (degrees, zero at the top, clockwise) and a radius fraction.
+fn handle_center(size: f32, radius: f32, hue: f64, amount: f64) -> (f32, f32) {
+    let a = (hue - 90.0).to_radians();
+    let rr = radius * amount as f32;
+    (size / 2.0 + rr * a.cos() as f32, size / 2.0 + rr * a.sin() as f32)
+}
+fn stroke_circle(
+    window: &mut Window,
+    center: gpui_pre::Point<Pixels>,
+    radius: Pixels,
+    width: f32,
+    color: Rgba,
+) {
+    let mut ring = gpui_pre::PathBuilder::stroke(px(width));
+    for i in 0..=72 {
+        let a = i as f32 / 72. * std::f32::consts::TAU;
+        let at = point(center.x + radius * a.cos(), center.y + radius * a.sin());
+        if i == 0 { ring.move_to(at) } else { ring.line_to(at) }
+    }
+    if let Ok(path) = ring.build() {
+        window.paint_path(path, color);
+    }
+}
 
 pub const KEY_CONTEXT: &str = "MkitColourTools";
 actions!(colour_tools, [HueUp, HueDown, SaturationUp, SaturationDown, LightnessUp, LightnessDown]);
@@ -443,8 +564,10 @@ impl Focusable for ColourTools {
     }
 }
 impl Render for ColourTools {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let keyboard = window.last_input_was_keyboard();
         let hsl = self.colour.to_hsl();
         let rgb = self.colour.to_srgb();
         let lch = self.colour.to_oklch();
@@ -460,23 +583,43 @@ impl Render for ColourTools {
         let wheel_entity = cx.entity();
         let root = div().id("mkit-colour-tools").key_context(KEY_CONTEXT)
             .flex().flex_col().gap(px(theme.spacing.medium)).p(px(theme.spacing.medium)).w_full()
-            .rounded(px(theme.radii.medium)).border(px(theme.borders.hairline)).border_color(theme.colors.border).bg(theme.colors.surface)
+            .rounded(px(theme.radii.large)).border(px(theme.borders.hairline)).border_color(look.line).bg(theme.colors.background).shadow(vec![box_shadow(look.shadow)])
             .text_color(theme.colors.text).role(gpui_pre::accesskit::Role::Group).aria_label(self.label.clone())
             .aria_description("Hue and saturation wheel with lightness control, colour values, and tonal grading wheels.");
         let header = div()
             .flex()
             .items_center()
             .justify_between()
-            .child(div().text_sm().font_weight(gpui_pre::FontWeight::SEMIBOLD).child("Colour"))
             .child(
                 div()
-                    .text_xs()
+                    .text_size(px(theme.typography.body))
+                    .font_weight(gpui_pre::FontWeight::SEMIBOLD)
+                    .child("Colour"),
+            )
+            .child(
+                div()
+                    .text_size(px(theme.typography.caption))
                     .text_color(theme.colors.text_muted)
                     .child(format!("#{:02X}{:02X}{:02X}", rgb.red, rgb.green, rgb.blue)),
             );
+        let wheel_size = theme.controls.large * 4.5;
+        let wheel_focused = keyboard && focus.is_focused(window);
+        let wheel_handle = handle(
+            handle_center(
+                wheel_size,
+                wheel_size / 2.0 - theme.spacing.xsmall,
+                hsl.hue,
+                hsl.saturation / 100.0,
+            ),
+            theme.spacing.large,
+            wheel_focused,
+            look,
+            &theme,
+        );
         let wheel = div()
             .id("colour-hue-saturation-wheel")
-            .size(px(theme.controls.large * 4.5))
+            .relative()
+            .size(px(wheel_size))
             .track_focus(&focus)
             .tab_stop(true)
             .on_action(cx.listener(Self::hue_up))
@@ -540,20 +683,7 @@ impl Render for ColourTools {
                                 }
                             }
                         }
-                        let mut marker = gpui_pre::PathBuilder::stroke(px(theme.borders.strong));
-                        let at = {
-                            let hsl = wheel_entity.read(cx).colour.to_hsl();
-                            let a = (hsl.hue - 90.0).to_radians();
-                            let rr = radius * (hsl.saturation as f32 / 100.0);
-                            point(center.x + rr * a.cos() as f32, center.y + rr * a.sin() as f32)
-                        };
-                        marker.move_to(point(at.x - px(theme.controls.xsmall / 3.0), at.y));
-                        marker.line_to(point(at.x + px(theme.controls.xsmall / 3.0), at.y));
-                        marker.move_to(point(at.x, at.y - px(theme.controls.xsmall / 3.0)));
-                        marker.line_to(point(at.x, at.y + px(theme.controls.xsmall / 3.0)));
-                        if let Ok(path) = marker.build() {
-                            window.paint_path(path, theme.colors.text);
-                        }
+                        stroke_circle(window, center, radius, theme.borders.hairline, look.line);
                         let down = wheel_entity.clone();
                         window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
                             if phase == DispatchPhase::Capture
@@ -587,7 +717,8 @@ impl Render for ColourTools {
                     },
                 )
                 .size_full(),
-            );
+            )
+            .child(wheel_handle);
         let wheel_row =
             div().flex().items_center().gap(px(theme.spacing.medium)).child(wheel).child(
                 div()
@@ -595,7 +726,10 @@ impl Render for ColourTools {
                     .flex_col()
                     .gap(px(theme.spacing.xsmall))
                     .child(
-                        div().text_xs().text_color(theme.colors.text_muted).child("Numeric entry"),
+                        div()
+                            .text_size(px(theme.typography.caption))
+                            .text_color(theme.colors.text_muted)
+                            .child("Numeric entry"),
                     )
                     .child(
                         div()
@@ -700,7 +834,8 @@ impl Render for ColourTools {
             .iter_mut()
             .map(|slot| slot.get_or_insert_with(|| cx.focus_handle().tab_stop(true)).clone())
             .collect();
-        for (index, (name, _offset)) in [
+        let grade_size = theme.controls.large * 1.6;
+        for (index, (name, offset)) in [
             ("Shadows", self.grading.shadows),
             ("Midtones", self.grading.midtones),
             ("Highlights", self.grading.highlights),
@@ -722,8 +857,8 @@ impl Render for ColourTools {
                     .aria_label(name)
                     .aria_value(format!(
                         "Hue {:.0} degrees, saturation {:.0} percent",
-                        _offset.hue,
-                        _offset.saturation * 100.0
+                        offset.hue,
+                        offset.saturation * 100.0
                     ))
                     .on_action(cx.listener(move |picker, _: &HueUp, _, cx| {
                         picker.active_grade = Some(zone_for(index));
@@ -742,162 +877,165 @@ impl Render for ColourTools {
                         picker.adjust(0., -1., 0., cx);
                     }))
                     .child(
-                        canvas(
-                            move |_, _, _| (),
-                            move |bounds, (), window, cx| {
-                                entity.update(cx, |picker, _| {
-                                    picker.grade_bounds[index] = Some(bounds)
-                                });
-                                let center = point(
-                                    bounds.origin.x + bounds.size.width / 2.,
-                                    bounds.origin.y + bounds.size.height / 2.,
-                                );
-                                let radius = bounds.size.width.min(bounds.size.height) / 2.
-                                    - px(theme.borders.regular);
-                                for ring_index in 0..4 {
-                                    let inner = radius * (ring_index as f32 / 4.0);
-                                    let outer = radius * ((ring_index + 1) as f32 / 4.0);
-                                    let saturation = (ring_index as f64 + 0.5) / 4.0 * 100.0;
-                                    for segment in 0..48 {
-                                        let a0 = segment as f32 / 48.0 * std::f32::consts::TAU;
-                                        let a1 =
-                                            (segment + 1) as f32 / 48.0 * std::f32::consts::TAU;
-                                        let mut wedge = gpui_pre::PathBuilder::fill();
-                                        wedge.move_to(point(
-                                            center.x + inner * a0.cos(),
-                                            center.y + inner * a0.sin(),
-                                        ));
-                                        wedge.line_to(point(
-                                            center.x + outer * a0.cos(),
-                                            center.y + outer * a0.sin(),
-                                        ));
-                                        wedge.line_to(point(
-                                            center.x + outer * a1.cos(),
-                                            center.y + outer * a1.sin(),
-                                        ));
-                                        wedge.line_to(point(
-                                            center.x + inner * a1.cos(),
-                                            center.y + inner * a1.sin(),
-                                        ));
-                                        wedge.close();
-                                        if let Ok(path) = wedge.build() {
-                                            let hue = wheel_hue(
-                                                (segment as f64 + 0.5) / 48.0
-                                                    * std::f64::consts::TAU,
-                                            );
-                                            let color = Colour::from_hsl(Hsl {
-                                                hue,
-                                                saturation,
-                                                lightness: 50.0,
-                                            });
-                                            window.paint_path(path, color.to_rgba());
-                                        }
-                                    }
-                                }
-                                let mut ring =
-                                    gpui_pre::PathBuilder::stroke(px(theme.borders.regular));
-                                for i in 0..48 {
-                                    let a = i as f32 / 48. * std::f32::consts::TAU;
-                                    let b = (i + 1) as f32 / 48. * std::f32::consts::TAU;
-                                    ring.move_to(point(
-                                        center.x + radius * a.cos(),
-                                        center.y + radius * a.sin(),
-                                    ));
-                                    ring.line_to(point(
-                                        center.x + radius * b.cos(),
-                                        center.y + radius * b.sin(),
-                                    ));
-                                }
-                                if let Ok(path) = ring.build() {
-                                    window.paint_path(path, theme.colors.border);
-                                }
-                                let off = match index {
-                                    0 => entity.read(cx).grading.shadows,
-                                    1 => entity.read(cx).grading.midtones,
-                                    _ => entity.read(cx).grading.highlights,
-                                };
-                                let a = (off.hue - 90.).to_radians() as f32;
-                                let rr = radius * off.saturation as f32;
-                                let mut mark =
-                                    gpui_pre::PathBuilder::stroke(px(theme.borders.strong));
-                                mark.move_to(point(
-                                    center.x + rr * a.cos() - px(theme.controls.xsmall / 4.),
-                                    center.y + rr * a.sin(),
-                                ));
-                                mark.line_to(point(
-                                    center.x + rr * a.cos() + px(theme.controls.xsmall / 4.),
-                                    center.y + rr * a.sin(),
-                                ));
-                                if let Ok(path) = mark.build() {
-                                    window.paint_path(path, theme.colors.accent);
-                                }
-                                let zone = zone_for(index);
-                                let down = entity.clone();
-                                window.on_mouse_event(
-                                    move |event: &MouseDownEvent, phase, window, cx| {
-                                        if phase == DispatchPhase::Capture
-                                            && event.button == MouseButton::Left
-                                            && bounds.contains(&event.position)
-                                        {
-                                            down.update(cx, |picker, cx| {
-                                                picker.grade_drag = Some(zone);
-                                                picker.active_grade = Some(zone);
-                                                window.focus(&picker.focus_handle(cx), cx);
-                                                picker.update_grade_from_pointer(
-                                                    zone,
-                                                    bounds,
-                                                    event.position,
-                                                    cx,
-                                                );
-                                            });
-                                        }
-                                    },
-                                );
-                                let moved = entity.clone();
-                                window.on_mouse_event(
-                                    move |event: &MouseMoveEvent, phase, _, cx| {
-                                        if phase == DispatchPhase::Capture {
-                                            moved.update(cx, |picker, cx| {
-                                                if picker.grade_drag == Some(zone) {
-                                                    picker.update_grade_from_pointer(
-                                                        zone,
-                                                        bounds,
-                                                        event.position,
-                                                        cx,
+                        div()
+                            .relative()
+                            .size(px(grade_size))
+                            .child(
+                                canvas(
+                                    move |_, _, _| (),
+                                    move |bounds, (), window, cx| {
+                                        entity.update(cx, |picker, _| {
+                                            picker.grade_bounds[index] = Some(bounds)
+                                        });
+                                        let center = point(
+                                            bounds.origin.x + bounds.size.width / 2.,
+                                            bounds.origin.y + bounds.size.height / 2.,
+                                        );
+                                        let radius = bounds.size.width.min(bounds.size.height) / 2.
+                                            - px(theme.borders.regular);
+                                        for ring_index in 0..4 {
+                                            let inner = radius * (ring_index as f32 / 4.0);
+                                            let outer = radius * ((ring_index + 1) as f32 / 4.0);
+                                            let saturation =
+                                                (ring_index as f64 + 0.5) / 4.0 * 100.0;
+                                            for segment in 0..48 {
+                                                let a0 =
+                                                    segment as f32 / 48.0 * std::f32::consts::TAU;
+                                                let a1 = (segment + 1) as f32 / 48.0
+                                                    * std::f32::consts::TAU;
+                                                let mut wedge = gpui_pre::PathBuilder::fill();
+                                                wedge.move_to(point(
+                                                    center.x + inner * a0.cos(),
+                                                    center.y + inner * a0.sin(),
+                                                ));
+                                                wedge.line_to(point(
+                                                    center.x + outer * a0.cos(),
+                                                    center.y + outer * a0.sin(),
+                                                ));
+                                                wedge.line_to(point(
+                                                    center.x + outer * a1.cos(),
+                                                    center.y + outer * a1.sin(),
+                                                ));
+                                                wedge.line_to(point(
+                                                    center.x + inner * a1.cos(),
+                                                    center.y + inner * a1.sin(),
+                                                ));
+                                                wedge.close();
+                                                if let Ok(path) = wedge.build() {
+                                                    let hue = wheel_hue(
+                                                        (segment as f64 + 0.5) / 48.0
+                                                            * std::f64::consts::TAU,
                                                     );
+                                                    let color = Colour::from_hsl(Hsl {
+                                                        hue,
+                                                        saturation,
+                                                        lightness: 50.0,
+                                                    });
+                                                    window.paint_path(path, color.to_rgba());
                                                 }
-                                            });
+                                            }
                                         }
+                                        stroke_circle(
+                                            window,
+                                            center,
+                                            radius,
+                                            theme.borders.regular,
+                                            look.line,
+                                        );
+                                        let zone = zone_for(index);
+                                        let down = entity.clone();
+                                        window.on_mouse_event(
+                                            move |event: &MouseDownEvent, phase, window, cx| {
+                                                if phase == DispatchPhase::Capture
+                                                    && event.button == MouseButton::Left
+                                                    && bounds.contains(&event.position)
+                                                {
+                                                    down.update(cx, |picker, cx| {
+                                                        picker.grade_drag = Some(zone);
+                                                        picker.active_grade = Some(zone);
+                                                        window.focus(&picker.focus_handle(cx), cx);
+                                                        picker.update_grade_from_pointer(
+                                                            zone,
+                                                            bounds,
+                                                            event.position,
+                                                            cx,
+                                                        );
+                                                    });
+                                                }
+                                            },
+                                        );
+                                        let moved = entity.clone();
+                                        window.on_mouse_event(
+                                            move |event: &MouseMoveEvent, phase, _, cx| {
+                                                if phase == DispatchPhase::Capture {
+                                                    moved.update(cx, |picker, cx| {
+                                                        if picker.grade_drag == Some(zone) {
+                                                            picker.update_grade_from_pointer(
+                                                                zone,
+                                                                bounds,
+                                                                event.position,
+                                                                cx,
+                                                            );
+                                                        }
+                                                    });
+                                                }
+                                            },
+                                        );
+                                        let up = entity.clone();
+                                        window.on_mouse_event(
+                                            move |_: &MouseUpEvent, phase, _, cx| {
+                                                if phase == DispatchPhase::Capture {
+                                                    up.update(cx, |picker, _| {
+                                                        picker.grade_drag = None
+                                                    });
+                                                }
+                                            },
+                                        );
                                     },
-                                );
-                                let up = entity.clone();
-                                window.on_mouse_event(move |_: &MouseUpEvent, phase, _, cx| {
-                                    if phase == DispatchPhase::Capture {
-                                        up.update(cx, |picker, _| picker.grade_drag = None);
-                                    }
-                                });
-                            },
-                        )
-                        .size(px(theme.controls.large * 1.6)),
+                                )
+                                .size(px(grade_size)),
+                            )
+                            .child(handle(
+                                handle_center(
+                                    grade_size,
+                                    grade_size / 2. - theme.borders.regular,
+                                    offset.hue,
+                                    offset.saturation,
+                                ),
+                                theme.spacing.medium,
+                                keyboard && grade_focus[index].is_focused(window),
+                                look,
+                                &theme,
+                            )),
                     )
-                    .child(div().text_xs().text_color(theme.colors.text_muted).child(name)),
+                    .child(
+                        div()
+                            .text_size(px(theme.typography.caption))
+                            .text_color(theme.colors.text_muted)
+                            .child(name),
+                    ),
             );
         }
         let sample_unavailable = div()
             .flex()
             .items_center()
             .justify_between()
-            .rounded(px(theme.radii.small))
+            .rounded(px(theme.radii.medium))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border_color(look.line)
+            .bg(look.muted)
             .px(px(theme.spacing.small))
             .py(px(theme.spacing.xsmall))
-            .child(div().text_xs().child("Eyedropper unavailable on this platform"))
-            .child(div().text_xs().text_color(theme.colors.disabled).child("Unavailable"));
+            .text_size(px(theme.typography.caption))
+            .child(div().child("Eyedropper unavailable on this platform"))
+            .child(div().text_color(theme.colors.text_muted).child("Unavailable"));
         root.child(header)
             .child(wheel_row)
             .child(
-                div().text_xs().font_weight(gpui_pre::FontWeight::SEMIBOLD).child("Colour grading"),
+                div()
+                    .text_size(px(theme.typography.caption))
+                    .font_weight(gpui_pre::FontWeight::SEMIBOLD)
+                    .child("Colour grading"),
             )
             .child(grades)
             .child(sample_unavailable)
@@ -913,6 +1051,7 @@ fn numeric_cell(
     cx: &mut Context<ColourTools>,
     theme: Theme,
 ) -> impl IntoElement {
+    let look = look(&theme);
     let editing = picker.numeric_target == Some(field);
     let shown = if editing { picker.numeric_buffer.clone() } else { value.clone() };
     div()
@@ -924,10 +1063,18 @@ fn numeric_cell(
         .gap(px(theme.spacing.xsmall))
         .px(px(theme.spacing.xsmall))
         .py(px(theme.spacing.xsmall))
-        .rounded(px(theme.radii.small))
-        .border(px(theme.borders.hairline))
-        .border_color(if editing { theme.colors.focus } else { theme.colors.border })
-        .bg(theme.colors.elevated_surface)
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(if editing { theme.colors.focus } else { look.field_border })
+        .bg(look.field_fill)
+        .shadow(if editing {
+            vec![focus_ring(look.field_ring)]
+        } else {
+            vec![box_shadow(look.shadow)]
+        })
+        .focus_visible(move |style| {
+            style.border_color(theme.colors.focus).shadow(vec![focus_ring(look.field_ring)])
+        })
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |this, _event, window, cx| this.begin_numeric(field, window, cx)),
@@ -945,8 +1092,13 @@ fn numeric_cell(
         .aria_min_numeric_value(field.range().0)
         .aria_max_numeric_value(field.range().1)
         .aria_value(if editing { shown.clone() } else { value })
-        .child(div().text_xs().text_color(theme.colors.text_muted).child(label))
-        .child(div().text_sm().child(if editing && shown.is_empty() {
+        .child(
+            div()
+                .text_size(px(theme.typography.caption))
+                .text_color(theme.colors.text_muted)
+                .child(label),
+        )
+        .child(div().text_size(px(theme.typography.body)).child(if editing && shown.is_empty() {
             "Type value".to_owned()
         } else {
             shown

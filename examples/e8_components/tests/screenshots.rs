@@ -126,9 +126,9 @@ fn run() {
             path.display()
         );
     }
-    let inspector_states = ["expanded", "collapsed", "mixed", "edited", "disabled"];
+    let inspector_states = ["expanded", "collapsed", "mixed", "edited", "disabled", "focused"];
     let inspector_themes =
-        [("light", LIGHT), ("dark", mkit::core::theme::DARK), ("high-contrast", HIGH_CONTRAST)];
+        [("light", SHADCN_LIGHT), ("dark", SHADCN_DARK), ("high-contrast", HIGH_CONTRAST)];
     let inspector_baselines = [
         "../../book/src/images/e8-property-inspector-expanded-light-1x.png",
         "../../book/src/images/e8-property-inspector-expanded-light-2x.png",
@@ -160,6 +160,12 @@ fn run() {
         "../../book/src/images/e8-property-inspector-disabled-dark-2x.png",
         "../../book/src/images/e8-property-inspector-disabled-high-contrast-1x.png",
         "../../book/src/images/e8-property-inspector-disabled-high-contrast-2x.png",
+        "../../book/src/images/e8-property-inspector-focused-light-1x.png",
+        "../../book/src/images/e8-property-inspector-focused-light-2x.png",
+        "../../book/src/images/e8-property-inspector-focused-dark-1x.png",
+        "../../book/src/images/e8-property-inspector-focused-dark-2x.png",
+        "../../book/src/images/e8-property-inspector-focused-high-contrast-1x.png",
+        "../../book/src/images/e8-property-inspector-focused-high-contrast-2x.png",
     ];
     for (state_index, state) in inspector_states.into_iter().enumerate() {
         for (theme_index, (_, palette)) in inspector_themes.into_iter().enumerate() {
@@ -233,9 +239,10 @@ fn run() {
         ("collapsed-group", LayerPanelVisualState::CollapsedGroup),
         ("reordered", LayerPanelVisualState::Reordered),
         ("dragging", LayerPanelVisualState::Dragging),
+        ("focused", LayerPanelVisualState::Focused),
     ];
     let layer_themes =
-        [("light", LIGHT), ("dark", mkit::core::theme::DARK), ("high-contrast", HIGH_CONTRAST)];
+        [("light", SHADCN_LIGHT), ("dark", SHADCN_DARK), ("high-contrast", HIGH_CONTRAST)];
     let layer_baselines = [
         "../../book/src/images/e8-layer-panel-mixed-tree-light-1x.png",
         "../../book/src/images/e8-layer-panel-mixed-tree-light-2x.png",
@@ -267,6 +274,12 @@ fn run() {
         "../../book/src/images/e8-layer-panel-dragging-dark-2x.png",
         "../../book/src/images/e8-layer-panel-dragging-high-contrast-1x.png",
         "../../book/src/images/e8-layer-panel-dragging-high-contrast-2x.png",
+        "../../book/src/images/e8-layer-panel-focused-light-1x.png",
+        "../../book/src/images/e8-layer-panel-focused-light-2x.png",
+        "../../book/src/images/e8-layer-panel-focused-dark-1x.png",
+        "../../book/src/images/e8-layer-panel-focused-dark-2x.png",
+        "../../book/src/images/e8-layer-panel-focused-high-contrast-1x.png",
+        "../../book/src/images/e8-layer-panel-focused-high-contrast-2x.png",
     ];
     for (state_index, (_state_name, state)) in layer_states.into_iter().enumerate() {
         for (theme_index, (_theme_name, palette)) in layer_themes.into_iter().enumerate() {
@@ -763,7 +776,22 @@ fn capture_property_inspector(
     let init = |cx: &mut App| {
         gpui_kit::base::init(cx);
         theme::set_theme(cx, palette);
+        cx.bind_keys(mkit::property_inspector::default_key_bindings());
     };
+    if state == "focused" {
+        // Keyboard focus on the root, then ArrowDown, so the active row shows its focus outline.
+        let mut session = HeadlessSession::new(view, size, scale, init)
+            .expect("create property inspector focus capture");
+        session
+            .update(|root, window, cx| {
+                let inspector = root.read(cx).inspector().expect("matrix inspector initialized");
+                let focus = inspector.read(cx).focus_handle(cx);
+                focus.focus(window, cx);
+            })
+            .expect("focus property inspector");
+        session.simulate_keystrokes("down").expect("move the active property");
+        return session.capture().expect("capture focused property inspector");
+    }
     if state != "edited" {
         return screenshot(view, size, scale, init).expect("capture property inspector state");
     }
@@ -771,7 +799,7 @@ fn capture_property_inspector(
     let mut session = HeadlessSession::new(view, size, scale, init)
         .expect("create property inspector edit capture");
     // The opacity increment control is at this token-stable position in the 760px preview.
-    let edit = point(px(588.0), px(158.0));
+    let edit = point(px(577.0), px(170.0));
     session
         .update(|_, window, cx| {
             window.dispatch_event(
@@ -805,6 +833,25 @@ fn capture_layer_panel(
     scale: f32,
 ) -> image::RgbaImage {
     let view = LayerPanelMatrixPreview::for_state(state);
+    if state == LayerPanelVisualState::Focused {
+        // Keyboard focus on the panel, then ArrowDown, so the active row shows its focus outline.
+        let mut session =
+            HeadlessSession::new(view, size(px(660.0), px(260.0)), scale, |cx: &mut App| {
+                gpui_kit::base::init(cx);
+                theme::set_theme(cx, palette);
+                cx.bind_keys(mkit::layer_panel::default_key_bindings());
+            })
+            .expect("create layer panel focus capture");
+        session
+            .update(|root, window, cx| {
+                let panel = root.read(cx).panel().expect("matrix panel initialized");
+                let focus = panel.read(cx).focus_handle(cx);
+                focus.focus(window, cx);
+            })
+            .expect("focus layer panel");
+        session.simulate_keystrokes("down").expect("move the active layer");
+        return session.capture().expect("capture focused layer panel");
+    }
     if state != LayerPanelVisualState::Dragging {
         return screenshot(view, size(px(660.0), px(260.0)), scale, |cx: &mut App| {
             gpui_kit::base::init(cx);

@@ -1,8 +1,13 @@
 //! Stateless, theme-driven empty-state composition.
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{AnyElement, App, IntoElement, RenderOnce, Window, div, prelude::*, px};
-use mkit_core::theme::Theme;
+use gpui_pre::{
+    AnyElement, App, FontWeight, IntoElement, RenderOnce, Rgba, Window, div, prelude::*, px,
+};
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
@@ -44,46 +49,78 @@ impl EmptyState {
     }
 }
 
+/// Icon tile fill and optional outline; see the spec's "Theme tokens used" table.
+fn icon_tile(t: &Theme) -> (Rgba, Option<Rgba>) {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return (c.background, Some(c.border));
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn's `muted`: `text` mixed into `background`, like CSS `color-mix(in srgb, ...)`.
+    (composite(Rgba { a: if dark { 0.12 } else { 0.04 }, ..c.text }, c.background), None)
+}
+
 impl RenderOnce for EmptyState {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
-        let mut root = div()
-            .id(("mkit-empty-state", self.id))
-            .role(gpui_pre::accesskit::Role::Group)
-            .aria_label(self.title.clone())
-            .w_full()
+        let mut header = div()
             .flex()
             .flex_col()
             .items_center()
-            .justify_center()
-            .gap(px(theme.spacing.medium))
-            .text_color(theme.colors.text);
+            .gap(px(theme.spacing.small))
+            .max_w(px(theme.spacing.xxlarge * 12.0));
         if let Some(icon) = self.icon {
-            root = root.child(
+            let (fill, outline) = icon_tile(&theme);
+            header = header.child(
                 div()
                     .debug_selector(|| "empty-state-icon".to_string())
-                    .text_color(theme.colors.text_muted)
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .size(px(theme.controls.large))
+                    .mb(px(theme.spacing.small))
+                    .rounded(px(theme.radii.large))
+                    .bg(fill)
+                    .when_some(outline, |el, color| {
+                        el.border(px(theme.borders.hairline)).border_color(color)
+                    })
+                    .text_color(theme.colors.text)
                     .child(icon),
             );
         }
-        root = root.child(
+        header = header.child(
             div()
                 .debug_selector(|| "empty-state-title".to_string())
                 .text_size(px(theme.typography.heading_small))
+                .font_weight(FontWeight::MEDIUM)
                 .text_color(theme.colors.text)
-                .child(self.title),
+                .text_center()
+                .child(self.title.clone()),
         );
         if let Some(description) = self.description {
-            root = root.child(
+            header = header.child(
                 div()
                     .debug_selector(|| "empty-state-description".to_string())
-                    .max_w(px(theme.spacing.xxlarge * 12.0))
                     .text_size(px(theme.typography.body))
                     .text_color(theme.colors.text_muted)
                     .text_center()
                     .child(description),
             );
         }
+        let mut root = div()
+            .id(("mkit-empty-state", self.id))
+            .role(gpui_pre::accesskit::Role::Group)
+            .aria_label(self.title)
+            .w_full()
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_center()
+            .gap(px(theme.spacing.xlarge))
+            .p(px(theme.spacing.xlarge))
+            .text_color(theme.colors.text)
+            .child(header);
         if !self.actions.is_empty() {
             let mut actions = div()
                 .id(format!("empty-state-actions-{}", self.id))

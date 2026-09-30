@@ -1,7 +1,7 @@
 //! Aligned rows for labeled controls and helper text.
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{AnyElement, App, IntoElement, RenderOnce, Window, div, prelude::*, px};
+use gpui_pre::{AnyElement, App, FontWeight, IntoElement, RenderOnce, Window, div, prelude::*, px};
 use mkit_core::theme::Theme;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -83,8 +83,10 @@ impl Default for FormLayout {
 impl RenderOnce for FormLayout {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
-        let row_gap = if self.compact { theme.spacing.medium } else { theme.spacing.large };
-        let column_gap = if self.compact { theme.spacing.small } else { theme.spacing.medium };
+        // shadcn field metrics: 24px between fields, 8px between a control and its helper
+        // text, and the docs-site preview's 16px label column gap. Compact steps each down.
+        let row_gap = if self.compact { theme.spacing.large } else { theme.spacing.xlarge };
+        let column_gap = if self.compact { theme.spacing.medium } else { theme.spacing.large };
         let helper_gap = if self.compact { theme.spacing.xsmall } else { theme.spacing.small };
         let label_width = self.label_width.unwrap_or(theme.spacing.xxlarge * 4.0);
         let mut root = div()
@@ -118,9 +120,16 @@ impl RenderOnce for FormLayout {
                     .items_start()
                     .gap(px(column_gap))
                     .child(
+                        // The label box is one default control tall and centres its text, so a
+                        // label lines up with a `controls.medium` field beside it.
                         div()
                             .w(px(label_width))
+                            .flex_none()
+                            .min_h(px(theme.controls.medium))
+                            .flex()
+                            .items_center()
                             .text_size(px(theme.typography.body))
+                            .font_weight(FontWeight::MEDIUM)
                             .text_color(theme.colors.text)
                             .child(row.label),
                     )

@@ -36,7 +36,7 @@ Decorative separators do not set an accessibility role. Semantic separators requ
 
 ## Theme
 
-`Theme.colors.border` provides the line color and `Theme.borders.hairline` provides its thickness. No colors or dimensions are hard-coded.
+`Theme.borders.hairline` provides the thickness. The colour is shadcn's border: `border` in light themes and high contrast, and `text` at 10% alpha in dark themes, so the rule reads the same over any surface. The separator does not shrink in a flex row. No colors or dimensions are hard-coded.
 
 ## Verification and limits
 

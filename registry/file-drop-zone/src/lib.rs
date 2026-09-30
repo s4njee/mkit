@@ -2,14 +2,187 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Context, EventEmitter, ExternalPaths, FocusHandle, Focusable, IntoElement, KeyBinding,
-    PathPromptOptions, Render, Window, actions, div, prelude::*, px,
+    App, Context, EventEmitter, ExternalPaths, FocusHandle, Focusable, FontWeight, IntoElement,
+    KeyBinding, PathBuilder, PathPromptOptions, Render, Rgba, Window, actions, canvas, div, point,
+    prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
-    theme::Theme,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
 };
 use std::path::{Path, PathBuf};
+
+/// Resolved zone, button, and row colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    background: Rgba,
+    border: Rgba,
+    /// Pointer hover and accepted-drag border and fill (the web preview's `.e7-drop:hover`).
+    active_border: Rgba,
+    active_fill: Option<Rgba>,
+    reject_border: Rgba,
+    reject_fill: Option<Rgba>,
+    text: Rgba,
+    text_muted: Rgba,
+    icon: Rgba,
+    button_hover_bg: Option<Rgba>,
+    button_hover_border: Option<Rgba>,
+    danger: Rgba,
+    danger_hover: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            background: c.background,
+            border: c.border,
+            active_border: c.focus,
+            active_fill: None,
+            reject_border: c.danger,
+            reject_fill: None,
+            text: c.text,
+            text_muted: c.text_muted,
+            icon: c.text,
+            button_hover_bg: None,
+            button_hover_border: Some(c.accent),
+            danger: c.danger,
+            danger_hover: None,
+            focus: c.focus,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "accent"/"secondary"/"muted": text mixed into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        background: c.background,
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_border: c.focus,
+        active_fill: Some(mix(muted, c.background, 0.45)),
+        reject_border: c.danger,
+        reject_fill: Some(mix(c.danger, c.background, 0.1)),
+        text: c.text,
+        text_muted: c.text_muted,
+        icon: c.text_muted,
+        button_hover_bg: Some(muted),
+        button_hover_border: None,
+        danger: c.danger,
+        danger_hover: Some(mix(c.danger, c.background, 0.1)),
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the control.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// One Lucide path command on the 24-unit icon grid.
+#[derive(Clone, Copy)]
+enum Seg {
+    Move(f32, f32),
+    Line(f32, f32),
+    /// Small counter-clockwise arc of the given radius (SVG `a r r 0 0 0`) to an absolute point.
+    Arc(f32, f32, f32),
+    Close,
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Paths use a
+/// 24-unit grid; the stroke is 2 units, Lucide's default, and rounded corners are arcs.
+fn icon(size: f32, segs: &'static [Seg], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let at = |x: f32, y: f32| origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for seg in segs {
+                match *seg {
+                    Seg::Move(x, y) => path.move_to(at(x, y)),
+                    Seg::Line(x, y) => path.line_to(at(x, y)),
+                    Seg::Arc(r, x, y) => {
+                        path.arc_to(point(unit * r, unit * r), px(0.), false, false, at(x, y))
+                    }
+                    Seg::Close => path.close(),
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `inbox`, the icon the web preview draws in the zone.
+const INBOX: &[Seg] = &[
+    Seg::Move(22., 12.),
+    Seg::Line(16., 12.),
+    Seg::Line(14., 15.),
+    Seg::Line(10., 15.),
+    Seg::Line(8., 12.),
+    Seg::Line(2., 12.),
+    Seg::Move(5.45, 5.11),
+    Seg::Line(2., 12.),
+    Seg::Line(2., 18.),
+    Seg::Arc(2., 4., 20.),
+    Seg::Line(20., 20.),
+    Seg::Arc(2., 22., 18.),
+    Seg::Line(22., 12.),
+    Seg::Line(18.55, 5.11),
+    Seg::Arc(2., 16.76, 4.),
+    Seg::Line(7.24, 4.),
+    Seg::Arc(2., 5.45, 5.11),
+    Seg::Close,
+];
+/// Lucide `file`, shown before each selected file name.
+const FILE: &[Seg] = &[
+    Seg::Move(15., 2.),
+    Seg::Line(6., 2.),
+    Seg::Arc(2., 4., 4.),
+    Seg::Line(4., 20.),
+    Seg::Arc(2., 6., 22.),
+    Seg::Line(18., 22.),
+    Seg::Arc(2., 20., 20.),
+    Seg::Line(20., 7.),
+    Seg::Close,
+    Seg::Move(14., 2.),
+    Seg::Line(14., 6.),
+    Seg::Arc(2., 16., 8.),
+    Seg::Line(20., 8.),
+];
 
 pub const KEY_CONTEXT: &str = "FileDropZone";
 pub const REMOVE_KEY_CONTEXT: &str = "FileDropZoneRemove";
@@ -283,6 +456,25 @@ impl Render for FileDropZone {
         let remove_focus = self.remove_focus.clone();
         let feedback = self.feedback.clone();
         let button_label = if files.is_empty() { "Browse files" } else { "Add files" };
+        let look = look(&theme);
+        let bg = look.background;
+        // Disabled colours: solid `disabled` in high contrast, otherwise one 50% layer.
+        let off = |color: Rgba| {
+            if !disabled {
+                color
+            } else if look.high_contrast {
+                look.disabled
+            } else {
+                dim(color, bg)
+            }
+        };
+        let border = off(look.border);
+        let text = off(look.text);
+        let text_muted = off(look.text_muted);
+        let icon_color = off(look.icon);
+        let danger = off(look.danger);
+        let button_shadow = (!look.high_contrast)
+            .then(|| box_shadow(theme.shadows.small, if disabled { 0.5 } else { 1.0 }));
         div()
             .id("mkit-file-drop-zone")
             .key_context(KEY_CONTEXT)
@@ -292,11 +484,17 @@ impl Render for FileDropZone {
             }))
             .drag_over::<ExternalPaths>(move |style, paths, _, _| {
                 if disabled {
-                    style
-                } else if accept_paths(&accept, paths.paths()) {
-                    style.bg(theme.colors.accent.opacity(0.14)).border_color(theme.colors.accent)
+                    return style;
+                }
+                let (border, fill) = if accept_paths(&accept, paths.paths()) {
+                    (look.active_border, look.active_fill)
                 } else {
-                    style.bg(theme.colors.danger.opacity(0.14)).border_color(theme.colors.danger)
+                    (look.reject_border, look.reject_fill)
+                };
+                let style = style.border_color(border);
+                match fill {
+                    Some(fill) => style.bg(fill),
+                    None => style,
                 }
             })
             .role(gpui_pre::accesskit::Role::Group)
@@ -307,18 +505,28 @@ impl Render for FileDropZone {
             })
             .flex()
             .flex_col()
-            .gap(px(theme.spacing.medium))
-            .p(px(theme.spacing.large))
+            .items_center()
+            .gap(px(theme.spacing.small))
+            .py(px(theme.spacing.xlarge))
+            .px(px(theme.spacing.medium))
             .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
+            .border_dashed()
+            .border_color(border)
             .rounded(px(theme.radii.medium))
-            .bg(theme.colors.surface)
-            .child(
-                div()
-                    .text_color(theme.colors.text)
-                    .text_size(px(theme.typography.body))
-                    .child(description),
-            )
+            .bg(bg)
+            .text_size(px(theme.typography.body))
+            .text_center()
+            .when(!disabled, |el| {
+                el.hover(move |style| {
+                    let style = style.border_color(look.active_border);
+                    match look.active_fill {
+                        Some(fill) => style.bg(fill),
+                        None => style,
+                    }
+                })
+            })
+            .child(icon(theme.spacing.xlarge, INBOX, icon_color))
+            .child(div().text_color(text).font_weight(FontWeight::MEDIUM).child(description))
             .child(
                 div()
                     .id("mkit-file-drop-zone-browse")
@@ -337,11 +545,31 @@ impl Render for FileDropZone {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .h(px(theme.controls.large))
+                    .h(px(theme.controls.small))
                     .px(px(theme.spacing.medium))
                     .rounded(px(theme.radii.medium))
-                    .bg(if disabled { theme.colors.disabled } else { theme.colors.accent })
-                    .text_color(theme.colors.surface)
+                    .border(px(theme.borders.regular))
+                    .border_color(border)
+                    .bg(bg)
+                    .when_some(button_shadow, |el, shadow| el.shadow(vec![shadow]))
+                    .text_color(text)
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
+                    .when(!disabled, |el| {
+                        el.hover(move |style| {
+                            let style = match look.button_hover_bg {
+                                Some(color) => style.bg(color),
+                                None => style,
+                            };
+                            match look.button_hover_border {
+                                Some(color) => style.border_color(color),
+                                None => style,
+                            }
+                        })
+                    })
+                    .focus_visible(move |style| {
+                        style.border_color(look.focus).bg(bg).shadow(vec![focus_ring(look.ring)])
+                    })
                     .child(button_label),
             )
             .when_some(feedback, |el, feedback| {
@@ -350,7 +578,7 @@ impl Render for FileDropZone {
                         .id("mkit-file-drop-zone-feedback")
                         .role(gpui_pre::accesskit::Role::Status)
                         .a11y_live_region(LiveRegionPriority::Polite)
-                        .text_color(theme.colors.text_muted)
+                        .text_color(text_muted)
                         .child(feedback),
                 )
             })
@@ -358,11 +586,20 @@ impl Render for FileDropZone {
                 let name = file.name;
                 div()
                     .id(format!("mkit-file-drop-zone-file-{index}"))
+                    .w_full()
+                    .min_h(px(theme.controls.xsmall))
                     .flex()
                     .items_center()
                     .justify_between()
                     .gap(px(theme.spacing.small))
-                    .child(div().text_color(theme.colors.text).child(name.clone()))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap(px(theme.spacing.small))
+                            .child(icon(theme.spacing.large, FILE, icon_color))
+                            .child(div().text_color(text).child(name.clone())),
+                    )
                     .child(
                         div()
                             .id(format!("mkit-file-drop-zone-remove-{index}"))
@@ -385,10 +622,17 @@ impl Render for FileDropZone {
                                     this.remove_from_control(index, window, cx)
                                 }))
                             })
-                            .text_color(if disabled {
-                                theme.colors.disabled
-                            } else {
-                                theme.colors.danger
+                            .flex_none()
+                            .px(px(theme.spacing.small))
+                            .py(px(theme.spacing.xsmall))
+                            .rounded(px(theme.radii.small))
+                            .text_size(px(theme.typography.caption))
+                            .text_color(danger)
+                            .when_some(look.danger_hover.filter(|_| !disabled), |el, fill| {
+                                el.hover(move |style| style.bg(fill))
+                            })
+                            .focus_visible(move |style| {
+                                style.bg(bg).shadow(vec![focus_ring(look.ring)])
                             })
                             .child("Remove"),
                     )

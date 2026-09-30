@@ -38,7 +38,9 @@ The focusable root has listbox role and accessible label. Rendered rows have lis
 
 ## Theme
 
-`surface`, `accent`, `accent_text`, `text`, `border`, `borders.hairline`, and `spacing.medium` come from GPUI `Theme`; row height is an API value.
+Theme background, surface, text, border, accent, accent text, focus; spacing, radii, borders, typography tokens. Row height is an API value.
+
+The list is a card with `radii.large` corners, a hairline border, and 4px padding. Rows fill the width with `radii.small` corners, 8px padding, and 14px text. Selected rows and pointer hover use an accent fill; in the shadcn themes that fill mixes `text` into `background`. While the list has keyboard focus, the active row shows a hairline outline in the `focus` colour inside the row. In high contrast, selected rows keep the solid accent fill and hover shows a border. The spec records the exact token mapping.
 
 ## Verification and limits
 

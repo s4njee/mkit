@@ -459,6 +459,7 @@ for (const kind of Object.keys(catalog)) {
       status: card.status,
       tags: card.tags ?? [],
       preview: card.preview,
+      featured: card.featured ?? components.find((doc) => doc.demoKey)?.demoKey ?? '',
       accent: card.accent,
       components,
     })

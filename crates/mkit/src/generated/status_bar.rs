@@ -2,12 +2,54 @@
 
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{AnyElement, App, IntoElement, RenderOnce, Window, div, prelude::*, px, relative};
+use gpui_pre::{
+    AnyElement, App, IntoElement, RenderOnce, Rgba, Window, div, prelude::*, px, relative,
+};
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
+    contrast::{composite, relative_luminance},
     theme::Theme,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+/// Resolved status bar colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    bar: Rgba,
+    divider: Rgba,
+    text: Rgba,
+    track: Rgba,
+    track_border: Option<Rgba>,
+    fill: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            bar: c.background,
+            divider: c.border,
+            text: c.text,
+            track: c.background,
+            track_border: Some(c.border),
+            fill: c.accent,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        bar: c.background,
+        // The web's translucent dark border (10% text), composited over the bar fill.
+        divider: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        text: c.text_muted,
+        // Progress's track: shadcn `bg-primary/20`, composited opaque.
+        track: mix(c.accent, c.background, 0.2),
+        track_border: None,
+        fill: c.accent,
+    }
+}
 
 static NEXT_STATUS_BAR_ID: AtomicUsize = AtomicUsize::new(1);
 
@@ -109,7 +151,7 @@ impl StatusBarItem {
         })
     }
 
-    fn render(self, id: &str, theme: &Theme) -> AnyElement {
+    fn render(self, id: &str, theme: &Theme, look: &Look) -> AnyElement {
         let width = self.width(theme);
         let key = self.key;
         let item_id = format!("{id}-{key}");
@@ -117,12 +159,12 @@ impl StatusBarItem {
             StatusContent::Text(text) => div()
                 .id(item_id.clone())
                 .w(px(width))
-                .h(px(theme.controls.large))
                 .flex()
                 .items_center()
                 .overflow_hidden()
-                .text_color(theme.colors.text_muted)
-                .text_size(px(theme.typography.body))
+                .whitespace_nowrap()
+                .text_color(look.text)
+                .text_size(px(theme.typography.caption))
                 .role(gpui_pre::accesskit::Role::Status)
                 .aria_label(text.clone())
                 .a11y_live_region(LiveRegionPriority::Polite)
@@ -131,7 +173,6 @@ impl StatusBarItem {
             StatusContent::Element(element) => div()
                 .id(item_id.clone())
                 .w(px(width))
-                .h(px(theme.controls.large))
                 .flex()
                 .items_center()
                 .flex_shrink_0()
@@ -146,7 +187,7 @@ impl StatusBarItem {
                 div()
                     .id(item_id)
                     .w(px(width))
-                    .h(px(theme.controls.large))
+                    .h(px(theme.controls.small))
                     .flex()
                     .items_center()
                     .role(gpui_pre::accesskit::Role::ProgressIndicator)
@@ -158,16 +199,19 @@ impl StatusBarItem {
                     .child(
                         div()
                             .w_full()
-                            .h(px(theme.spacing.xsmall))
+                            .h(px(theme.spacing.small))
                             .overflow_hidden()
                             .rounded(px(theme.radii.pill))
-                            .bg(theme.colors.border)
+                            .bg(look.track)
+                            .when_some(look.track_border, |track, color| {
+                                track.border(px(theme.borders.hairline)).border_color(color)
+                            })
                             .child(
                                 div()
                                     .h_full()
                                     .w(relative(fill))
                                     .rounded(px(theme.radii.pill))
-                                    .bg(theme.colors.accent),
+                                    .bg(look.fill),
                             ),
                     )
                     .into_any_element()
@@ -279,21 +323,20 @@ impl StatusBar {
 impl RenderOnce for StatusBar {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let (leading_visible, trailing_visible) = self.visibility(&theme);
-        let leading_items = self
-            .leading
-            .into_iter()
-            .zip(leading_visible)
-            .filter_map(|(item, visible)| visible.then(|| item.render(&self.id, &theme)));
-        let trailing_items = self
-            .trailing
-            .into_iter()
-            .zip(trailing_visible)
-            .filter_map(|(item, visible)| visible.then(|| item.render(&self.id, &theme)));
+        let leading_items =
+            self.leading.into_iter().zip(leading_visible).filter_map(|(item, visible)| {
+                visible.then(|| item.render(&self.id, &theme, &look))
+            });
+        let trailing_items =
+            self.trailing.into_iter().zip(trailing_visible).filter_map(|(item, visible)| {
+                visible.then(|| item.render(&self.id, &theme, &look))
+            });
         div()
             .id(self.id.clone())
             .w_full()
-            .h(px(theme.controls.large))
+            .h(px(theme.controls.medium))
             .px(px(theme.spacing.medium))
             .flex()
             .items_center()
@@ -301,8 +344,9 @@ impl RenderOnce for StatusBar {
             .gap(px(theme.spacing.medium))
             .overflow_hidden()
             .border_t(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface)
+            .border_color(look.divider)
+            .bg(look.bar)
+            .text_size(px(theme.typography.caption))
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label(self.label)
             .child(

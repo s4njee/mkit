@@ -33,10 +33,10 @@ the data; Histogram only renders it.
 
 ## Anatomy
 
-A restrained bordered panel contains the bin plot, optional channel legend, and optional clipping
-status indicators. The panel uses the shared surface, border, text, and semantic colors. Luminance
-uses accent; RGB channels use success, warning, and danger tokens. No pixel colors are embedded in
-the component.
+A bordered card contains the bin plot, optional channel legend, and optional clipping status
+indicators. Each series plot sits on a baseline in the border role. The card uses the shared
+background, border, text, and semantic colors. Luminance uses accent; RGB channels use success,
+warning, and danger tokens. No pixel colors are embedded in the component.
 
 ## States
 
@@ -82,12 +82,41 @@ summary synchronized with the displayed data.
 
 ## Theme tokens used
 
-`Theme.colors.surface`, `border`, `text`, `text_muted`, `accent`, `success`, `warning`, and
-`danger`; `Theme.spacing` and `Theme.radii`; `Theme.borders.hairline`; and
-`Theme.typography.caption`. Fixed chart and bin geometry must be exposed as builder dimensions or
-documented defaults. No hard-coded colors are permitted.
-The channel legend reserves 6.5 caption-size units so “Luminance” stays on one line in the
-standard gallery width; hosts can give the component more width for longer localized labels.
+The look follows the everyday components restyled in E7 and E13.1 (Card, Badge and the data
+table) and is resolved from the installed `Theme` in three variants. `high-contrast` is selected by
+theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Card fill | `background` | `background` | `background` |
+| Card border and plot baseline (the "border" role) | `border` | `text` at 10% over `background` | `border` |
+| Card shadow | `shadows.small` | `shadows.small` | none (`shadows.small` is transparent) |
+| Channel labels | `text_muted`, `typography.caption` | same | same |
+| Bars (channel data) | luminance `accent`; red `danger`, green `success`, blue `warning` | same | same |
+| Clipping indicator dot | shadows `warning`, highlights `danger` | same | same |
+| Clipping indicator label | `text`, `typography.caption`, medium weight | same | same |
+
+- **Card.** Radius `radii.large` and a `borders.hairline` border (2px in high contrast), following
+  the web preview's `.ui-card`, with the existing `spacing.small` padding. The fill is opaque because
+  GPUI paints drop shadows as filled shapes that are not clipped to the element's outside.
+- **Plot.** Each series plot has a `borders.hairline` baseline in the border role, drawn inside the
+  plot height. Bars keep square tops and the existing `borders.hairline` gap so dense bins stay
+  distinct. Bar colours are data colours and are not re-tokenised by this restyle; the channel
+  labels keep channels identifiable without colour.
+- **Clipping indicators.** Each indicator is a `spacing.small` (8px) round dot in its semantic colour
+  followed by a text label, so clipping is announced by words rather than colour alone. Labels use
+  `text` rather than the semantic colour, so they keep full contrast in every theme; in high
+  contrast the dots are pure yellow and red on black.
+- **Density (provisional maintainer decision).** Pro components keep their existing control heights,
+  plot sizes and hit targets; only colours, borders, radii, shadows, focus, hover and typography
+  follow the everyday look. The default plot height stays 78 logical pixels, and the channel legend
+  still reserves 6.5 caption-size units so "Luminance" stays on one line in the standard gallery
+  width; hosts can give the component more width for longer localized labels.
+- The component is not focusable and has no hover or disabled look. Fixed chart and bin geometry
+  must be exposed as builder dimensions or documented defaults. No hard-coded colors are permitted.
 
 ## WAI-ARIA pattern reference
 
@@ -106,3 +135,5 @@ remains open. Callers should provide a concise summary on every platform.
 - Should a future version support hover inspection of individual bins?
 - Should scale-to-maximum remain the only normalization mode, or should a host-selectable linear
   count scale be added?
+- Should chart styling (grid, axes and baselines) wait to be shared with the E13.5 charts, and
+  should the RGB channels move to data colours once a chart palette exists?

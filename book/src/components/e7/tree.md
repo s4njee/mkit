@@ -31,15 +31,17 @@ This is a checked-in dark-theme, 2× screenshot baseline of one state. The compo
 
 `MkitTree` binds Down/Up to adjacent visible rows, Right to expand a collapsed branch or move into the first child of an expanded branch, Left to collapse an expanded branch or move to its parent, and Home/End to first/last visible row. These actions are rebindable. Navigation does not wrap. Repeated Right while a controlled expansion request awaits the owner does not issue a duplicate lazy-load request.
 
-Clicking a visible row outside its disclosure target makes that node active; the tree root remains the keyboard focus target. Expandable rows provide a separate disclosure hit target, sized to two `spacing.medium` units and aligned before the label. Clicking it requests expansion or collapse without activating the row. Controlled expansion changes remain owner-applied: clicking disclosure emits `ExpansionChanged`, but expanded state and lazy loading presentation change only after `set_expanded`. A lazy expansion request emits `LoadChildrenRequested` once while that node remains expanded with children absent; repeated clicks while the request is pending do not duplicate the child-load event. Keyboard Right/Left retain their existing active-row expansion and navigation behavior.
+Clicking a visible row outside its disclosure target makes that node active; the tree root remains the keyboard focus target. Expandable rows provide a separate disclosure hit target, spanning the row's leading 8px padding and its 16px chevron, 24px in all, before the label. Clicking it requests expansion or collapse without activating the row. Controlled expansion changes remain owner-applied: clicking disclosure emits `ExpansionChanged`, but expanded state and lazy loading presentation change only after `set_expanded`. A lazy expansion request emits `LoadChildrenRequested` once while that node remains expanded with children absent; repeated clicks while the request is pending do not duplicate the child-load event. Keyboard Right/Left retain their existing active-row expansion and navigation behavior.
 
 ## Accessibility
 
-The root has tree role and accessible label. Visible rows have treeitem role, the node label as accessible name, and level; expandable rows expose expanded state. The active row requests active-descendant semantics and uses an accent color. Loading is rendered as a treeitem named `Loading…` pending an active-platform announcement design.
+The root has tree role and accessible label. Visible rows have treeitem role, the node label as accessible name, and level; expandable rows expose expanded state. The active row requests active-descendant semantics and uses an accent fill. Loading is rendered as a treeitem named `Loading…` pending an active-platform announcement design.
 
 ## Theme
 
-`surface`, `accent`, `accent_text`, `text`, `border`, `borders.hairline`, `spacing.small`, and `spacing.medium` are read from the GPUI `Theme`.
+Theme background, surface, text, muted text, border, accent, accent text, focus; spacing, controls, radii, borders, typography tokens.
+
+The tree is a card with `radii.large` corners, a hairline border, and 4px padding. Rows are 32px (`controls.small`) with `radii.small` corners, like the sidebar items, and each level indents 16px. Branches show vector chevrons and a loading branch shows a vector loader in muted text. The active row takes an accent fill, which the shadcn themes mix from `text` and `background`; while the tree has keyboard focus it also shows a `focus` outline inside the row. Hover uses the accent fill, or a border in high contrast, where the active row keeps the solid accent fill. The spec records the exact token mapping.
 
 ## Verification and limits
 

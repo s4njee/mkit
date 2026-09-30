@@ -1,4 +1,6 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Render, Window, div, prelude::*, px, size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -41,6 +43,7 @@ impl Render for TagInputFixture {
                         ])
                         .with_fixture_active_suggestion(1),
                     "disabled" => TagInput::new("Labels").default_tags(tags()).disabled(true),
+                    "focused" => TagInput::new("Labels").default_tags(tags()),
                     other => panic!("unmapped TagInput state: {other}"),
                 }
             })
@@ -76,6 +79,14 @@ fn capture(
             cx.bind_keys(tag_input::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        session.update(|root, window, cx| {
+            let input = root.read(cx).input.as_ref().expect("TagInput initialized").clone();
+            let focus = input.read(cx).focus_handle(cx);
+            focus.focus(window, cx);
+            assert!(focus.is_focused(window), "the focused screenshot must focus the editor");
+        })?;
+    }
     session.capture()
 }
 
@@ -115,6 +126,7 @@ fn run() -> Result<(), ScreenshotError> {
         "max_reached",
         "suggestions",
         "disabled",
+        "focused",
     ];
     assert_eq!(cases.len(), states.len() * 3 * 2, "state/theme/scale matrix is complete");
     for case in cases {
@@ -127,6 +139,7 @@ fn run() -> Result<(), ScreenshotError> {
             "max_reached" => "max_reached",
             "suggestions" => "suggestions",
             "disabled" => "disabled",
+            "focused" => "focused",
             other => panic!("unexpected TagInput state: {other}"),
         };
         assert!(states.contains(&state), "unexpected TagInput state: {state}");

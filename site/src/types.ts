@@ -61,6 +61,8 @@ export type CatalogCard = {
   status: ComponentStatus
   tags: string[]
   preview: string
+  /** Demo key shown live on the catalog card; defaults to the first chapter. */
+  featured: string
   accent: string
   components: ComponentDoc[]
 }

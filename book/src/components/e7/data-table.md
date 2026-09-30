@@ -30,7 +30,7 @@ This is a checked-in dark-theme, 2× screenshot baseline of one state. The compo
 
 `MkitDataTable` binds arrows to cell navigation. Up/Down retain the column and move through the header and data rows; Left/Right move columns within the current row. Home/End move to the first/last column in the active row. Enter sorts an active sortable header or toggles selection of the active data row by default; the opt-in activation mode emits `RowActivated` on a row. Space toggles row selection. Navigation clamps at boundaries. Actions are rebindable.
 
-Clicking a sortable column header calls `sort_by`. Clicking a data row makes its first cell active and toggles row selection. A thin handle on the trailing edge of each header drags to resize that column, applying the same 24 px minimum as the API. Releasing the pointer ends the drag.
+Clicking a sortable column header calls `sort_by`. Clicking a data row makes its first cell active and toggles row selection. A 4px handle on the trailing edge of each header, drawn as a thin line, drags to resize that column, applying the same 24 px minimum as the API. Releasing the pointer ends the drag.
 
 The table label, row IDs, header labels (`header-label-<column ID>`), and resize handles (`column-resize-<column ID>`) are stable GPUI debug selectors for pointer harness scripts.
 
@@ -40,7 +40,9 @@ The root has grid role, accessible label, row count including header, and column
 
 ## Theme
 
-`surface`, `elevated_surface`, `text`, `accent`, `accent_text`, `border`, `focus`, `borders.hairline`, `controls.medium`, and `spacing.small/xsmall` are read from the GPUI `Theme`. Default width 160 px and minimum width 24 px are grid sizing policy values.
+Theme background, surface, text, border, accent, accent text, focus; spacing, controls, radii, borders, typography tokens. Default width 160 px and minimum width 24 px are grid sizing policy values.
+
+The table follows the shadcn/ui table. It sits in a bordered card with `radii.large` corners. The 40px header (`controls.large`) has no fill and medium-weight 14px labels; a sorted column shows a vector chevron. Rows are 36px (`controls.medium`) with 8px cell padding and hairline dividers, and the last row has none. Hover uses a half-strength muted fill and selected rows a muted fill; in the shadcn themes muted mixes `text` into `background`. Keyboard focus colours the table border, and the active header or cell has a `focus` outline inside it. Resize grips are thin lines. High contrast keeps a solid accent fill for selected rows. `row_divider` now defaults to `true`, and `row_divider(false)` removes the dividers. The spec records the exact token mapping.
 
 ## Verification and limits
 

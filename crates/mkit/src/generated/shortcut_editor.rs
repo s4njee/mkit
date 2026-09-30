@@ -7,6 +7,7 @@ use gpui_pre::{
     App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
     KeyBinding, KeyDownEvent, Keystroke, Render, Window, actions, div, prelude::*, px,
 };
+use mkit_core::contrast::{composite, relative_luminance};
 use mkit_core::theme::Theme;
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_key_hint::{KeyChord, KeyHint, shortcut_label};
@@ -315,6 +316,7 @@ impl Render for ShortcutEditor {
             .border_color(theme.colors.border)
             .bg(theme.colors.surface)
             .text_color(theme.colors.text);
+        let selected_bg = selected_row_bg(&theme);
         for (index, action) in self.actions.iter().enumerate() {
             let selected = self.selected == Some(index);
             let binding = self.bindings.get(&action.id);
@@ -342,18 +344,31 @@ impl Render for ShortcutEditor {
                 .gap(px(theme.spacing.medium))
                 .px(px(theme.spacing.small))
                 .py(px(theme.spacing.xsmall))
+                .relative()
                 .rounded(px(theme.radii.small))
-                .border(px(theme.borders.hairline))
-                .border_color(theme.colors.border)
-                .when(selected, |el| {
-                    el.bg(theme.colors.elevated_surface)
-                        .border_l(px(theme.borders.strong))
-                        .border_color(theme.colors.focus)
-                })
-                .when(!selected, |el| el.bg(theme.colors.elevated_surface));
+                // Flat rows like shadcn menu and command rows. Every row reserves the strong
+                // border so selection never shifts content. Selection adds the accent fill and
+                // keeps a strong focus-coloured bar as a non-colour cue.
+                .border(px(theme.borders.strong))
+                .border_color(gpui_pre::transparent_black())
+                .when(selected, |el| match selected_bg {
+                    Some(bg) => el.bg(bg).child(
+                        div()
+                            .absolute()
+                            .left(px(-theme.borders.strong))
+                            .top_0()
+                            .bottom_0()
+                            .w(px(theme.borders.strong))
+                            .bg(theme.colors.focus),
+                    ),
+                    None => el.border_color(theme.colors.focus),
+                });
             if let Some(category) = &action.category {
                 row = row.child(
                     div()
+                        // A fixed column so action labels line up across categories.
+                        .w(px(theme.controls.large))
+                        .flex_none()
                         .text_color(theme.colors.text_muted)
                         .text_size(px(theme.typography.caption))
                         .child(category.clone()),
@@ -403,6 +418,21 @@ impl Render for ShortcutEditor {
         }
         root
     }
+}
+
+/// shadcn's `accent`: text mixed into the background. High contrast has no fill and
+/// outlines the selected row instead.
+fn selected_row_bg(t: &Theme) -> Option<gpui_pre::Rgba> {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return None;
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let weight = if dark { 0.12 } else { 0.04 };
+    Some(composite(
+        gpui_pre::Rgba { a: weight, ..c.text },
+        gpui_pre::Rgba { a: 1.0, ..c.background },
+    ))
 }
 
 fn assign(bindings: &mut BTreeMap<String, String>, id: &str, chord: Option<String>) {

@@ -2,11 +2,158 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, PathPromptOptions,
-    Render, Window, actions, div, prelude::*, px,
+    App, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    PathBuilder, PathPromptOptions, Render, Rgba, Window, actions, canvas, div, point, prelude::*,
+    px,
 };
-use mkit_core::{a11y::AccessibilityExt, theme::Theme};
+use mkit_core::{
+    a11y::AccessibilityExt,
+    contrast::composite,
+    theme::{ShadowToken, Theme},
+};
 use std::path::{Path, PathBuf};
+
+/// Resolved button and row colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    background: Rgba,
+    text: Rgba,
+    text_muted: Rgba,
+    icon: Rgba,
+    button_bg: Rgba,
+    button_fg: Rgba,
+    button_border: Rgba,
+    button_hover_bg: Option<Rgba>,
+    button_hover_border: Option<Rgba>,
+    danger: Rgba,
+    danger_hover: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            background: c.background,
+            text: c.text,
+            text_muted: c.text_muted,
+            icon: c.text,
+            button_bg: c.accent,
+            button_fg: c.accent_text,
+            button_border: c.accent,
+            button_hover_bg: None,
+            button_hover_border: Some(c.text),
+            danger: c.danger,
+            danger_hover: None,
+            focus: c.focus,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    // The shadcn roles used here (primary, muted-foreground, destructive) map to the same
+    // tokens in light and dark themes, so no luminance split is needed.
+    Look {
+        high_contrast: false,
+        background: c.background,
+        text: c.text,
+        text_muted: c.text_muted,
+        icon: c.text_muted,
+        button_bg: c.accent,
+        button_fg: c.accent_text,
+        button_border: c.background.opacity(0.),
+        button_hover_bg: Some(mix(c.accent, c.background, 0.9)),
+        button_hover_border: None,
+        danger: c.danger,
+        danger_hover: Some(mix(c.danger, c.background, 0.1)),
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the control.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// One Lucide path command on the 24-unit icon grid.
+#[derive(Clone, Copy)]
+enum Seg {
+    Move(f32, f32),
+    Line(f32, f32),
+    /// Small counter-clockwise arc of the given radius (SVG `a r r 0 0 0`) to an absolute point.
+    Arc(f32, f32, f32),
+    Close,
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Paths use a
+/// 24-unit grid; the stroke is 2 units, Lucide's default, and rounded corners are arcs.
+fn icon(size: f32, segs: &'static [Seg], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let at = |x: f32, y: f32| origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for seg in segs {
+                match *seg {
+                    Seg::Move(x, y) => path.move_to(at(x, y)),
+                    Seg::Line(x, y) => path.line_to(at(x, y)),
+                    Seg::Arc(r, x, y) => {
+                        path.arc_to(point(unit * r, unit * r), px(0.), false, false, at(x, y))
+                    }
+                    Seg::Close => path.close(),
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `file`, shown before each selected file name.
+const FILE: &[Seg] = &[
+    Seg::Move(15., 2.),
+    Seg::Line(6., 2.),
+    Seg::Arc(2., 4., 4.),
+    Seg::Line(4., 20.),
+    Seg::Arc(2., 6., 22.),
+    Seg::Line(18., 22.),
+    Seg::Arc(2., 20., 20.),
+    Seg::Line(20., 7.),
+    Seg::Close,
+    Seg::Move(14., 2.),
+    Seg::Line(14., 6.),
+    Seg::Arc(2., 16., 8.),
+    Seg::Line(20., 8.),
+];
 
 pub const KEY_CONTEXT: &str = "FileField";
 pub const REMOVE_KEY_CONTEXT: &str = "FileFieldRemove";
@@ -251,6 +398,23 @@ impl Render for FileField {
         self.remove_focus.truncate(files.len());
         let remove_focus = self.remove_focus.clone();
         let browse_label = if files.is_empty() { "Browse files" } else { "Change files" };
+        let look = look(&theme);
+        let bg = look.background;
+        // Disabled controls: solid colours in high contrast, otherwise one 50% layer.
+        let (button_bg, button_fg, button_border, danger) = if !disabled {
+            (look.button_bg, look.button_fg, look.button_border, look.danger)
+        } else if look.high_contrast {
+            (bg, look.disabled, look.disabled, look.disabled)
+        } else {
+            (
+                dim(look.button_bg, bg),
+                dim(look.button_fg, bg),
+                look.button_border,
+                dim(look.danger, bg),
+            )
+        };
+        let button_shadow = (!look.high_contrast)
+            .then(|| box_shadow(theme.shadows.small, if disabled { 0.5 } else { 1.0 }));
         div()
             .id("mkit-file-field")
             .role(gpui_pre::accesskit::Role::Group)
@@ -261,19 +425,10 @@ impl Render for FileField {
             .flex()
             .flex_col()
             .gap(px(theme.spacing.small))
-            .child(
-                div()
-                    .text_color(theme.colors.text)
-                    .text_size(px(theme.typography.body))
-                    .child(label),
-            )
+            .text_size(px(theme.typography.body))
+            .child(div().text_color(look.text).font_weight(FontWeight::MEDIUM).child(label))
             .when(!description.is_empty(), |el| {
-                el.child(
-                    div()
-                        .text_color(theme.colors.text_muted)
-                        .text_size(px(theme.typography.caption))
-                        .child(description),
-                )
+                el.child(div().text_color(look.text_muted).child(description))
             })
             .child(
                 div()
@@ -291,14 +446,35 @@ impl Render for FileField {
                     .when(!disabled, |el| {
                         el.on_click(cx.listener(|this, _, _, cx| this.open_picker(cx)))
                     })
+                    .w_full()
                     .flex()
                     .items_center()
                     .justify_center()
-                    .h(px(theme.controls.large))
-                    .px(px(theme.spacing.medium))
+                    .h(px(theme.controls.medium))
+                    .px(px(theme.spacing.large))
                     .rounded(px(theme.radii.medium))
-                    .bg(if disabled { theme.colors.disabled } else { theme.colors.accent })
-                    .text_color(theme.colors.surface)
+                    .border(px(theme.borders.regular))
+                    .border_color(button_border)
+                    .bg(button_bg)
+                    .when_some(button_shadow, |el, shadow| el.shadow(vec![shadow]))
+                    .text_color(button_fg)
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
+                    .when(!disabled, |el| {
+                        el.hover(move |style| {
+                            let style = match look.button_hover_bg {
+                                Some(color) => style.bg(color),
+                                None => style,
+                            };
+                            match look.button_hover_border {
+                                Some(color) => style.border_color(color),
+                                None => style,
+                            }
+                        })
+                    })
+                    .focus_visible(move |style| {
+                        style.border_color(look.focus).shadow(vec![focus_ring(look.ring)])
+                    })
                     .child(browse_label),
             )
             .when_some(feedback, |el, feedback| {
@@ -307,7 +483,7 @@ impl Render for FileField {
                         .id("mkit-file-field-feedback")
                         .role(gpui_pre::accesskit::Role::Status)
                         .a11y_live_region(mkit_core::a11y::LiveRegionPriority::Polite)
-                        .text_color(theme.colors.text_muted)
+                        .text_color(look.text_muted)
                         .child(feedback),
                 )
             })
@@ -316,24 +492,22 @@ impl Render for FileField {
                 let size = file.size_bytes.map(format_size);
                 div()
                     .id(format!("mkit-file-field-row-{index}"))
+                    .min_h(px(theme.controls.xsmall))
                     .flex()
                     .items_center()
                     .justify_between()
                     .gap(px(theme.spacing.small))
-                    .px(px(theme.spacing.small))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
-                    .bg(theme.colors.surface)
                     .child(
                         div()
                             .flex()
                             .items_center()
                             .gap(px(theme.spacing.small))
-                            .child(div().text_color(theme.colors.text).child(name.clone()))
+                            .child(icon(theme.spacing.large, FILE, look.icon))
+                            .child(div().text_color(look.text).child(name.clone()))
                             .when_some(size, |el, size| {
                                 el.child(
                                     div()
-                                        .text_color(theme.colors.text_muted)
+                                        .text_color(look.text_muted)
                                         .text_size(px(theme.typography.caption))
                                         .child(size),
                                 )
@@ -361,10 +535,17 @@ impl Render for FileField {
                                     this.remove_from_control(index, window, cx)
                                 }))
                             })
-                            .text_color(if disabled {
-                                theme.colors.disabled
-                            } else {
-                                theme.colors.danger
+                            .flex_none()
+                            .px(px(theme.spacing.small))
+                            .py(px(theme.spacing.xsmall))
+                            .rounded(px(theme.radii.small))
+                            .text_size(px(theme.typography.caption))
+                            .text_color(danger)
+                            .when_some(look.danger_hover.filter(|_| !disabled), |el, fill| {
+                                el.hover(move |style| style.bg(fill))
+                            })
+                            .focus_visible(move |style| {
+                                style.bg(bg).shadow(vec![focus_ring(look.ring)])
                             })
                             .child("Remove"),
                     )

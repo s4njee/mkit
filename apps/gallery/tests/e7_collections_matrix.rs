@@ -205,8 +205,9 @@ fn capture_tree(
     if check_pointer {
         session.update(|root, window, cx| {
             let tree = root.read(cx).tree.as_ref().expect("Tree initialized").clone();
-            // The collapsed tree has two rows; clicking the second label activates Archive.
-            let row = point(px(70.0), px(28.0));
+            // The collapsed tree has two 32 px rows below the border and 4 px padding; clicking
+            // the second label activates Archive.
+            let row = point(px(70.0), px(48.0));
             window.dispatch_event(
                 MouseMoveEvent {
                     position: row,

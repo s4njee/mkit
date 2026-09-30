@@ -1,6 +1,6 @@
 use gpui_pre::{
-    App, Context, Entity, InputEvent, IntoElement, MouseButton, MouseDownEvent, Render, Window,
-    div, point, prelude::*, px, size,
+    App, Bounds, Context, Entity, Focusable, InputEvent, IntoElement, Keystroke, MouseButton,
+    MouseDownEvent, Pixels, Render, Window, div, point, prelude::*, px, size,
 };
 use image::RgbaImage;
 use mkit::{
@@ -9,7 +9,7 @@ use mkit::{
 };
 use mkit_harness::{HeadlessSession, PixelTolerance, ScreenshotError};
 use serde_json::Value;
-use std::{fs, path::PathBuf};
+use std::{cell::Cell, fs, path::PathBuf, rc::Rc};
 
 const SIZE: (f32, f32) = (720.0, 430.0);
 
@@ -23,6 +23,8 @@ fn master() -> CurveChannel {
 struct CurveFixture {
     state: &'static str,
     curve: Option<Entity<CurveEditor>>,
+    /// Laid-out bounds of the editor root, recorded so pointer input can target a point.
+    editor_bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
 }
 
 impl Render for CurveFixture {
@@ -49,6 +51,7 @@ impl Render for CurveFixture {
                 if state == "disabled" { editor.disabled(true) } else { editor }
             })
         });
+        let editor_bounds = self.editor_bounds.clone();
         div()
             .size_full()
             .bg(theme.colors.background)
@@ -62,10 +65,9 @@ impl Render for CurveFixture {
                 div()
                     .w(px(560.0))
                     .p(px(theme.spacing.medium))
-                    .rounded(px(theme.radii.medium))
-                    .border(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
+                    .on_children_prepainted(move |bounds, _, _| {
+                        editor_bounds.set(bounds.first().copied())
+                    })
                     .child(curve.clone()),
             )
     }
@@ -77,7 +79,7 @@ fn capture(
     scale: u32,
 ) -> Result<RgbaImage, ScreenshotError> {
     let mut session = HeadlessSession::new(
-        CurveFixture { state, curve: None },
+        CurveFixture { state, curve: None, editor_bounds: Rc::default() },
         size(px(SIZE.0), px(SIZE.1)),
         scale as f32,
         |cx: &mut App| {
@@ -92,10 +94,32 @@ fn capture(
             assert_eq!(curve.read(cx).active_channel(), 1);
         })?;
     }
+    if state == "focused" {
+        // The editor is the fixture's only tab stop. An unbound Tab keystroke records keyboard
+        // input, then focus moves to the editor so its focus-visible look is captured.
+        session.update(|root, window, cx| {
+            let curve = root.read(cx).curve.as_ref().expect("curve initialized").clone();
+            window.dispatch_keystroke(Keystroke::parse("tab").expect("Tab key"), cx);
+            window.focus_next(cx);
+            assert!(curve.read(cx).focus_handle(cx).is_focused(window), "Tab focuses the editor");
+            assert!(window.last_input_was_keyboard());
+            assert_eq!(curve.read(cx).selected_point(), None);
+        })?;
+    }
     if state == "selected-point" {
         session.update(|root, window, cx| {
             let curve = root.read(cx).curve.as_ref().expect("curve initialized").clone();
-            let position = point(px(330.0), px(191.0));
+            // The graph is the editor's last child and is six `controls.large` tall; its plot
+            // area is inset by the border. Target the interior point at (0.55, 0.72).
+            let theme = *cx.global::<Theme>();
+            let editor = root.read(cx).editor_bounds.get().expect("editor laid out");
+            let border = px(theme.borders.hairline);
+            let graph_height = px(theme.controls.large * 6.0);
+            let top = editor.origin.y + editor.size.height - graph_height + border;
+            let width = editor.size.width - border * 2.0;
+            let height = graph_height - border * 2.0;
+            let position =
+                point(editor.origin.x + border + width * 0.55, top + height * (1.0 - 0.72));
             window.dispatch_event(
                 MouseDownEvent {
                     position,
@@ -108,6 +132,7 @@ fn capture(
                 cx,
             );
             assert_eq!(curve.read(cx).selected_point(), Some(2));
+            assert_eq!(curve.read(cx).points().len(), 5, "the click selects, not adds, a point");
         })?;
     }
     session.capture()
@@ -154,7 +179,7 @@ fn run() -> Result<(), ScreenshotError> {
         serde_json::from_str(include_str!("../../../registry/curve-editor/tests/conformance.json"))
             .expect("CurveEditor manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 30, "five states × three themes × two scales");
+    assert_eq!(cases.len(), 36, "six states × three themes × two scales");
     for case in cases {
         let (state, fixture) = match case["state"].as_str().expect("state") {
             "linear" => ("linear", "linear_fixture"),
@@ -162,6 +187,7 @@ fn run() -> Result<(), ScreenshotError> {
             "selected-point" => ("selected-point", "selected_point_fixture"),
             "multiple-channels" => ("multiple-channels", "multiple_channels_fixture"),
             "disabled" => ("disabled", "disabled_fixture"),
+            "focused" => ("focused", "focused_fixture"),
             other => panic!("unmapped CurveEditor state: {other}"),
         };
         assert_eq!(case["load_fixture"].as_str(), Some(fixture));

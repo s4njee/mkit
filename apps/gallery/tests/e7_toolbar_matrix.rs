@@ -11,7 +11,8 @@ use mkit_harness::{HeadlessSession, PixelTolerance, ScreenshotError};
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
-const SIZE: (f32, f32) = (520.0, 240.0);
+// Tall enough for the whole vertical toolbar.
+const SIZE: (f32, f32) = (520.0, 320.0);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum State {

@@ -2,7 +2,7 @@
 
 > **Name:** mkit · crates `mkit`, `mkit-core`, `cargo-mkit` (published under the mk7s name)
 > **Home:** [mk7s.dev/mkit](https://mk7s.dev/mkit) (the book, component docs, gallery)
-> **Status:** Planning · **Plan version:** 0.1 · **Last updated:** 2026-09-27
+> **Status:** Planning · **Plan version:** 0.1 · **Last updated:** 2026-09-28
 > **Goal in one sentence:** The best way to learn GPUI, plus components you own, built for pro and
 > creative apps, each tested to a written spec.
 
@@ -30,6 +30,7 @@
    - [E10 — Reference Apps](#e10--reference-apps)
    - [E11 — GPUI Tracking & Compatibility](#e11--gpui-tracking--compatibility)
    - [E12 — Site, Release & Distribution](#e12--site-release--distribution)
+   - [E13 — Parity & Reach (post-1.0)](#e13--parity--reach-post-10)
 8. [Milestones & Roadmap](#8-milestones--roadmap)
 9. [Token Budget](#9-token-budget)
 10. [Definition of Done](#10-definition-of-done)
@@ -893,6 +894,69 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
 
 ---
 
+### E13 — Parity & Reach (post-1.0)
+
+> **Status:** M5 proposed 2026-09-28, pending maintainer approval. The maintainer approved starting
+> the visual-parity stories (E13.1, E13.2) now, in parallel with M1–M4; the rest follows 1.0. It
+> finishes the visual pass started on E7.1–E7.7, fills API gaps the reviews surfaced, and extends
+> mkit to charts, composed blocks, and every desktop platform.
+
+#### E13.1 — Visual parity for the remaining everyday components   `P3` `L`   deps: E5.4
+> As an app developer, I want every everyday component to look as finished as the docs previews,
+> so that an app built from mkit looks consistent.
+- [ ] Restyle to the shadcn look already applied to E7.1–E7.7, using theme tokens only: calendar
+      grid, date/time fields, disclosure and accordion, toolbar, display primitives, inline alert
+      and empty state, search field (including its icon placement) and tag input, file inputs,
+      reorderable list, menu bar, status bar, stepper, collections, and layout helpers
+- [ ] Each component's spec Theme section, screenshot matrix and book image updated together;
+      baselines inspected in every theme and scale
+- [ ] Focus-ring states added to screenshot matrices where none exists
+
+#### E13.2 — Visual parity for pro-app components   `P3` `XL`   deps: E13.1
+> As a pro-app developer, I want the pro components to share the everyday components' visual
+> language, so that editors and panels don't look bolted on.
+- [ ] Restyle the E8 components (viewport chrome, number field, precision slider, curve and
+      gradient editors, colour tools, histogram, property inspector, timeline, node editor, layer
+      panel, command palette, shortcut editor) to the same tokens and metrics
+- [x] Split into stories before starting ([P1–P4 proposal](docs/E13.2_SPLIT.md))
+
+#### E13.3 — Component API completeness   `P3` `L`   deps: E5.4
+> As an app developer, I want the features the docs previews show, so that I don't wrap mkit
+> components to get them.
+- [ ] Spec first, then implement, for the gaps recorded in `docs/REVIEW_QUEUE.md`: menu labels,
+      separators, icons and destructive items; dialog close button and footer; toast action and
+      icon; side-docked sheet; removable multi-select chips; button loading spinner; outline and
+      borderless toggle variants; segmented-control and sidebar item icons; sidebar group labels;
+      breadcrumb elision; visible field descriptions
+- [ ] Each public API change approved by a maintainer before implementation
+
+#### E13.4 — Blocks   `P3` `M`   deps: E6.2, E13.1
+> As an app developer, I want composed screens I can copy in, so that I start from a working app
+> shell instead of single components.
+- [ ] Registry "blocks" built only from mkit components: app shell (sidebar, toolbar, status
+      bar), settings page, data view (search, table, detail), editor chrome (viewport, inspector,
+      layers)
+- [ ] Installed with `cargo mkit add`, tested with the harness, shown in the gallery and docs
+
+#### E13.5 — Charts   `P3` `XL`   deps: E2.9, E8.1
+> As a data-tool developer, I want native GPUI charts, so that dashboards don't need a web view.
+- [ ] Answers open question 6 (charts are out of scope in §2 until M5 is approved): spike a chart
+      component that shares ideas with Holochart
+- [ ] Line, bar and area charts with axes, legend, tooltip, keyboard data inspection and a text
+      alternative
+- [ ] Split into stories before starting
+
+#### E13.6 — Cross-platform harness   `P3` `L`   deps: E1.1, E1.4
+> As a maintainer, I want screenshots and accessibility snapshots on Linux and Windows, so that
+> conformance isn't macOS-only.
+- [ ] Screenshot rendering on Linux and Windows CI runners, with per-platform baselines or
+      documented tolerances
+- [ ] Accessibility tree capture on Linux and Windows (today's capture is macOS-only)
+- [ ] Propose the GPUI test-support accessibility hook upstream so the harness-owned platform
+      in `crates/mkit-harness` can be retired
+
+---
+
 ## 8. Milestones & Roadmap
 
 | Milestone | Weeks | Contents | Exit criteria |
@@ -902,6 +966,7 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
 | **M2 — Pipeline** | 8–14 | E4.2–E4.5, E5, E6.1–E6.2, E8.2, E8.14, E7.1, E10.1 | Pilot measured (E5.5); `cargo mkit add` works; first 6 components pass conformance |
 | **M3 — Breadth** | 14–26 | E2.8–E2.13, E7.2–E7.13, E8.1, E8.3–E8.8, E8.12, E6.3–E6.4, E1.4–E1.5, E11 | Book Parts V–IX; all `P0`/`P1` components; `diff`/`update` work across one GPUI upgrade |
 | **M4 — 1.0** | 26–36 | E2.14–E2.16, E3.4, E9, E10.2–E10.3, E12.3–E12.4, `P2` components as time allows | ≥ 90% agent success on all 10 benchmark apps; Laika uses mkit components; crates published |
+| **M5 — Parity & Reach** *(proposed)* | 36–52; E13.1–E13.2 start now | E13 | Every component matches the docs previews and passes its screenshot matrix with focus states; review-queue API gaps closed; four blocks installable with `cargo mkit add`; line, bar and area charts pass conformance; screenshot and accessibility conformance run on macOS, Linux and Windows CI |
 
 The book is on the critical path through M1. Component work in M2 overlaps the end of M1 only once
 Parts I–III are drafted.

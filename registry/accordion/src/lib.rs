@@ -2,10 +2,103 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    AnyElement, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render,
-    Window, actions, div, prelude::*, px,
+    AnyElement, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    PathBuilder, Render, Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
+
+/// Resolved accordion colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    /// Opaque fill under the trigger so the focus ring never tints it.
+    fill: Rgba,
+    separator: Rgba,
+    text: Rgba,
+    /// Chevron colour.
+    icon: Rgba,
+    disabled_text: Rgba,
+    disabled_icon: Rgba,
+    ring: Rgba,
+    icon_stroke: IconStroke,
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            fill: c.background,
+            separator: c.border,
+            text: c.text,
+            icon: c.text,
+            disabled_text: c.disabled,
+            disabled_icon: c.disabled,
+            ring: c.focus,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        fill: c.background,
+        // The web's translucent dark border (10% text), composited over the background.
+        separator: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        text: c.text,
+        icon: c.text_muted,
+        // shadcn's disabled `opacity: .5`, flattened over the background.
+        disabled_text: mix(c.text, c.background, 0.5),
+        disabled_icon: mix(c.text_muted, c.background, 0.5),
+        ring: c.focus.opacity(0.5),
+        icon_stroke: IconStroke::Relative,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the trigger.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide `chevron-down` (6,9 → 12,15 → 18,9) while collapsed, or the same chevron
+/// turned half a turn (6,15 → 12,9 → 18,15) while expanded, as shadcn rotates it. GPUI cannot
+/// rotate elements, so both orientations are vector paths on a 24-unit grid.
+fn chevron(expanded: bool, size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let (edge, middle) = if expanded { (15.0, 9.0) } else { (9.0, 15.0) };
+            let mut path = PathBuilder::stroke(width);
+            for (i, (x, y)) in [(6.0, edge), (12.0, middle), (18.0, edge)].into_iter().enumerate() {
+                let p = bounds.origin + point(unit * x, unit * y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 pub const KEY_CONTEXT: &str = "Accordion";
 actions!(accordion, [Toggle, FocusNext, FocusPrevious]);
@@ -133,10 +226,12 @@ impl Focusable for Accordion {
 impl Render for Accordion {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         while self.focus.len() < self.items.len() {
             let index = self.focus.len();
             self.focus.push(cx.focus_handle().tab_index(0).tab_stop(!self.items[index].disabled));
         }
+        let count = self.items.len();
         let mut root = div()
             .id("mkit-accordion")
             .key_context(KEY_CONTEXT)
@@ -152,59 +247,85 @@ impl Render for Accordion {
             let disabled = item.disabled;
             let focus = self.focus[index].clone();
             let click_id = id.clone();
-            root = root.child(
-                div()
-                    .id(format!("accordion-trigger-{id}"))
-                    .key_context(KEY_CONTEXT)
-                    .on_action(cx.listener(Self::focus_next))
-                    .on_action(cx.listener(Self::focus_previous))
-                    .track_focus(&focus)
-                    .tab_stop(!disabled)
-                    .debug_selector({
-                        let s = format!("accordion-trigger-{id}");
-                        move || s.clone()
-                    })
-                    .role(gpui_pre::accesskit::Role::Button)
-                    .aria_label(label.clone())
-                    .aria_expanded(open)
-                    .when(disabled, |el| {
-                        el.a11y_synthetic_children(|builder| builder.parent_node().set_disabled())
-                    })
-                    .tab_index(if disabled { -1 } else { 0 })
-                    .w_full()
-                    .h(px(theme.controls.small))
-                    .px(px(theme.spacing.medium))
-                    .flex()
-                    .items_center()
-                    .justify_between()
-                    .border_b(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
-                    .text_color(if disabled { theme.colors.disabled } else { theme.colors.text })
-                    .text_size(px(theme.typography.body_emphasis))
-                    .when(!disabled, |e| {
-                        e.on_click(cx.listener({
-                            let id = click_id.clone();
-                            move |this, _, _, cx| this.request(&id, cx)
-                        }))
-                    })
-                    .on_action(
-                        cx.listener(move |this, _: &Toggle, _, cx| this.request(&click_id, cx)),
-                    )
-                    .child(label.clone())
-                    .child(if open { "⌄" } else { "›" }),
-            );
+            let (text, icon) = if disabled {
+                (look.disabled_text, look.disabled_icon)
+            } else {
+                (look.text, look.icon)
+            };
+            // Each item is separated from the next by a bottom border (shadcn `border-b
+            // last:border-b-0`); the wrapper has no role, so the accessibility tree is unchanged.
+            let mut entry = div()
+                .flex()
+                .flex_col()
+                .when(index + 1 < count, |e| {
+                    e.border_b(px(theme.borders.hairline)).border_color(look.separator)
+                })
+                .child(
+                    div()
+                        .id(format!("accordion-trigger-{id}"))
+                        .key_context(KEY_CONTEXT)
+                        .on_action(cx.listener(Self::focus_next))
+                        .on_action(cx.listener(Self::focus_previous))
+                        .track_focus(&focus)
+                        .tab_stop(!disabled)
+                        .debug_selector({
+                            let s = format!("accordion-trigger-{id}");
+                            move || s.clone()
+                        })
+                        .role(gpui_pre::accesskit::Role::Button)
+                        .aria_label(label.clone())
+                        .aria_expanded(open)
+                        .when(disabled, |el| {
+                            el.a11y_synthetic_children(|builder| {
+                                builder.parent_node().set_disabled()
+                            })
+                        })
+                        .tab_index(if disabled { -1 } else { 0 })
+                        .w_full()
+                        .h(px(theme.controls.large + theme.spacing.medium))
+                        .flex()
+                        .items_center()
+                        .justify_between()
+                        .gap(px(theme.spacing.large))
+                        .rounded(px(theme.radii.medium))
+                        .border(px(theme.borders.regular))
+                        .border_color(look.fill.opacity(0.))
+                        .bg(look.fill)
+                        .text_color(text)
+                        .text_size(px(theme.typography.body))
+                        .font_weight(FontWeight::MEDIUM)
+                        .when(!disabled, |e| {
+                            e.hover(|s| s.underline()).on_click(cx.listener({
+                                let id = click_id.clone();
+                                move |this, _, _, cx| this.request(&id, cx)
+                            }))
+                        })
+                        .focus_visible(move |s| {
+                            s.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+                        })
+                        .on_action(
+                            cx.listener(move |this, _: &Toggle, _, cx| this.request(&click_id, cx)),
+                        )
+                        .child(
+                            div().flex_1().min_w(px(0.)).whitespace_nowrap().child(label.clone()),
+                        )
+                        .child(chevron(open, theme.spacing.large, look.icon_stroke, icon)),
+                );
             if open {
-                root = root.child(
+                entry = entry.child(
                     div()
                         .id(format!("accordion-panel-{id}"))
                         .role(gpui_pre::accesskit::Role::Group)
                         .aria_label(label)
-                        .px(px(theme.spacing.medium))
-                        .py(px(theme.spacing.small))
+                        // Offset by the trigger's reserved focus border so text lines up.
+                        .px(px(theme.borders.regular))
+                        .pb(px(theme.spacing.large))
+                        .text_size(px(theme.typography.body))
                         .text_color(theme.colors.text)
                         .child((item.content)()),
                 );
             }
+            root = root.child(entry);
         }
         root
     }

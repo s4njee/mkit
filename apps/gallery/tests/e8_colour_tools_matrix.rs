@@ -1,4 +1,7 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Keystroke, Render, Window, div, prelude::*, px,
+    size,
+};
 use image::RgbaImage;
 use mkit::{
     colour_tools::{Colour, ColourTools, GradeOffset, Grading, Srgb},
@@ -22,7 +25,7 @@ impl Render for ColourToolsFixture {
         let tools = self.tools.get_or_insert_with(|| {
             cx.new(|_| {
                 let colour = match state {
-                    "selected" => Srgb { red: 71, green: 118, blue: 208 },
+                    "selected" | "focused" => Srgb { red: 71, green: 118, blue: 208 },
                     "eyedropper-unavailable" => Srgb { red: 221, green: 119, blue: 66 },
                     "grading" => Srgb { red: 137, green: 128, blue: 153 },
                     other => panic!("unmapped ColourTools state: {other}"),
@@ -69,6 +72,18 @@ fn capture(
             assert_eq!(tools.read(cx).grading(), grading);
         })?;
     }
+    if state == "focused" {
+        // An unbound Tab keystroke records keyboard input; the main wheel then takes focus
+        // through the public focus handle so its focus-visible handle ring is captured.
+        session.update(|root, window, cx| {
+            let tools = root.read(cx).tools.as_ref().expect("tools initialized").clone();
+            window.dispatch_keystroke(Keystroke::parse("tab").expect("Tab key"), cx);
+            let handle = tools.read(cx).focus_handle(cx);
+            window.focus(&handle, cx);
+            assert!(handle.is_focused(window), "the hue-saturation wheel has focus");
+            assert!(window.last_input_was_keyboard());
+        })?;
+    }
     session.capture()
 }
 
@@ -113,7 +128,7 @@ fn run() -> Result<(), ScreenshotError> {
         serde_json::from_str(include_str!("../../../registry/colour-tools/tests/conformance.json"))
             .expect("ColourTools manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 18, "three states × three themes × two scales");
+    assert_eq!(cases.len(), 24, "four states × three themes × two scales");
     for case in cases {
         let (state, fixture) = match case["state"].as_str().expect("state") {
             "selected" => ("selected", "selected_fixture"),
@@ -121,6 +136,7 @@ fn run() -> Result<(), ScreenshotError> {
                 ("eyedropper-unavailable", "eyedropper_unavailable_fixture")
             }
             "grading" => ("grading", "grading_fixture"),
+            "focused" => ("focused", "focused_fixture"),
             other => panic!("unmapped ColourTools state: {other}"),
         };
         assert_eq!(case["load_fixture"].as_str(), Some(fixture));

@@ -89,7 +89,7 @@ accessibility:
       value: Capture, conflict, save success, and save errors are announced as status text.
 controlled: Owner supplies the actions and binding map. In controlled mode edits emit BindingChangeRequested and remain pending until the owner calls set_bindings; uncontrolled mode updates the local binding map before emitting BindingChanged. Save serializes the current effective map and never writes during a binding change.
 events: [SelectionChanged, CaptureStarted, BindingChangeRequested, BindingChanged, ConflictDetected, SaveRequested, Saved, SaveFailed]
-theme_tokens: [surface, elevated_surface, text, text_muted, border, focus, danger, spacing.small, spacing.medium, spacing.large, radii.small, borders.hairline, borders.strong, typography.caption]
+theme_tokens: [surface, background, text, text_muted, border, focus, danger, spacing.small, spacing.medium, spacing.large, radii.small, borders.hairline, borders.strong, typography.caption, controls.large]
 open_questions: [Confirm the default on-conflict policy and keymap file format before stabilizing the public API.]
 ---
 
@@ -136,7 +136,7 @@ The root uses grid role and the accessible name “Keyboard shortcuts”. Each r
 
 ## Theme tokens used
 
-Read colors, typography, spacing, radii, and borders from the GPUI `Theme` global. This draft uses surface/elevated surface, text/text-muted, border, a focus-coloured selection edge, danger, caption typography, small/medium spacing, small radius, and hairline border tokens.
+Read colors, typography, spacing, radii, and borders from the GPUI `Theme` global. This draft uses surface, text/text-muted, border, a focus-coloured selection edge, danger, caption typography, small/medium spacing, small radius, and hairline border tokens. Rows are flat, like shadcn menu and command rows: no per-row fill or outline. Every row reserves a transparent strong border so selection never shifts its content. The selected row takes shadcn's `accent` fill (text mixed into `background` at 12% dark, 4% light) plus a strong `focus` bar on its leading edge as a non-colour cue; high contrast has no fill and outlines the selected row in `focus`. The category column is `controls.large` wide so action labels align across categories.
 
 ## WAI-ARIA pattern reference
 

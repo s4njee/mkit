@@ -28,7 +28,7 @@ accessibility:
       value: optional explanatory text
     - name: actions
       value: caller-provided controls, in insertion order
-theme_tokens: [text, text_muted, spacing.small, spacing.medium, spacing.large, spacing.xlarge, typography.heading_small, typography.body]
+theme_tokens: [background, text, text_muted, spacing.small, spacing.large, spacing.xlarge, spacing.xxlarge, radii.large, controls.large, typography.heading_small, typography.body]
 open_questions: [Review layout API and whether the empty state should impose a minimum height.]
 ---
 
@@ -64,7 +64,37 @@ The root has group role and is labelled by its title. Description text is expose
 
 ## Theme tokens used
 
-Read text, muted text, spacing, and typography values from the mkit-core Global `Theme`. The caller-provided icon and action elements retain their own styling. No fixed dimensions or literal colors are introduced.
+The docs site has no separate EmptyState preview, so the look follows the shadcn/ui `Empty`
+composition (`Empty`, `EmptyHeader`, `EmptyMedia variant="icon"`, `EmptyTitle`,
+`EmptyDescription`, `EmptyContent`) with the site's shadcn token mapping in
+`site/src/ui/tokens.ts`, resolved from the installed `Theme` the same way Button, Select, and Tabs
+do it. `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" is shadcn's `muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Icon tile fill | muted | `background`, with a `borders.hairline` `border` outline |
+| Icon tile content colour | `text` (shadcn `text-foreground`) | `text` |
+| Title | `text` | `text` |
+| Description | `text_muted` | `text_muted` |
+
+- **Icon tile.** When an icon is supplied it sits in a `controls.large` (40px, shadcn `size-10`)
+  square with radius `radii.large` (`rounded-lg`) and a muted fill; the tile sets the colour its
+  content inherits. The icon remains application supplied; shadcn sizes it to 24px
+  (`spacing.xlarge`), and the screenshot fixtures pass a Lucide icon drawn as a vector path at that
+  size.
+- **Geometry.** The group is centred with `spacing.xlarge` (24px, shadcn `p-6`) padding and no
+  border (shadcn's default `Empty`). The icon tile has `spacing.small` (8px, `mb-2`) extra space
+  below it, and the header items are `spacing.small` (8px, `gap-2`) apart; the actions sit
+  `spacing.xlarge` (24px, `gap-6`) below the header, `spacing.small` apart. The title is
+  `typography.heading_small` (16px) at medium weight (500); shadcn's `text-lg` (18px) has no token.
+  The description is `typography.body` (14px) in `text_muted`, centred, at most `spacing.xxlarge ×
+  12` (384px, shadcn `max-w-sm`) wide. There is no font-weight token yet.
+- EmptyState has no focusable parts of its own (actions are caller supplied and styled by the
+  caller), so its screenshot matrix has no focus state.
 
 ## WAI-ARIA pattern reference
 

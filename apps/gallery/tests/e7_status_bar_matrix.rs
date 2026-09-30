@@ -1,7 +1,7 @@
 use gpui_pre::{App, Context, IntoElement, Render, Window, div, prelude::*, px, size};
 use image::RgbaImage;
 use mkit::{
-    button::{Button, Variant},
+    button::{Button, Size, Variant},
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
     status_bar::{CollapsePriority, StatusBar, StatusBarItem},
 };
@@ -42,7 +42,7 @@ impl Render for StatusBarFixture {
             .leading(
                 StatusBarItem::button(
                     "details",
-                    Button::new("Details").variant(Variant::Ghost).id(31),
+                    Button::new("Details").variant(Variant::Outline).size(Size::Small).id(31),
                 )
                 .estimated_width(84.0)
                 .collapse_priority(CollapsePriority::Low),
@@ -53,14 +53,21 @@ impl Render for StatusBarFixture {
                     .collapse_priority(CollapsePriority::Low),
             )
             .trailing(
-                StatusBarItem::button("undo", Button::new("Undo").variant(Variant::Outline).id(32))
-                    .estimated_width(76.0)
-                    .collapse_priority(CollapsePriority::Normal),
+                StatusBarItem::button(
+                    "undo",
+                    Button::new("Undo").variant(Variant::Outline).size(Size::Small).id(32),
+                )
+                .estimated_width(76.0)
+                .collapse_priority(CollapsePriority::Normal),
             )
             .trailing(
                 StatusBarItem::button(
                     "export",
-                    Button::new("Export").variant(Variant::Secondary).disabled(disabled).id(33),
+                    Button::new("Export")
+                        .variant(Variant::Outline)
+                        .size(Size::Small)
+                        .disabled(disabled)
+                        .id(33),
                 )
                 .estimated_width(88.0)
                 .collapse_priority(CollapsePriority::High),

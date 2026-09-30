@@ -2,10 +2,235 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Pixels, Point,
-    Render, Window, actions, div, img, prelude::*, px,
+    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, PathBuilder,
+    Pixels, Point, Render, Rgba, Window, actions, canvas, div, img, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    card: Rgba,
+    card_border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for rows; `None` outlines the row instead (high contrast).
+    hover_bg: Option<Rgba>,
+    hover_border: Rgba,
+    /// Weight of the shadcn "muted" mix, reused for ghost button hovers over a row fill.
+    muted_weight: Option<f32>,
+    icon: Rgba,
+    quiet_icon: Rgba,
+    swatch: Rgba,
+    drop: Rgba,
+    focus: Rgba,
+    popover: Rgba,
+    popover_shadow: ShadowToken,
+    high_contrast: bool,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            card: c.surface,
+            card_border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            hover_border: c.border,
+            muted_weight: None,
+            icon: c.text,
+            quiet_icon: c.text,
+            swatch: c.background,
+            drop: c.accent,
+            focus: c.focus,
+            popover: c.background,
+            popover_shadow: t.shadows.none,
+            high_contrast: true,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let weight = if dark { 0.12 } else { 0.04 };
+    // shadcn "accent"/"muted": text mixed into the background.
+    let muted = mix(c.text, c.background, weight);
+    let card_border = if dark { mix(c.text, c.surface, 0.1) } else { c.border };
+    Look {
+        card: c.surface,
+        card_border,
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        hover_border: c.background.opacity(0.),
+        muted_weight: Some(weight),
+        icon: c.text,
+        quiet_icon: c.text_muted,
+        swatch: muted,
+        drop: c.accent,
+        focus: c.focus,
+        popover: c.surface,
+        popover_shadow: t.shadows.medium,
+        high_contrast: false,
+    }
+}
+
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
+/// One step of a Lucide icon outline on a 24-unit grid.
+#[derive(Clone, Copy)]
+enum Step {
+    Move(f32, f32),
+    Line(f32, f32),
+    /// SVG elliptical arc with equal radii: radius, large-arc flag, sweep flag, end point.
+    Arc(f32, bool, bool, f32, f32),
+    Close,
+}
+use Step::{Arc, Close, Line, Move};
+
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale; the stroke
+/// is 2 units on the 24-unit grid, Lucide's default.
+fn icon(size: f32, steps: &'static [Step], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let at = |x: f32, y: f32| bounds.origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for step in steps {
+                match *step {
+                    Move(x, y) => path.move_to(at(x, y)),
+                    Line(x, y) => path.line_to(at(x, y)),
+                    Arc(r, large, sweep, x, y) => {
+                        path.arc_to(point(unit * r, unit * r), px(0.), large, sweep, at(x, y))
+                    }
+                    Close => path.close(),
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevron-right`.
+const CHEVRON_RIGHT: &[Step] = &[Move(9., 6.), Line(15., 12.), Line(9., 18.)];
+/// Lucide `chevron-down`.
+const CHEVRON_DOWN: &[Step] = &[Move(6., 9.), Line(12., 15.), Line(18., 9.)];
+/// Lucide `eye`: the lens outline and the pupil.
+const EYE: &[Step] = &[
+    Move(2., 12.),
+    Arc(10.75, false, true, 22., 12.),
+    Arc(10.75, false, true, 2., 12.),
+    Close,
+    Move(15., 12.),
+    Arc(3., true, true, 9., 12.),
+    Arc(3., true, true, 15., 12.),
+    Close,
+];
+/// Lucide `eye-off`: the broken lens, the pupil arc, and the slash.
+const EYE_OFF: &[Step] = &[
+    Move(10.73, 5.08),
+    Arc(10.75, false, true, 20.49, 14.84),
+    Move(14.08, 14.16),
+    Arc(3., false, true, 9.84, 9.92),
+    Move(17.48, 17.5),
+    Arc(10.75, false, true, 2., 12.),
+    Arc(10.75, false, true, 6.51, 6.51),
+    Move(2., 2.),
+    Line(22., 22.),
+];
+/// Lucide `lock`: the body and a closed shackle.
+const LOCK: &[Step] = &[
+    Move(5., 11.),
+    Line(19., 11.),
+    Arc(2., false, true, 21., 13.),
+    Line(21., 20.),
+    Arc(2., false, true, 19., 22.),
+    Line(5., 22.),
+    Arc(2., false, true, 3., 20.),
+    Line(3., 13.),
+    Arc(2., false, true, 5., 11.),
+    Close,
+    Move(7., 11.),
+    Line(7., 7.),
+    Arc(5., false, true, 17., 7.),
+    Line(17., 11.),
+];
+/// Lucide `lock-open`: the body and an open shackle.
+const LOCK_OPEN: &[Step] = &[
+    Move(5., 11.),
+    Line(19., 11.),
+    Arc(2., false, true, 21., 13.),
+    Line(21., 20.),
+    Arc(2., false, true, 19., 22.),
+    Line(5., 22.),
+    Arc(2., false, true, 3., 20.),
+    Line(3., 13.),
+    Arc(2., false, true, 5., 11.),
+    Close,
+    Move(7., 11.),
+    Line(7., 7.),
+    Arc(5., false, true, 16.9, 6.),
+];
+/// Lucide `arrow-up`.
+const ARROW_UP: &[Step] = &[Move(5., 12.), Line(12., 5.), Line(19., 12.), Move(12., 19.), Line(12., 5.)];
+/// Lucide `arrow-down`.
+const ARROW_DOWN: &[Step] =
+    &[Move(12., 5.), Line(12., 19.), Move(19., 12.), Line(12., 19.), Line(5., 12.)];
+
+/// Ghost icon button, like the restyled IconButton at the panel's compact size. The pointer
+/// target is a `spacing.xlarge` square; the glyph is a `spacing.large` vector icon.
+fn ghost_button(
+    id: String,
+    theme: &Theme,
+    look: &Look,
+    row_fill: Rgba,
+    glyph: &'static [Step],
+    color: Rgba,
+    toggled: Option<bool>,
+) -> gpui_pre::Stateful<gpui_pre::Div> {
+    let hover_bg = look.muted_weight.map(|weight| mix(theme.colors.text, row_fill, weight));
+    let hover_border = if look.high_contrast && row_fill == look.active_bg {
+        look.active_text
+    } else {
+        theme.colors.accent
+    };
+    div()
+        .id(id)
+        .role(gpui_pre::accesskit::Role::Button)
+        .when_some(toggled, |el, value| el.aria_toggled(gpui_pre::accesskit::Toggled::from(value)))
+        .flex_none()
+        .size(px(theme.spacing.xlarge))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(theme.colors.background.opacity(0.))
+        .hover(move |style| match hover_bg {
+            Some(fill) => style.bg(fill),
+            None => style.border_color(hover_border),
+        })
+        .child(icon(theme.spacing.large, glyph, color))
+}
 
 pub const KEY_CONTEXT: &str = "MkitLayerPanel";
 actions!(
@@ -129,6 +354,7 @@ struct LayerDragPreview {
 impl Render for LayerDragPreview {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let width = px(180.0);
         let height = px(theme.controls.small);
         div()
@@ -140,13 +366,14 @@ impl Render for LayerDragPreview {
             .px(px(theme.spacing.small))
             .flex()
             .items_center()
-            .rounded(px(theme.radii.small))
+            .rounded(px(theme.radii.medium))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.focus)
-            .bg(theme.colors.elevated_surface)
+            .border_color(look.card_border)
+            .bg(look.popover)
+            .shadow(vec![box_shadow(look.popover_shadow)])
             .text_color(theme.colors.text)
-            .shadow_sm()
-            .child(self.label.clone())
+            .text_size(px(theme.typography.body))
+            .child(div().truncate().child(self.label.clone()))
     }
 }
 
@@ -321,9 +548,14 @@ impl Focusable for LayerPanel {
 }
 
 impl Render for LayerPanel {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
+        // `:focus-visible`: the active row outline shows for keyboard focus on the panel or row.
+        let focused = focus.contains_focused(window, cx) && window.last_input_was_keyboard();
+        let hairline = px(theme.borders.hairline);
+        let transparent = look.card.opacity(0.);
         let mut root = div()
             .id("mkit-layer-panel")
             .key_context(KEY_CONTEXT)
@@ -341,10 +573,11 @@ impl Render for LayerPanel {
             .w_full()
             .flex()
             .flex_col()
-            .rounded(px(theme.radii.small))
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface);
+            .p(px(theme.spacing.xsmall))
+            .rounded(px(theme.radii.large))
+            .border(hairline)
+            .border_color(look.card_border)
+            .bg(look.card);
         let rows = self.visible_rows();
         for (id, label, level, group) in rows {
             let active = self.active.as_deref() == Some(&id);
@@ -358,6 +591,14 @@ impl Render for LayerPanel {
             };
             let drop_id = id.clone();
             let drop_parent = drag.parent_id.clone();
+            let row_fill = if active { look.active_bg } else { look.card };
+            // High contrast draws glyphs on the solid active fill in `accent_text`, as Tree does.
+            let on_row =
+                |color: Rgba| if active && look.high_contrast { look.active_text } else { color };
+            let (hover_bg, hover_border) = (look.hover_bg, look.hover_border);
+            let drop_border = if active && look.high_contrast { look.active_text } else { look.drop };
+            let drop_fill = look.hover_bg;
+            let chevron_color = on_row(if look.high_contrast { look.icon } else { look.quiet_icon });
             let mut row = div()
                 .id(row_id.clone())
                 .debug_selector({
@@ -372,123 +613,149 @@ impl Render for LayerPanel {
                     el.aria_expanded(matches!(&node.kind, LayerKind::Group { expanded: true, .. }))
                 })
                 .tab_index(if active { 0 } else { -1 })
+                .flex_none()
                 .h(px(theme.controls.small))
-                .pl(px(theme.spacing.small * level as f32))
-                .pr(px(theme.spacing.small))
+                // One `spacing.large` step per nesting level after the row's own padding.
+                .pl(px(theme.spacing.small + theme.spacing.large * (level as f32 - 1.0)))
+                .pr(px(theme.spacing.xsmall))
                 .flex()
                 .items_center()
                 .gap(px(theme.spacing.small))
-                .text_color(theme.colors.text)
-                .when(active, |el| {
-                    el.bg(theme.colors.elevated_surface)
-                        .border_l(px(theme.borders.strong))
-                        .border_color(theme.colors.focus)
+                .rounded(px(theme.radii.small))
+                .border(hairline)
+                .border_color(if focused && active { look.focus } else { transparent })
+                .text_size(px(theme.typography.body))
+                .text_color(on_row(theme.colors.text))
+                .when(active, |el| el.bg(look.active_bg))
+                .when(!active, |el| {
+                    el.hover(move |style| match hover_bg {
+                        Some(fill) => style.bg(fill),
+                        None => style.border_color(hover_border),
+                    })
                 })
-                .when(!active, |el| el.bg(theme.colors.surface))
                 .drag_over::<LayerDrag>(move |style, dragged, _, _| {
                     if dragged.id != drop_id && dragged.parent_id == drop_parent {
-                        style
-                            .border_l(px(theme.borders.strong))
-                            .border_color(theme.colors.accent)
-                            .bg(theme.colors.elevated_surface)
+                        let style = style.border_color(drop_border);
+                        match drop_fill {
+                            Some(fill) if !active => style.bg(fill),
+                            _ => style,
+                        }
                     } else {
                         style
                     }
                 })
-                .child(if group {
-                    if matches!(node.kind, LayerKind::Group { expanded: true, .. }) {
-                        "▾"
-                    } else {
-                        "▸"
-                    }
-                } else {
-                    ""
-                });
-            if let LayerKind::Layer { visible, locked, thumbnail, swatch } = node.kind {
-                let thumb = if let Some(source) = thumbnail {
+                // The disclosure slot keeps labels aligned; only groups draw a chevron.
+                .child(
                     div()
-                        .w(px(theme.controls.xsmall))
-                        .h(px(theme.controls.xsmall))
-                        .rounded(px(theme.radii.small))
-                        .overflow_hidden()
-                        .child(img(source).w_full().h_full())
-                } else {
-                    div()
-                        .w(px(theme.controls.xsmall))
-                        .h(px(theme.controls.xsmall))
-                        .rounded(px(theme.radii.small))
-                        .bg(swatch.unwrap_or(theme.colors.elevated_surface))
-                };
-                row = row.child(
-                    thumb.border(px(theme.borders.hairline)).border_color(theme.colors.border),
+                        .flex_none()
+                        .size(px(theme.spacing.large))
+                        .when(group, |slot| {
+                            slot.child(icon(
+                                theme.spacing.large,
+                                if expanded { CHEVRON_DOWN } else { CHEVRON_RIGHT },
+                                chevron_color,
+                            ))
+                        }),
                 );
+            if let LayerKind::Layer { visible, locked, thumbnail, swatch } = node.kind {
+                let tile = div()
+                    .flex_none()
+                    .size(px(theme.spacing.xlarge))
+                    .rounded(px(theme.radii.small))
+                    .border(hairline)
+                    .border_color(on_row(look.card_border))
+                    .overflow_hidden();
+                let thumb = if let Some(source) = thumbnail {
+                    tile.child(img(source).w_full().h_full())
+                } else {
+                    tile.bg(swatch.unwrap_or(look.swatch))
+                };
+                row = row.child(thumb);
                 let visibility_label = if visible { "Hide layer" } else { "Show layer" };
                 let lock_label = if locked { "Unlock layer" } else { "Lock layer" };
                 let visibility_id = id.clone();
                 let lock_id = id.clone();
+                // The default state (visible, unlocked) is quieter than the exceptional one.
+                let quiet = on_row(look.quiet_icon);
+                let strong = on_row(look.icon);
                 row = row
-                    .child(div().flex_1().child(label.clone()))
+                    .child(div().flex_1().min_w(px(0.)).truncate().child(label.clone()))
                     .child(
-                        div()
-                            .id(format!("layer-visible-{id}"))
-                            .debug_selector({
-                                let s = format!("layer-visible-{id}");
-                                move || s.clone()
-                            })
-                            .role(gpui_pre::accesskit::Role::Button)
-                            .aria_label(visibility_label)
-                            .aria_toggled(gpui_pre::accesskit::Toggled::from(visible))
-                            .px(px(theme.spacing.xsmall))
-                            .child(if visible { "◉" } else { "○" })
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.select(visibility_id.clone(), cx);
-                                this.toggle_visibility_for(visibility_id.clone(), cx);
-                            })),
+                        ghost_button(
+                            format!("layer-visible-{id}"),
+                            &theme,
+                            &look,
+                            row_fill,
+                            if visible { EYE } else { EYE_OFF },
+                            if visible { quiet } else { strong },
+                            Some(visible),
+                        )
+                        .aria_label(visibility_label)
+                        .debug_selector({
+                            let s = format!("layer-visible-{id}");
+                            move || s.clone()
+                        })
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.select(visibility_id.clone(), cx);
+                            this.toggle_visibility_for(visibility_id.clone(), cx);
+                        })),
                     )
                     .child(
-                        div()
-                            .id(format!("layer-lock-{id}"))
-                            .debug_selector({
-                                let s = format!("layer-lock-{id}");
-                                move || s.clone()
-                            })
-                            .role(gpui_pre::accesskit::Role::Button)
-                            .aria_label(lock_label)
-                            .aria_toggled(gpui_pre::accesskit::Toggled::from(locked))
-                            .px(px(theme.spacing.xsmall))
-                            .child(if locked { "◆" } else { "◇" })
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.select(lock_id.clone(), cx);
-                                this.toggle_lock_for(lock_id.clone(), cx);
-                            })),
+                        ghost_button(
+                            format!("layer-lock-{id}"),
+                            &theme,
+                            &look,
+                            row_fill,
+                            if locked { LOCK } else { LOCK_OPEN },
+                            if locked { strong } else { quiet },
+                            Some(locked),
+                        )
+                        .aria_label(lock_label)
+                        .debug_selector({
+                            let s = format!("layer-lock-{id}");
+                            move || s.clone()
+                        })
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.select(lock_id.clone(), cx);
+                            this.toggle_lock_for(lock_id.clone(), cx);
+                        })),
                     );
             } else {
-                row = row.child(div().flex_1().child(label.clone()));
+                row = row.child(div().flex_1().min_w(px(0.)).truncate().child(label.clone()));
             }
             let up_id = id.clone();
             let down_id = id.clone();
+            let arrow_color = on_row(look.icon);
             row = row
                 .child(
-                    div()
-                        .id(format!("layer-move-up-{id}"))
-                        .role(gpui_pre::accesskit::Role::Button)
-                        .aria_label(format!("Move {label} up"))
-                        .px(px(theme.spacing.xsmall))
-                        .child("↑")
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.reorder_id(up_id.clone(), -1, cx)
-                        })),
+                    ghost_button(
+                        format!("layer-move-up-{id}"),
+                        &theme,
+                        &look,
+                        row_fill,
+                        ARROW_UP,
+                        arrow_color,
+                        None,
+                    )
+                    .aria_label(format!("Move {label} up"))
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.reorder_id(up_id.clone(), -1, cx)
+                    })),
                 )
                 .child(
-                    div()
-                        .id(format!("layer-move-down-{id}"))
-                        .role(gpui_pre::accesskit::Role::Button)
-                        .aria_label(format!("Move {label} down"))
-                        .px(px(theme.spacing.xsmall))
-                        .child("↓")
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.reorder_id(down_id.clone(), 1, cx)
-                        })),
+                    ghost_button(
+                        format!("layer-move-down-{id}"),
+                        &theme,
+                        &look,
+                        row_fill,
+                        ARROW_DOWN,
+                        arrow_color,
+                        None,
+                    )
+                    .aria_label(format!("Move {label} down"))
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.reorder_id(down_id.clone(), 1, cx)
+                    })),
                 );
             let click_id = id.clone();
             row = row

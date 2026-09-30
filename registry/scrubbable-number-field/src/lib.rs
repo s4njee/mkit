@@ -7,13 +7,137 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    Bounds, Context, DispatchPhase, ElementInputHandler, EntityInputHandler, EventEmitter,
-    FocusHandle, Focusable, IntoElement, KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent,
-    MouseUpEvent, Pixels, Render, UTF16Selection, Window, actions, canvas, div, point, prelude::*,
-    px, size,
+    Bounds, Context, CursorStyle, DispatchPhase, ElementInputHandler, EntityInputHandler,
+    EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, MouseButton, MouseDownEvent,
+    MouseMoveEvent, MouseUpEvent, PathBuilder, Pixels, Render, Rgba, TextStyle, UTF16Selection,
+    Window, actions, canvas, div, point, prelude::*, px, size,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::ops::Range;
+
+/// Resolved field colours; see the spec's "Theme tokens used" table. The chrome is the restyled
+/// TextField's, so the two controls are indistinguishable at the same size.
+#[derive(Clone, Copy)]
+struct Look {
+    fill: Rgba,
+    text: Rgba,
+    /// Unit suffix and scrub affordance.
+    muted: Rgba,
+    border: Rgba,
+    focus_border: Rgba,
+    invalid_border: Rgba,
+    /// `shadows.small` with its colour adjusted for the state; transparent in high contrast.
+    shadow: ShadowToken,
+    focus_ring: Rgba,
+    /// Ring drawn around an invalid draft whether or not the field is focused; `None` in high
+    /// contrast, where invalid is shown by the border and focus keeps its own ring.
+    invalid_ring: Option<Rgba>,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// A disabled field renders at 50% opacity as one layer. GPUI applies element opacity to each
+/// painted part separately, so each colour is composited opaque over `background` and then mixed
+/// 50% with it instead.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    mix(composite(color, background), background, 0.5)
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (text, muted, border) = if disabled {
+            (c.disabled, c.disabled, c.disabled)
+        } else {
+            (c.text, c.text_muted, c.border)
+        };
+        return Look {
+            fill: c.background,
+            text,
+            muted,
+            border,
+            focus_border: c.focus,
+            invalid_border: c.danger,
+            shadow: t.shadows.none,
+            focus_ring: c.focus,
+            invalid_ring: None,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "input": the light border, or text at 15% in dark themes.
+    let input = if dark { c.text.opacity(0.15) } else { c.border };
+    // shadcn `dark:bg-input/30`; light fields are transparent over the page, made opaque.
+    let fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    let look = Look {
+        fill,
+        text: c.text,
+        muted: c.text_muted,
+        border: composite(input, fill),
+        focus_border: c.focus,
+        invalid_border: c.danger,
+        shadow: t.shadows.small,
+        focus_ring: c.focus.opacity(0.5),
+        invalid_ring: Some(c.danger.opacity(if dark { 0.4 } else { 0.2 })),
+    };
+    if !disabled {
+        return look;
+    }
+    let bg = c.background;
+    Look {
+        fill: dim(look.fill, bg),
+        text: dim(look.text, bg),
+        muted: dim(look.muted, bg),
+        border: dim(look.border, bg),
+        invalid_border: dim(look.invalid_border, bg),
+        shadow: ShadowToken { color: look.shadow.color.opacity(0.5), ..look.shadow },
+        ..look
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the field (shared with TextField).
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide `chevrons-left-right` (9,7 → 4,12 → 9,17 and 15,7 → 20,12 → 15,17 on a
+/// 24-unit grid, 2-unit stroke), the scrub affordance, drawn as a vector path.
+fn scrub_affordance(size: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            for (tip, back) in [(4.0, 9.0), (20.0, 15.0)] {
+                let mut path = PathBuilder::stroke(unit * 2.0);
+                path.move_to(origin + point(unit * back, unit * 7.0));
+                path.line_to(origin + point(unit * tip, unit * 12.0));
+                path.line_to(origin + point(unit * back, unit * 17.0));
+                if let Ok(path) = path.build() {
+                    window.paint_path(path, color);
+                }
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 /// Key context used by this component's named actions.
 pub const KEY_CONTEXT: &str = "ScrubbableNumberField";
@@ -99,6 +223,8 @@ pub struct ScrubbableNumberField {
     pointer_changed: bool,
     pointer_scrubbing: bool,
     pointer_started_focused: bool,
+    /// Text size used for rendering, pointer hit testing, and IME bounds.
+    text_size: Option<Pixels>,
 }
 
 impl EventEmitter<ValueChanged> for ScrubbableNumberField {}
@@ -132,6 +258,7 @@ impl ScrubbableNumberField {
             pointer_changed: false,
             pointer_scrubbing: false,
             pointer_started_focused: false,
+            text_size: None,
         }
     }
 
@@ -433,6 +560,25 @@ impl ScrubbableNumberField {
         cx.notify();
     }
 
+    /// Parse the text draft, accepting the unit as a suffix.
+    fn parse_draft(&self) -> Option<f64> {
+        let mut draft = self.draft.trim();
+        if !self.unit.is_empty() {
+            draft = draft.strip_suffix(self.unit.trim()).unwrap_or(draft).trim_end();
+        }
+        draft.parse::<f64>().ok().filter(|value| value.is_finite())
+    }
+
+    /// The inherited text style at the size the field renders with, so hit testing and IME
+    /// bounds match the rendered text wherever the platform callback runs.
+    fn text_style(&self, window: &Window) -> TextStyle {
+        let mut style = window.text_style();
+        if let Some(size) = self.text_size {
+            style.font_size = size.into();
+        }
+        style
+    }
+
     fn refresh_draft(&mut self) {
         self.draft = format_number(self.value);
         self.selection = self.draft.len()..self.draft.len();
@@ -463,11 +609,7 @@ impl ScrubbableNumberField {
         if !self.draft_active || self.marked.is_some() {
             return;
         }
-        let mut draft = self.draft.trim();
-        if !self.unit.is_empty() {
-            draft = draft.strip_suffix(self.unit.trim()).unwrap_or(draft).trim_end();
-        }
-        if let Some(value) = draft.parse::<f64>().ok().filter(|value| value.is_finite()) {
+        if let Some(value) = self.parse_draft() {
             let previous = self.value;
             let next = self.clamp(value);
             if next != previous {
@@ -568,7 +710,7 @@ impl EntityInputHandler for ScrubbableNumberField {
         cx: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
         let bytes = utf16_range_to_bytes(&self.draft, &range);
-        let style = window.text_style();
+        let style = self.text_style(window);
         let inset = px(cx.global::<Theme>().spacing.small);
         let shaped = window.text_system().shape_line(
             self.draft.as_str().into(),
@@ -578,7 +720,7 @@ impl EntityInputHandler for ScrubbableNumberField {
         );
         let x0 = shaped.x_for_index(bytes.start);
         let x1 = shaped.x_for_index(bytes.end);
-        let line = window.line_height();
+        let line = style.line_height_in_pixels(window.rem_size());
         Some(Bounds::new(
             point(
                 bounds.left() + inset + x0,
@@ -594,7 +736,7 @@ impl EntityInputHandler for ScrubbableNumberField {
         cx: &mut Context<Self>,
     ) -> Option<usize> {
         let bounds = self.last_bounds?;
-        let style = window.text_style();
+        let style = self.text_style(window);
         let inset = px(cx.global::<Theme>().spacing.small);
         let shaped = window.text_system().shape_line(
             self.draft.as_str().into(),
@@ -634,6 +776,30 @@ impl Render for ScrubbableNumberField {
         let focused = focus.is_focused(window);
         let input = cx.entity();
         let theme = *cx.global::<Theme>();
+        self.text_size = Some(px(theme.typography.body));
+        let look = look(&theme, self.disabled);
+        let composing = self.marked.is_some();
+        // Keyboard focus or IME composition draws the ring; see the spec's "Theme tokens used".
+        let active = !self.disabled && (focused || composing);
+        let invalid = self.draft_active && !composing && self.parse_draft().is_none();
+        let scrubbing = !self.disabled && self.pointer_scrubbing;
+        let ring = match look.invalid_ring {
+            Some(ring) if invalid => Some(ring),
+            _ => active.then_some(look.focus_ring),
+        };
+        let shadows = match ring {
+            Some(color) => vec![focus_ring(color)],
+            None if look.shadow.color.a > 0. => vec![box_shadow(look.shadow)],
+            None => Vec::new(),
+        };
+        let border = if invalid {
+            look.invalid_border
+        } else if active || scrubbing {
+            look.focus_border
+        } else {
+            look.border
+        };
+        let content = self.content(&theme, look, active);
         div()
             .id("scrubbable-number-field")
             .debug_selector(|| "scrubbable-number-field".to_owned())
@@ -664,27 +830,40 @@ impl Render for ScrubbableNumberField {
             .on_action(cx.listener(Self::set_maximum))
             .on_action(cx.listener(Self::commit_draft))
             .on_action(cx.listener(Self::cancel_draft))
-            .px(gpui_pre::px(theme.spacing.small))
-            .py(gpui_pre::px(theme.spacing.xsmall))
-            .rounded(gpui_pre::px(theme.radii.small))
-            .border(gpui_pre::px(theme.borders.hairline))
-            .border_color(if focused { theme.colors.focus } else { theme.colors.border })
-            .focus_visible(|element| element.border_color(theme.colors.focus))
-            .bg(theme.colors.surface)
-            .text_size(gpui_pre::px(theme.typography.body))
-            .text_color(if self.disabled { theme.colors.disabled } else { theme.colors.text })
+            .when(!self.disabled, |element| {
+                element.cursor(if focused && !scrubbing {
+                    CursorStyle::IBeam
+                } else {
+                    CursorStyle::ResizeLeftRight
+                })
+            })
+            .px(px(theme.spacing.small))
+            .py(px(theme.spacing.xsmall))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(border)
+            .shadow(shadows)
+            .bg(look.fill)
+            .text_size(px(theme.typography.body))
+            .text_color(look.text)
             .flex()
             .items_center()
-            .h(gpui_pre::px(theme.controls.small))
-            .child(self.draft.clone())
+            .h(px(theme.controls.small))
+            .child(content)
             .when(!self.unit.is_empty(), |element| {
                 element.child(
                     div()
-                        .ml(gpui_pre::px(theme.spacing.xsmall))
-                        .text_color(theme.colors.text_muted)
+                        .ml(px(theme.spacing.xsmall))
+                        .text_color(look.muted)
                         .child(self.unit.clone()),
                 )
             })
+            .child(div().ml_auto().pl(px(theme.spacing.xsmall)).flex().items_center().child(
+                scrub_affordance(
+                    theme.spacing.large,
+                    if scrubbing { theme.colors.accent } else { look.muted },
+                ),
+            ))
             .child(
                 canvas(
                     |_, _, _| (),
@@ -726,6 +905,67 @@ impl Render for ScrubbableNumberField {
                 .inset_0(),
             )
     }
+}
+
+impl ScrubbableNumberField {
+    /// The draft with its caret, selection, or IME underline. Marks render only while the enabled
+    /// field owns focus or is composing; the range is clamped to the draft.
+    fn content(&self, theme: &Theme, look: Look, active: bool) -> gpui_pre::Div {
+        let draft = self.draft.as_str();
+        let caret = theme.colors.accent;
+        let piece = |range: Range<usize>| {
+            let range = clamp_range(draft, &range);
+            draft[range].to_owned()
+        };
+        if let Some(marked) = self.marked.clone().filter(|_| active) {
+            let marked = clamp_range(draft, &marked);
+            return div()
+                .flex()
+                .items_center()
+                .child(piece(0..marked.start))
+                .child(
+                    div()
+                        .border_b(px(theme.borders.strong))
+                        .border_color(caret)
+                        .child(piece(marked.clone())),
+                )
+                .child(piece(marked.end..draft.len()));
+        }
+        if !active {
+            return div().text_color(look.text).child(draft.to_owned());
+        }
+        let selection = clamp_range(draft, &self.selection);
+        div()
+            .flex()
+            .items_center()
+            .child(piece(0..selection.start))
+            .child(if selection.is_empty() {
+                div()
+                    .w(px(theme.borders.hairline))
+                    .h(px(theme.typography.heading))
+                    .flex_shrink_0()
+                    .bg(caret)
+            } else {
+                div()
+                    .bg(theme.colors.accent)
+                    .text_color(theme.colors.accent_text)
+                    .child(piece(selection.clone()))
+            })
+            .child(piece(selection.end..draft.len()))
+    }
+}
+
+/// Clamp a byte range to `text`, snapping both ends down to character boundaries.
+fn clamp_range(text: &str, range: &Range<usize>) -> Range<usize> {
+    let snap = |mut offset: usize| {
+        offset = offset.min(text.len());
+        while !text.is_char_boundary(offset) {
+            offset -= 1;
+        }
+        offset
+    };
+    let start = snap(range.start);
+    start..snap(range.end).max(start)
 }
 
 fn finite_or(value: f64, fallback: f64) -> f64 {
@@ -831,6 +1071,15 @@ mod tests {
             }
             div().child(self.field.as_ref().expect("initialized").clone())
         }
+    }
+
+    #[test]
+    fn rendered_ranges_clamp_to_the_draft_and_character_boundaries() {
+        assert_eq!(super::clamp_range("9.5", &(4..4)), 3..3);
+        assert_eq!(super::clamp_range("12.5", &(1..3)), 1..3);
+        assert_eq!(super::clamp_range("é1", &(1..9)), 0..3);
+        let reversed = std::ops::Range { start: 2, end: 1 };
+        assert_eq!(super::clamp_range("12", &reversed), 2..2);
     }
 
     #[gpui_pre::test]

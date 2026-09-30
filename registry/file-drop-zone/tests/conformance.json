@@ -98,6 +98,31 @@
       "headless_inactive_result": "unsupported_pending"
     },
     {
+      "id": "a11y-focused",
+      "state": "focused",
+      "load_fixture": "focused_fixture",
+      "expected_semantics": {
+        "role": "group",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided accessible label"
+          },
+          {
+            "name": "description",
+            "value": "accepted file types and browse instruction"
+          },
+          {
+            "name": "live",
+            "value": "polite for accepted/rejected feedback"
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
+    },
+    {
       "id": "a11y-drag-accepted",
       "state": "drag-accepted",
       "load_fixture": "drag_accepted_fixture",
@@ -262,6 +287,66 @@
       "platform": "macos",
       "status": "pending_until_supported_platform_run",
       "baseline": "file-drop-zone/idle/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-focused-light-1x",
+      "state": "focused",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/light-1x.png"
+    },
+    {
+      "id": "screen-focused-light-2x",
+      "state": "focused",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/light-2x.png"
+    },
+    {
+      "id": "screen-focused-dark-1x",
+      "state": "focused",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/dark-1x.png"
+    },
+    {
+      "id": "screen-focused-dark-2x",
+      "state": "focused",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/dark-2x.png"
+    },
+    {
+      "id": "screen-focused-high-contrast-1x",
+      "state": "focused",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-focused-high-contrast-2x",
+      "state": "focused",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "file-drop-zone/focused/high-contrast-2x.png"
     },
     {
       "id": "screen-drag-accepted-light-1x",

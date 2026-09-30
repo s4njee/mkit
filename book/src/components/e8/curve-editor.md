@@ -8,7 +8,7 @@ The [light theme preview](../../images/e8-curve-editor-light-2x.png) comes from 
 
 ![Selected point in the high contrast theme](../../images/e8-curve-editor-selected-high-contrast-1x.png)
 
-The selected point preview is part of a 30-case harness matrix covering linear, smooth, selected, multiple-channel, and disabled states in light, dark, and high contrast themes at 1× and 2×.
+Points are round handles like the Slider thumb; the selected point carries a focus ring, and keyboard focus rings the whole graph card. Channel and interpolation choices use the Segmented control look. The selected point preview is part of a 36-case harness matrix covering linear, smooth, selected, multiple-channel, disabled, and keyboard-focused states in light, dark, and high contrast themes at 1× and 2×.
 
 ## Build a curve
 

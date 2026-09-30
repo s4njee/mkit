@@ -220,6 +220,59 @@ Ruler ticks keep at least 72 logical pixels apart so short second labels remain 
 default theme typography; this is a label-collision threshold rather than a control dimension.
 Tick generation caps at 512 labels to bound work for extreme ranges.
 
+### Visual design (E13.2 P4)
+
+The look follows the restyled everyday components (Button, Toolbar, Slider, Sidebar, Tree) and is
+resolved from the installed `Theme` in three variants. `high-contrast` is selected by theme name;
+every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`,
+otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" is `text` mixed 4%
+(light) or 12% (dark) into `background`; the marker band uses half that strength (2% or 6%).
+"Divider" is `border` in light and `text` at 10% alpha in dark.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Frame | `surface` fill, divider border, radius `radii.large` | same | `surface`, `border` |
+| Frame keyboard focus | `focus` border plus a 3px ring of `focus` at 50% | same | `focus` border plus a 3px ring of opaque `focus` |
+| Title | `text`, `typography.body`, medium weight | same | same |
+| Toolbar buttons | the Button `outline` variant: `background`, `text`, outline border, `shadows.small`; hover muted; Lucide `minus`/`plus` vector icons for zoom | same with `text` at 10% over `background` as the outline | `background`, `text`, `border`; hover border `accent` |
+| Toolbar button focus | `focus` border, opaque `background`, 3px ring of `focus` at 50% | same | same ring in opaque `focus` |
+| Ruler | muted fill, divider underneath; "Track" header in `text_muted` caption at medium weight | same | `background`, `border` |
+| Ruler ticks and lane grid | divider | divider | `border` |
+| Ruler labels | `text_muted`, `typography.caption` (12px), inset `spacing.xsmall` from their tick | same | same |
+| Playhead line | `accent`, hairline | same | same |
+| Playhead head | the Slider thumb look at `spacing.medium`: opaque `background`, hairline `accent` border, `shadows.small` | same | same (no shadow) |
+| Track header row | the Sidebar/Tree row: radius `radii.small`, `typography.body` `text`; hover muted fill | same | hover draws the reserved hairline border in `border` |
+| Selected track header | muted fill, `text`, medium weight | same | `accent` fill, `accent_text` |
+| Lane | `background`, divider borders | same | `background`, `border` |
+| Marker band | half-strength muted fill with a divider under it | same | `background`, `border` divider |
+| Clip | a bordered rounded surface in shadcn's secondary look: muted fill (text mixed into `background` at 12% dark, 4% light), outline-button border (10% text in dark, `border` in light), radius `radii.medium`, `shadows.small`; `text` caption label at medium weight | same | `accent` fill, `accent_text` label, `border` outline |
+| Selected clip | `text` border plus the 3px focus ring at 50% in place of the shadow, and a Lucide `check` vector before the label | same | `focus` border and the ring in opaque `focus` |
+| Cross-track move preview | the selected clip look | same | same |
+| Keyframe marker | a vector diamond `spacing.large` (16px) across in the Slider thumb look: opaque `background` fill, hairline `accent` border, a one-step shadow in the `shadows.small` colour | same | same (no shadow) |
+| Selected keyframe | `accent`-filled diamond with a 3px ring of `focus` at 50% | same | ring in opaque `focus` |
+| Keyframe hover | muted fill over the marker's hit box, radius `radii.small` | same | hairline `border` outline around the hit box |
+
+- **Density (maintainer decision, provisional).** Pro components keep their existing dense
+  geometry: lane height (`controls.large`), ruler height (`controls.small`), track label width, the
+  three-row marker band, the `controls.small` keyframe hit box and pitch, clip insets, and the
+  `controls.xsmall` toolbar buttons (`controls.small` minimum width) are unchanged. Colours,
+  borders, radii, shadows, focus, hover and typography follow the everyday components. The drawn
+  diamond is smaller than the hit box, which stays the pointer target and shows the hover fill.
+- **Clip colour.** Clips have no data colour of their own yet, so they use the neutral secondary
+  fill, matching the site preview and leaving the strongest fill for selection cues. A future
+  per-clip colour would replace the fill only, keeping the border, radius, shadow and focus
+  treatment. High contrast keeps the solid `accent` fill.
+- Glyph-like marks (check mark, zoom icons, keyframe diamonds) are vector paths, never text
+  glyphs; they add no accessibility nodes. GPUI paints drop shadows as filled shapes, so clips,
+  buttons and handles keep opaque fills under shadows and rings. The 3px focus ring is the
+  shadcn/ui ring width.
+- Selection keeps a non-colour cue: selected clips show the check mark and ring, the selected
+  keyframe is filled, and the selected track header gains a fill and medium weight.
+- The timeline has no disabled state. All eight T3/T4 matrix states are captured with keyboard focus
+  on the timeline, so the frame focus ring appears in every case; the focused fixture already
+  reaches every state through keyboard dispatch, so no separate focused state is added.
+
 ## WAI-ARIA pattern reference
 
 There is no APG pattern for a read-only multitrack time surface. T1 follows labeled group and
@@ -255,11 +308,11 @@ applies before emission; controlled mode emits a request and waits for owner set
 emit. Invalid times, missing objects, and no-op requests emit nothing. The playhead has slider role
 and exposes formatted current time. Selected track/clip nodes include selection in their accessible
 description because GPUI's generic group node does not support the selected property. Selected
-clips also show a check mark and stronger theme border, so selection is not conveyed by color alone.
+clips also show a vector check mark and the focus ring, so selection is not conveyed by color alone.
 
 T2 adds playhead and selected states. Accent/focus and text/border/spacing/control-size values come
-from the GPUI `Global` theme. A hairline playhead and small-control ruler hit target are justified
-geometry; colors remain theme tokens. The root group and track/clip semantics from T1 remain.
+from the GPUI `Global` theme. A hairline playhead with a `spacing.medium` thumb-style head and a small-control ruler hit
+target are justified geometry; colors remain theme tokens. The root group and track/clip semantics from T1 remain.
 
 - Confirm whether selection should support multiple objects and modifier-click.
 - Confirm the seconds unit, 0.1-second step, seek clamp policy, event names, and accessibility

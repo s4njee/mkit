@@ -1,4 +1,6 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Render, Window, div, prelude::*, px, size,
+};
 use image::RgbaImage;
 use mkit::{
     calendar::{Calendar, Selection},
@@ -40,7 +42,7 @@ impl Render for CalendarFixture {
                 ]
                 .map(str::to_owned);
                 let selection = match state {
-                    "single" => Selection::Single(Some(ACTIVE)),
+                    "single" | "focused" => Selection::Single(Some(ACTIVE)),
                     "range_start" => Selection::Range(Some(ACTIVE), None),
                     "range_complete" => {
                         Selection::Range(Some(ACTIVE), Some(ACTIVE.add_days(4).unwrap()))
@@ -89,6 +91,20 @@ fn capture(
             cx.bind_keys(mkit::calendar::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        // Keyboard focus on the active day, moved off the selected day by an arrow key so the
+        // focus ring is drawn with keyboard modality on an unselected day.
+        session.update(|root, window, cx| {
+            let calendar = root.read(cx).calendar.clone().expect("Calendar initialized");
+            calendar.update(cx, |calendar, cx| calendar.request_focus(window, cx));
+        })?;
+        session.simulate_keystrokes("right")?;
+        session.update(|root, window, cx| {
+            let calendar = root.read(cx).calendar.clone().expect("Calendar initialized");
+            assert_eq!(calendar.read(cx).active_date(), ACTIVE.add_days(1).unwrap());
+            assert!(calendar.focus_handle(cx).is_focused(window), "active day owns focus");
+        })?;
+    }
     session.capture()
 }
 
@@ -130,7 +146,7 @@ fn run() -> Result<(), ScreenshotError> {
         serde_json::from_str(include_str!("../../../registry/calendar/tests/conformance.json"))
             .expect("Calendar manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 30);
+    assert_eq!(cases.len(), 36);
     for case in cases {
         let state = match case["state"].as_str().expect("state") {
             "single" => "single",
@@ -138,6 +154,7 @@ fn run() -> Result<(), ScreenshotError> {
             "range_complete" => "range_complete",
             "empty" => "empty",
             "disabled_day" => "disabled_day",
+            "focused" => "focused",
             other => panic!("unmapped Calendar state: {other}"),
         };
         let theme = match case["theme"].as_str().expect("theme") {

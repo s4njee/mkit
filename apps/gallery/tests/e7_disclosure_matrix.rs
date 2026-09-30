@@ -1,4 +1,7 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Keystroke, Render, Window, div, prelude::*, px,
+    size,
+};
 use image::RgbaImage;
 use mkit::{
     accordion::{self, Accordion, Item, Mode},
@@ -33,7 +36,7 @@ impl Render for DisclosureMatrixFixture {
                                     .child("Additional controls are available.")
                             });
                         match state {
-                            "collapsed" => disclosure,
+                            "collapsed" | "focused" => disclosure,
                             "expanded" => disclosure.expanded(true),
                             "disabled" => disclosure.expanded(true).disabled(true),
                             other => panic!("unmapped Disclosure state: {other}"),
@@ -47,7 +50,7 @@ impl Render for DisclosureMatrixFixture {
                 let entity = self.accordion.get_or_insert_with(|| {
                     cx.new(|_| {
                         let items = match state {
-                            "none_open" => vec![
+                            "none_open" | "focused" => vec![
                                 Item::new("transform", "Transform", || {
                                     div().child("Position and rotation")
                                 }),
@@ -129,6 +132,21 @@ fn capture(
             cx.bind_keys(accordion::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        // Keyboard focus on the (first) trigger: focus it, then press an unbound key so GPUI
+        // switches to keyboard modality and paints the `focus_visible` ring.
+        session.update(|root, window, cx| {
+            let focus = match component {
+                "disclosure" => {
+                    root.read(cx).disclosure.clone().expect("disclosure").focus_handle(cx)
+                }
+                _ => root.read(cx).accordion.clone().expect("accordion").focus_handle(cx),
+            };
+            window.focus(&focus, cx);
+            window.dispatch_keystroke(Keystroke::parse("escape").expect("Escape key"), cx);
+            assert!(focus.is_focused(window), "{component} trigger keeps keyboard focus");
+        })?;
+    }
     session.capture()
 }
 
@@ -163,9 +181,9 @@ fn run_component(component: &str, manifest: &Value) -> Result<(), ScreenshotErro
     };
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
     let states: &[&str] = if component == "disclosure" {
-        &["collapsed", "expanded", "disabled"]
+        &["collapsed", "expanded", "disabled", "focused"]
     } else {
-        &["none_open", "one_open", "multiple_open", "disabled_item"]
+        &["none_open", "one_open", "multiple_open", "disabled_item", "focused"]
     };
     assert_eq!(cases.len(), states.len() * 3 * 2, "state/theme/scale matrix is complete");
     for case in cases {
@@ -179,6 +197,7 @@ fn run_component(component: &str, manifest: &Value) -> Result<(), ScreenshotErro
             "one_open" => "one_open",
             "multiple_open" => "multiple_open",
             "disabled_item" => "disabled_item",
+            "focused" => "focused",
             other => panic!("unmapped state: {other}"),
         };
         let theme_value = match case["theme"].as_str().expect("theme") {

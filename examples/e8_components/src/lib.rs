@@ -231,16 +231,7 @@ impl Render for CurveEditorPreview {
             .flex_col()
             .gap(px(theme.spacing.medium))
             .child(div().text_size(px(theme.typography.heading)).child("Tone curve"))
-            .child(
-                div()
-                    .w(px(560.0))
-                    .p(px(theme.spacing.medium))
-                    .rounded(px(theme.radii.medium))
-                    .border(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
-                    .child(curve),
-            )
+            .child(div().w(px(560.0)).p(px(theme.spacing.medium)).child(curve))
     }
 }
 // ANCHOR_END: curve_editor_preview
@@ -503,6 +494,7 @@ pub enum LayerPanelVisualState {
     CollapsedGroup,
     Reordered,
     Dragging,
+    Focused,
 }
 
 #[derive(Default)]
@@ -515,6 +507,10 @@ impl LayerPanelMatrixPreview {
     pub fn for_state(state: LayerPanelVisualState) -> Self {
         Self { panel: None, state }
     }
+
+    pub fn panel(&self) -> Option<Entity<LayerPanel>> {
+        self.panel.clone()
+    }
 }
 
 fn layer_panel_matrix_data(state: LayerPanelVisualState) -> (Vec<LayerNode>, String) {
@@ -523,6 +519,15 @@ fn layer_panel_matrix_data(state: LayerPanelVisualState) -> (Vec<LayerNode>, Str
         LayerNode::layer("shape", "Blue shape").with_swatch(gpui_pre::rgb(0x7d9de5)),
         LayerNode::layer("shadow", "Soft shadow").with_swatch(gpui_pre::rgb(0x9ca3af)),
     ];
+    // A hidden layer and a locked layer, so every state shows both toggle glyphs.
+    if let LayerKind::Layer { visible, .. } = &mut children[2].kind {
+        *visible = false;
+    }
+    let mut background =
+        LayerNode::layer("background", "Background").with_swatch(gpui_pre::rgb(0xf5f5f4));
+    if let LayerKind::Layer { locked, .. } = &mut background.kind {
+        *locked = true;
+    }
     let active = match state {
         LayerPanelVisualState::SelectedLayer => "shape",
         LayerPanelVisualState::Reordered => {
@@ -539,10 +544,7 @@ fn layer_panel_matrix_data(state: LayerPanelVisualState) -> (Vec<LayerNode>, Str
         *expanded = false;
     }
     (
-        vec![
-            group,
-            LayerNode::layer("background", "Background").with_swatch(gpui_pre::rgb(0xf5f5f4)),
-        ],
+        vec![group, background],
         active.into(),
     )
 }

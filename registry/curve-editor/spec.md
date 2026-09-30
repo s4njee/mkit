@@ -17,6 +17,9 @@ states:
   - id: disabled
     description: Editor is non-interactive.
     fixture: disabled_fixture
+  - id: focused
+    description: The editor has keyboard focus and no point is selected.
+    fixture: focused_fixture
 keys:
   - key: ArrowRight
     modifiers: []
@@ -61,9 +64,10 @@ its domain data.
 
 ## Anatomy
 
-A responsive graph with a subtle grid, diagonal reference, rendered curve, and draggable control
-points. Its height is six large control-height tokens. Channel selectors sit above the graph; a
-linear/smooth mode toggle sits alongside them. A selected point receives a focus ring.
+A responsive graph card with a subtle grid, diagonal reference, rendered curve, and draggable
+control-point handles. Its height is six large control-height tokens. Channel selectors sit above
+the graph in a segmented group; a linear/smooth segmented group sits alongside them. A selected
+point's handle receives a focus ring; keyboard focus on the editor rings the graph card.
 
 ## States
 
@@ -78,8 +82,11 @@ The dedicated screenshot matrix renders linear, smooth, selected-point, multiple
 disabled states at shadcn light, shadcn dark, and high contrast, each at 1× and 2×. Linear and
 smooth use identical noncollinear points to expose interpolation differences. The selected-point
 fixture uses a real pointer click on an interior marker and asserts selection before capture.
-Multiple-channels selects a distinct second channel through the public setter. All fixtures use
-the same graph width and window dimensions. The separate controlled-mode GPUI test verifies typed
+Multiple-channels selects a distinct second channel through the public setter. The focused fixture
+dispatches an unbound Tab keystroke so the last input is the keyboard, moves focus to the editor
+(its only tab stop), and asserts focus before capture; no point is selected, so the graph ring and
+the selected-handle ring are compared in separate states. All fixtures use the same graph width and
+window dimensions. The separate controlled-mode GPUI test verifies typed
 proposal behavior; active-platform accessibility remains a distinct check.
 
 ## Props and events
@@ -128,10 +135,57 @@ output and point-marker tab navigation need verification.
 
 ## Theme tokens used
 
-Use GPUI Global `Theme` tokens for background, surface, border, accent, focus, text, and disabled
-colors. Use theme spacing, border widths, control sizing, and radius tokens for chrome and point
-handles. The look follows shadcn's quiet panel, thin grid, and clear selected ring without fixed
-component colors.
+The look follows the everyday components restyled in E7 and E13.1 (Slider, Segmented control, Tabs
+and Card) and is resolved from the installed `Theme` in three variants. `high-contrast` is selected
+by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" is `text` mixed 4% (light) or 12% (dark) into `background`; "input" is
+shadcn's `--input`, `text` at 15% in dark themes.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Graph card fill | `background` | `background` | `background` |
+| Graph card border and grid lines (the "border" role) | `border` | `text` at 10% over `background` | `border` |
+| Graph card shadow | `shadows.small` | `shadows.small` | none (`shadows.small` is transparent) |
+| Diagonal reference | `text_muted` | `text_muted` | `text_muted` |
+| Curve (channel data) | `accent` | `accent` | `accent` |
+| Point handle fill | `background` | `background` | `background` |
+| Point handle border | `accent` | `accent` | `accent` |
+| Point handle shadow | `shadows.small` | `shadows.small` | none |
+| Selected point | the resting handle plus a 3px ring of `focus` at 50% | same | the same ring in opaque `focus` |
+| Editor keyboard focus | graph border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Channel and mode groups | muted fill | muted fill | `background` with a `borders.hairline` border in `border` |
+| Selected channel or mode | `background` fill, transparent border, `shadows.small` | input over muted (opaque) with an input border, `shadows.small` | `accent` fill and border, `accent_text` |
+| Unselected channel or mode text | `text_muted` | `text_muted` | `text_muted` |
+| Disabled | every colour above mixed 50% over `background`; shadow alpha halved | same | curve, handle borders, grid, graph border and option text use `disabled`; fills stay `background` |
+
+- **Handles.** Point handles use the restyled Slider thumb: an opaque `background` fill, a
+  `borders.hairline` `accent` border and `shadows.small`. They are painted above the grid and curve
+  so the curve never shows through a handle. A selected point keeps its fill and border and adds the
+  3px focus ring, which replaces its shadow as in CSS. Keyboard focus is shown on the graph card
+  instead, so selected and focused read differently: the ring moves to the whole plot, not a point.
+  The focus look appears only while the editor has focus from keyboard input
+  (`Window::last_input_was_keyboard`), matching `:focus-visible`.
+- **Channel and mode groups.** Both use the restyled Segmented control look: radius `radii.large`,
+  padding `spacing.xsmall`, options with radius `radii.medium`, a `borders.hairline` border that is
+  transparent unless selected, horizontal padding `spacing.small`, and `typography.body` labels at
+  medium weight. They keep button semantics and pointer-only selection; keyboard selection stays on
+  the editor's Tab, Shift+Tab, `L` and `S` actions.
+- **Density (provisional maintainer decision).** Pro components keep their existing control heights,
+  plot sizes and hit targets; only colours, borders, radii, shadows, focus, hover and typography
+  follow the everyday look. The graph stays six `controls.large` tall and point handles stay
+  `controls.xsmall / 2` (14px) with the unchanged 0.035 normalized pointer hit radius. Options are
+  `controls.small` (32px) tall, the nearest dense token to the previous text-derived 34px target,
+  so each group is `controls.small + 2 × spacing.xsmall` (40px) tall rather than Segmented control's
+  36px.
+- **Card.** The graph card has radius `radii.large` and a `borders.hairline` border (2px in high
+  contrast), following the web preview's `.ui-card`. Its fill is opaque because GPUI paints drop
+  shadows and rings as filled shapes that are not clipped to the element's outside. Grid lines are
+  `borders.hairline` at quarter divisions; the curve stroke is `borders.strong`.
+- **Disabled.** The web look's `opacity: .5` applies to the editor as one layer. GPUI element opacity
+  dims each painted part separately, so every colour is composited opaque over `background` and
+  mixed 50% with it instead. High contrast keeps solid colours so the disabled curve stays legible.
 
 ## WAI-ARIA pattern reference
 
@@ -151,3 +205,7 @@ need platform verification.
 - Should add/delete expose explicit toolbar buttons in addition to graph pointer actions?
 - The public constructors, event payloads, controlled contract, and accessibility model need
   maintainer review.
+- The density decision above (keep today's heights and hit targets) is provisional; confirm it, or
+  adopt shadcn's 36px control heights across the pro components.
+- Should graph handles share one size token with the other pro components (new theme API), and
+  should grid and axis styling wait to be shared with the E13.5 charts?

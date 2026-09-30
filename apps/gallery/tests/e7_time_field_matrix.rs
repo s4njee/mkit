@@ -92,10 +92,10 @@ fn capture(
         },
     )?;
 
+    // Segment centres: 32px segments from x=16, each followed by a 4px gap, separator, and gap.
     let x = match state {
         "focused_minute" | "invalid_bounds" => Some(82.0),
         "focused_second" => Some(126.0),
-        "twelve_hour" => Some(174.0),
         "focused_hour" => Some(38.0),
         _ => None,
     };

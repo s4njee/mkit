@@ -2,14 +2,111 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    AnimationExt, AnyElement, App, Context, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, Render, RenderOnce, StyleRefinement, Window, actions, div, prelude::*, px,
+    AnimationExt, AnyElement, App, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
+    IntoElement, KeyBinding, PathBuilder, Render, RenderOnce, Rgba, StyleRefinement, Window,
+    actions, canvas, div, point, prelude::*, px,
 };
 use mkit_core::{
+    contrast::{composite, relative_luminance},
     motion::{TransitionKind, transition_animation, transition_duration},
     theme::Theme,
 };
 use std::rc::Rc;
+
+/// Resolved disclosure colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    /// Card fill (shadcn `card`), also the trigger fill so the focus ring sits on an opaque fill.
+    card: Rgba,
+    card_border: Rgba,
+    text: Rgba,
+    /// Trigger label colour while hovered; `None` underlines instead (high contrast).
+    hover_text: Option<Rgba>,
+    /// Chevron colour.
+    icon: Rgba,
+    disabled_text: Rgba,
+    disabled_icon: Rgba,
+    ring: Rgba,
+    icon_stroke: IconStroke,
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            card: c.background,
+            card_border: c.border,
+            text: c.text,
+            hover_text: None,
+            icon: c.text,
+            disabled_text: c.disabled,
+            disabled_icon: c.disabled,
+            ring: c.focus,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "card" is `surface`; the dark border is the web's translucent 10% text, composited.
+    let card = c.surface;
+    Look {
+        card,
+        card_border: if dark { mix(c.text, card, 0.1) } else { c.border },
+        text: c.text,
+        hover_text: Some(c.text_muted),
+        icon: c.text_muted,
+        // shadcn's disabled `opacity: .5`, flattened over the opaque card fill.
+        disabled_text: mix(c.text, card, 0.5),
+        disabled_icon: mix(c.text_muted, card, 0.5),
+        ring: c.focus.opacity(0.5),
+        icon_stroke: IconStroke::Relative,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the trigger.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide `chevron-down` (6,9 → 12,15 → 18,9) while collapsed, or the same chevron
+/// turned half a turn (6,15 → 12,9 → 18,15) while expanded, as shadcn rotates it. GPUI cannot
+/// rotate elements, so both orientations are vector paths on a 24-unit grid.
+fn chevron(expanded: bool, size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let (edge, middle) = if expanded { (15.0, 9.0) } else { (9.0, 15.0) };
+            let mut path = PathBuilder::stroke(width);
+            for (i, (x, y)) in [(6.0, edge), (12.0, middle), (18.0, edge)].into_iter().enumerate() {
+                let p = bounds.origin + point(unit * x, unit * y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 pub const KEY_CONTEXT: &str = "Disclosure";
 actions!(disclosure, [Toggle]);
@@ -82,8 +179,14 @@ impl Styled for DisclosureTrigger {
 impl RenderOnce for DisclosureTrigger {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let Self { id, label, expanded, disabled, focus, on_toggle, style } = self;
         let selector = id.clone();
+        let (text, icon) = if disabled {
+            (look.disabled_text, look.disabled_icon)
+        } else {
+            (look.text, look.icon)
+        };
         let mut trigger = div()
             .id(id)
             .key_context(KEY_CONTEXT)
@@ -97,21 +200,36 @@ impl RenderOnce for DisclosureTrigger {
             .when_some(focus, |e, focus| e.track_focus(&focus))
             .tab_index(if disabled { -1 } else { 0 })
             .w_full()
-            .h(px(theme.controls.small))
-            .px(px(theme.spacing.medium))
+            .h(px(theme.controls.large + theme.spacing.xsmall))
+            // The reserved focus border is part of the inset, so the label lines up with the panel.
+            .px(px(theme.spacing.large - theme.borders.regular))
             .flex()
             .items_center()
             .justify_between()
-            .text_color(if disabled { theme.colors.disabled } else { theme.colors.text })
-            .text_size(px(theme.typography.body_emphasis))
-            .bg(theme.colors.surface)
+            .gap(px(theme.spacing.large))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(look.card.opacity(0.))
+            .text_color(text)
+            .text_size(px(theme.typography.body))
+            .font_weight(FontWeight::MEDIUM)
+            .bg(look.card)
+            .when(!disabled, |e| {
+                e.hover(move |s| match look.hover_text {
+                    Some(color) => s.text_color(color),
+                    None => s.underline(),
+                })
+            })
+            .focus_visible(move |s| {
+                s.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .when_some(on_toggle.filter(|_| !disabled), |e, handler| {
                 let on_action = handler.clone();
                 e.on_action(move |_: &Toggle, window, cx| on_action(window, cx))
                     .on_click(move |_, window, cx| handler(window, cx))
             })
-            .child(label)
-            .child(if expanded { "⌄" } else { "›" });
+            .child(div().flex_1().min_w(px(0.)).whitespace_nowrap().child(label))
+            .child(chevron(expanded, theme.spacing.large, look.icon_stroke, icon));
         trigger.style().refine(&style);
         trigger
     }
@@ -172,8 +290,9 @@ impl RenderOnce for DisclosurePanel {
             .id(id)
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label(label)
-            .pl(px(theme.spacing.medium))
-            .py(px(theme.spacing.small))
+            .px(px(theme.spacing.large))
+            .pb(px(theme.spacing.large))
+            .text_size(px(theme.typography.body))
             .text_color(theme.colors.text)
             .children(children);
         panel.style().refine(&style);
@@ -287,15 +406,26 @@ impl Render for Disclosure {
         let id = self.id.clone();
         let label = self.label.clone();
         let entity = cx.entity().downgrade();
-        let mut root = div().id(format!("disclosure-{id}")).flex().flex_col().w_full().child(
-            DisclosureTrigger::new(format!("disclosure-trigger-{id}"), label.clone())
-                .expanded(self.expanded)
-                .disabled(self.disabled)
-                .track_focus(&focus)
-                .on_toggle(move |_, cx| {
-                    entity.update(cx, |this, cx| this.request_toggle(cx)).ok();
-                }),
-        );
+        let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let mut root = div()
+            .id(format!("disclosure-{id}"))
+            .flex()
+            .flex_col()
+            .w_full()
+            .rounded(px(theme.radii.large))
+            .border(px(theme.borders.regular))
+            .border_color(look.card_border)
+            .bg(look.card)
+            .child(
+                DisclosureTrigger::new(format!("disclosure-trigger-{id}"), label.clone())
+                    .expanded(self.expanded)
+                    .disabled(self.disabled)
+                    .track_focus(&focus)
+                    .on_toggle(move |_, cx| {
+                        entity.update(cx, |this, cx| this.request_toggle(cx)).ok();
+                    }),
+            );
         if self.expanded {
             root = root.child(
                 DisclosurePanel::new(format!("disclosure-panel-{id}"), label)

@@ -377,3 +377,11 @@ body.light-mode .health-tile.bad b { color: var(--accent-text); }
 .preview-shell:has(> .preview-row) .preview-row { justify-content: center; }
 @media (min-width: 761px) and (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 90px 0 100px; } .hero-lede { max-width: 520px; } .hero-visual { transform: none; } }
 .announcement { max-width: 100%; }
+
+/* Catalog cards reuse the component-page demo, drawn at half scale. The stage
+   is twice the shell's size and scaled from the top-left corner to fill it. */
+.preview-shell:has(> .card-stage) { position: relative; padding: 0; background-image: none; }
+.card-stage { position: absolute; left: 0; top: 0; width: 200%; height: 200%; transform: scale(.5); transform-origin: 0 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; pointer-events: none; user-select: none; }
+.card-stage--start { justify-content: flex-start; }
+.card-stage--stretch { align-items: stretch; }
+

@@ -1,8 +1,10 @@
 //! Themed text link with semantic keyboard and pointer activation.
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{App, IntoElement, KeyBinding, RenderOnce, Window, actions, div, prelude::*, px};
-use mkit_core::theme::Theme;
+use gpui_pre::{
+    App, IntoElement, KeyBinding, RenderOnce, Rgba, Window, actions, div, point, prelude::*, px,
+};
+use mkit_core::{contrast::composite, theme::Theme};
 use std::{
     rc::Rc,
     sync::atomic::{AtomicUsize, Ordering},
@@ -17,6 +19,48 @@ pub fn default_key_bindings() -> [KeyBinding; 1] {
 }
 
 type Callback = dyn Fn(&mut Window, &mut App) + 'static;
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+/// Resolved colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Look {
+    text: Rgba,
+    hover: Rgba,
+    ring: Rgba,
+}
+
+fn look(t: &Theme, visited: bool, disabled: bool) -> Look {
+    let c = t.colors;
+    let resting = if visited { c.text_muted } else { c.accent };
+    if t.name == "high-contrast" {
+        return Look {
+            text: if disabled { c.disabled } else { resting },
+            hover: c.focus,
+            ring: c.focus,
+        };
+    }
+    Look {
+        text: if disabled { mix(resting, c.background, 0.5) } else { resting },
+        hover: if visited { c.text } else { c.text_muted },
+        ring: c.focus.opacity(0.5),
+    }
+}
+
+/// shadcn/ui focus ring width, drawn outside the link.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 #[derive(IntoElement)]
 pub struct Link {
@@ -71,6 +115,7 @@ impl RenderOnce for Link {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
         let available = !self.disabled && self.on_activate.is_some();
+        let look = look(&theme, self.visited, self.disabled);
         let label = self.accessible_name.unwrap_or_else(|| self.label.clone());
         let mut element = div()
             .id(("mkit-link", self.id))
@@ -85,20 +130,21 @@ impl RenderOnce for Link {
             .flex()
             .self_start()
             .items_center()
-            .text_color(if self.disabled {
-                theme.colors.disabled
-            } else if self.visited {
-                theme.colors.text_muted
-            } else {
-                theme.colors.accent
-            })
+            .text_color(look.text)
             .text_size(px(theme.typography.body))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.surface)
+            .border_color(theme.colors.background.opacity(0.))
             .rounded(px(theme.radii.small))
+            // Inset the focus treatment from the text without moving the text.
+            .px(px(theme.spacing.xsmall))
+            .mx(px(-theme.spacing.xsmall))
             .underline()
-            .when(available, |el| el.hover(|el| el.text_color(theme.colors.focus)))
-            .focus_visible(|el| el.border_color(theme.colors.focus))
+            .when(available, |el| el.hover(move |el| el.text_color(look.hover)))
+            .focus_visible(move |el| {
+                el.border_color(theme.colors.focus)
+                    .bg(theme.colors.background)
+                    .shadow(vec![focus_ring(look.ring)])
+            })
             .child(self.label);
         if available && let Some(callback) = self.on_activate {
             let pointer_callback = callback.clone();

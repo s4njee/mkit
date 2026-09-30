@@ -1,12 +1,84 @@
 //! Basic sortable, selectable data grid with explicit column resizing.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    AnyElement, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Render, Window, actions, div,
-    prelude::*, px,
+    AnyElement, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PathBuilder, Render, Rgba, Window,
+    actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
 use std::collections::HashSet;
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// Outer border and row dividers (shadcn "border").
+    border: Rgba,
+    selected_bg: Rgba,
+    selected_text: Rgba,
+    /// Pointer-hover fill for unselected rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    focus: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            border: c.border,
+            selected_bg: c.accent,
+            selected_text: c.accent_text,
+            hover_bg: None,
+            focus: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "muted": text mixed 4% (light) or 12% (dark) into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        selected_bg: muted,
+        selected_text: c.text,
+        // `color-mix(in srgb, muted 50%, transparent)` over the table's surface.
+        hover_bg: Some(composite(muted.opacity(0.5), c.surface)),
+        focus: c.focus,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevron-up`.
+const CHEVRON_UP: &[&[(f32, f32)]] = &[&[(6., 15.), (12., 9.), (18., 15.)]];
+/// Lucide `chevron-down`.
+const CHEVRON_DOWN: &[&[(f32, f32)]] = &[&[(6., 9.), (12., 15.), (18., 9.)]];
 
 pub const KEY_CONTEXT: &str = "MkitDataTable";
 actions!(data_table, [Next, Previous, Left, Right, Select, Activate, First, Last]);
@@ -141,7 +213,7 @@ impl DataTable {
             column_gap: None,
             horizontal_padding: None,
             cell_padding: None,
-            row_divider: false,
+            row_divider: true,
             selection_tint: false,
             resizable: true,
             activate_on_enter: false,
@@ -415,9 +487,12 @@ impl Focusable for DataTable {
 impl Render for DataTable {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let t = *cx.global::<Theme>();
+        let look = look(&t);
         let entity = cx.entity();
         let has_focus = self.focus.as_ref().is_some_and(|focus| focus.is_focused(window));
         let table_selector = self.label.clone();
+        let transparent = t.colors.background.opacity(0.);
+        let hairline = px(t.borders.hairline);
         let mut root = div()
             .id(self.label.clone())
             .debug_selector(move || table_selector)
@@ -432,9 +507,11 @@ impl Render for DataTable {
             .aria_row_count(self.rows.len() + 1)
             .aria_column_count(self.columns.len())
             .bg(t.colors.surface)
-            .border(px(t.borders.hairline))
-            .border_color(t.colors.border)
-            .focus_visible(|element| element.border_color(t.colors.focus))
+            .border(hairline)
+            .border_color(look.border)
+            .rounded(px(t.radii.large))
+            .text_size(px(t.typography.body))
+            .focus_visible(|element| element.border_color(look.focus))
             .on_action(cx.listener(|s, _: &Next, _, cx| s.move_active(1, cx)))
             .on_action(cx.listener(|s, _: &Previous, _, cx| s.move_active(-1, cx)))
             .on_action(cx.listener(|s, _: &Left, _, cx| s.move_horizontal(-1, cx)))
@@ -447,16 +524,19 @@ impl Render for DataTable {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::end_resize));
         let horizontal_padding = self.horizontal_padding.unwrap_or(0.0);
         let cell_padding = self.cell_padding.unwrap_or(t.spacing.small);
+        let header_height = self.header_height.unwrap_or(t.controls.large);
+        // Every cell reserves a `borders.regular` outline so the active-cell focus outline does
+        // not shift its content. The outline is inset `spacing.xsmall` from the row edges so it
+        // clears the row dividers and the table's rounded corners.
+        let outline = px(t.borders.regular);
+        let inset = px(t.spacing.xsmall);
         let mut header = div()
             .flex()
             .items_center()
-            .min_h(px(self.header_height.unwrap_or(t.controls.medium)))
+            .min_h(px(header_height))
             .px(px(horizontal_padding))
             .gap(px(self.column_gap.unwrap_or(0.0)))
-            .bg(t.colors.elevated_surface)
-            .when(self.row_divider, |element| {
-                element.border_b(px(t.borders.hairline)).border_color(t.colors.border)
-            });
+            .when(self.row_divider, |element| element.border_b(hairline).border_color(look.border));
         for (column_index, c) in self.columns.iter().enumerate() {
             let active_header =
                 has_focus && self.header_active && self.active_column == column_index;
@@ -465,12 +545,7 @@ impl Render for DataTable {
             let grip_id = id.clone();
             let header_selector = format!("header-label-{id}");
             let grip_selector = format!("column-resize-{id}");
-            let dir = self
-                .sort
-                .as_ref()
-                .filter(|(s, _)| s == &id)
-                .map(|(_, d)| if *d == SortDirection::Ascending { " ↑" } else { " ↓" })
-                .unwrap_or("");
+            let sort = self.sort.as_ref().filter(|(s, _)| s == &id).map(|(_, d)| *d);
             let header_label = div()
                 .id(format!("header-label-{id}"))
                 .debug_selector(move || header_selector)
@@ -478,16 +553,24 @@ impl Render for DataTable {
                 .aria_label(format!(
                     "{}{}",
                     c.label,
-                    match self.sort.as_ref().filter(|(s, _)| s == &id).map(|(_, d)| d) {
+                    match sort {
                         Some(SortDirection::Ascending) => ", sorted ascending",
                         Some(SortDirection::Descending) => ", sorted descending",
                         None => "",
                     }
                 ))
                 .when(active_header, |e| e.aria_active_descendant())
-                .when(active_header, |element| element.text_color(t.colors.accent_text))
                 .flex_1()
+                .min_w_0()
+                .self_stretch()
+                .flex()
+                .items_center()
+                .gap(px(t.spacing.xsmall))
                 .px(px(cell_padding))
+                .my(inset)
+                .rounded(px(t.radii.small))
+                .border(outline)
+                .border_color(if active_header { look.focus } else { transparent })
                 .on_click(cx.listener(move |s, _, _, cx| {
                     if !s.header_active {
                         cx.emit(ActiveChanged(None));
@@ -499,19 +582,27 @@ impl Render for DataTable {
                     s.sort_by(&c2, cx);
                 }));
             let header_label = if let Some(renderer) = &self.header_renderer {
-                let sort = self.sort.as_ref().filter(|(id, _)| id == &c.id).map(|(_, d)| *d);
                 header_label.child(renderer(c, sort, t))
             } else {
-                header_label.child(format!("{}{dir}", c.label))
+                header_label
+                    .font_weight(FontWeight::MEDIUM)
+                    .child(div().truncate().child(c.label.clone()))
+                    .when_some(sort, |label, direction| {
+                        let glyph = match direction {
+                            SortDirection::Ascending => CHEVRON_UP,
+                            SortDirection::Descending => CHEVRON_DOWN,
+                        };
+                        label.child(icon(t.spacing.large, glyph, t.colors.text))
+                    })
             };
             header = header.child(
                 div()
                     .id(format!("header-{id}"))
                     .w(px(c.width as f32))
+                    .self_stretch()
                     .flex()
                     .items_center()
-                    .when(active_header, |element| element.bg(t.colors.accent))
-                    .when(!active_header, |element| element.text_color(t.colors.text))
+                    .text_color(t.colors.text)
                     .child(header_label)
                     .when(self.resizable, |element| {
                         element.child(
@@ -520,9 +611,14 @@ impl Render for DataTable {
                                 .debug_selector(move || grip_selector)
                                 .role(gpui_pre::accesskit::Role::Splitter)
                                 .aria_label(format!("Resize {} column", c.label))
+                                .flex_none()
                                 .w(px(t.spacing.xsmall))
-                                .h(px(self.header_height.unwrap_or(t.controls.medium)))
-                                .bg(t.colors.border)
+                                .h(px(header_height))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .cursor_col_resize()
+                                .child(div().w(hairline).h(px(t.spacing.large)).bg(look.border))
                                 .on_mouse_down(
                                     MouseButton::Left,
                                     cx.listener(move |s, event, _, _| {
@@ -534,11 +630,18 @@ impl Render for DataTable {
             );
         }
         root = root.child(header);
+        let row_count = self.rows.len();
+        // Rows inside the rounded border round their bottom corners on the last row, since GPUI
+        // clips children to a rectangle.
+        let inner_radius = px((t.radii.large - t.borders.hairline).max(0.0));
         for (ri, row) in self.rows.iter().enumerate() {
             let row_entity = entity.clone();
             let row_selector = row.id.clone();
             let selected = self.selected.contains(&row.id);
             let active = self.active == Some(ri);
+            let last = ri + 1 == row_count;
+            let fill =
+                if self.selection_tint { t.colors.accent.opacity(0.12) } else { look.selected_bg };
             let mut line = div()
                 .id(row.id.clone())
                 .debug_selector(move || row_selector)
@@ -546,21 +649,17 @@ impl Render for DataTable {
                 .aria_label(row.cells.join(", "))
                 .aria_selected(selected)
                 .flex()
-                .when(self.cell_renderer.is_some(), |element| element.items_center())
+                .items_center()
                 .min_h(px(self.row_height.unwrap_or(t.controls.medium)))
                 .px(px(horizontal_padding))
                 .gap(px(self.column_gap.unwrap_or(0.0)))
-                .when(self.row_divider, |element| {
-                    element.border_b(px(t.borders.hairline)).border_color(t.colors.border)
+                .when(self.row_divider && !last, |element| {
+                    element.border_b(hairline).border_color(look.border)
                 })
-                .bg(if selected || active {
-                    if self.selection_tint {
-                        t.colors.accent.opacity(0.12)
-                    } else {
-                        t.colors.accent
-                    }
-                } else {
-                    t.colors.surface
+                .when(last, |element| element.rounded_b(inner_radius))
+                .when(selected, |element| element.bg(fill))
+                .when_some(look.hover_bg.filter(|_| !selected), |element, hover| {
+                    element.hover(move |style| style.bg(hover))
                 })
                 .on_click(move |event: &gpui_pre::ClickEvent, window, cx| {
                     row_entity.update(cx, |table, cx| {
@@ -595,20 +694,24 @@ impl Render for DataTable {
                         value
                     ))
                     .when(active_cell, |element| element.aria_active_descendant())
-                    .when(active_cell, |element| {
-                        element.border(px(t.borders.regular)).border_color(t.colors.focus)
-                    })
                     .w(px(width as f32))
+                    .self_stretch()
+                    .flex()
+                    .items_center()
                     .px(px(cell_padding))
-                    .text_color(if (selected || active) && !self.selection_tint {
-                        t.colors.accent_text
+                    .my(inset)
+                    .rounded(px(t.radii.small))
+                    .border(outline)
+                    .border_color(if active_cell { look.focus } else { transparent })
+                    .text_color(if selected && look.high_contrast && !self.selection_tint {
+                        look.selected_text
                     } else {
                         t.colors.text
                     });
                 line = if let (Some(renderer), Some(column)) = (&self.cell_renderer, column) {
                     line.child(cell.child(renderer(row, column, selected, t)))
                 } else {
-                    line.child(cell.child(value.clone()))
+                    line.child(cell.child(div().truncate().child(value.clone())))
                 };
             }
             root = root.child(line);

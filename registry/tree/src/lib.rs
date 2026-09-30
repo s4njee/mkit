@@ -1,10 +1,98 @@
 //! Keyboard navigable tree with owner-driven lazy loading.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, IntoElement, KeyBinding, Render, Window, actions, div, prelude::*, px,
+    Context, EventEmitter, FocusHandle, IntoElement, KeyBinding, PathBuilder, Render, Rgba, Window,
+    actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
 use std::collections::HashSet;
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    icon: Rgba,
+    active_icon: Rgba,
+    /// Pointer-hover fill for rows (shadcn); `None` outlines the row instead.
+    hover_bg: Option<Rgba>,
+    hover_border: Rgba,
+    focus: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            icon: c.text,
+            active_icon: c.accent_text,
+            hover_bg: None,
+            hover_border: c.border,
+            focus: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "accent": text mixed 4% (light) or 12% (dark) into the background.
+    let accent = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_bg: accent,
+        active_text: c.text,
+        icon: c.text_muted,
+        active_icon: c.text_muted,
+        hover_bg: Some(accent),
+        hover_border: c.border,
+        focus: c.focus,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevron-right`.
+const CHEVRON_RIGHT: &[&[(f32, f32)]] = &[&[(9., 6.), (15., 12.), (9., 18.)]];
+/// Lucide `chevron-down`.
+const CHEVRON_DOWN: &[&[(f32, f32)]] = &[&[(6., 9.), (12., 15.), (18., 9.)]];
+/// Lucide `loader`: eight rays around the centre.
+const LOADER: &[&[(f32, f32)]] = &[
+    &[(12., 2.), (12., 6.)],
+    &[(16.2, 7.8), (19.1, 4.9)],
+    &[(18., 12.), (22., 12.)],
+    &[(16.2, 16.2), (19.1, 19.1)],
+    &[(12., 18.), (12., 22.)],
+    &[(4.9, 19.1), (7.8, 16.2)],
+    &[(2., 12.), (6., 12.)],
+    &[(4.9, 4.9), (7.8, 7.8)],
+];
 
 pub const KEY_CONTEXT: &str = "MkitTree";
 actions!(tree, [Next, Previous, Expand, Collapse, First, Last]);
@@ -59,6 +147,7 @@ pub struct Tree {
     active: Option<String>,
     controlled: bool,
     loading: HashSet<String>,
+    focus: Option<FocusHandle>,
 }
 impl Tree {
     pub fn new(label: impl Into<String>, roots: Vec<TreeNode>) -> Self {
@@ -70,6 +159,7 @@ impl Tree {
             active,
             controlled: false,
             loading: HashSet::new(),
+            focus: None,
         }
     }
     pub fn controlled(
@@ -261,19 +351,33 @@ fn parent_id(nodes: &[TreeNode], id: &str) -> Option<String> {
     None
 }
 impl Render for Tree {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        // The tree is one tab stop. Tracking the handle here (rather than letting `tab_index`
+        // create one in element state) lets render show the active row's focus outline.
+        let focus =
+            self.focus.get_or_insert_with(|| cx.focus_handle().tab_stop(true).tab_index(0)).clone();
+        // `:focus-visible`: the active row outline shows for keyboard focus only.
+        let focused = focus.is_focused(window) && window.last_input_was_keyboard();
         let entity = cx.entity();
         let rows = self.visible();
+        let hairline = px(theme.borders.hairline);
+        let transparent = theme.colors.background.opacity(0.);
         let mut root = div()
             .id(self.label.clone())
             .key_context(KEY_CONTEXT)
+            .track_focus(&focus)
             .tab_index(0)
             .role(gpui_pre::accesskit::Role::Tree)
             .aria_label(self.label.clone())
+            .flex()
+            .flex_col()
+            .p(px(theme.spacing.xsmall))
             .bg(theme.colors.surface)
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border(hairline)
+            .border_color(look.border)
+            .rounded(px(theme.radii.large))
             .on_action(cx.listener(|s, _: &Next, _, cx| s.move_active(1, cx)))
             .on_action(cx.listener(|s, _: &Previous, _, cx| s.move_active(-1, cx)))
             .on_action(cx.listener(|s, _: &Expand, _, cx| s.expand_active(cx)))
@@ -285,19 +389,21 @@ impl Render for Tree {
                     s.set_active_index(n - 1, cx)
                 }
             }));
+        let icon_size = theme.spacing.large;
         for (id, label, level, expandable, open) in rows {
             let active = self.active.as_deref() == Some(id.as_str());
             let loading = id.ends_with(":loading");
             let row_id = id.clone();
             let row_entity = entity.clone();
-            let prefix = if loading {
-                "◌"
+            let icon_color = if active { look.active_icon } else { look.icon };
+            let glyph = if loading {
+                Some(LOADER)
             } else if expandable && open {
-                "▾"
+                Some(CHEVRON_DOWN)
             } else if expandable {
-                "▸"
+                Some(CHEVRON_RIGHT)
             } else {
-                ""
+                None
             };
             root = root.child(
                 div()
@@ -312,16 +418,42 @@ impl Render for Tree {
                     })
                     .flex()
                     .flex_row()
-                    .pl(px(theme.spacing.small))
-                    .ml(px(theme.spacing.medium * (level as f32 - 1.0)))
-                    .bg(if active { theme.colors.accent } else { theme.colors.surface })
-                    .text_color(if active { theme.colors.accent_text } else { theme.colors.text })
+                    .items_center()
+                    .flex_none()
+                    .h(px(theme.controls.small))
+                    // Each level indents by one icon width, as the web preview's 16px step.
+                    .pl(px(theme.spacing.large * (level as f32 - 1.0)))
+                    .pr(px(theme.spacing.small))
+                    .gap(px(theme.spacing.small))
+                    .rounded(px(theme.radii.small))
+                    .border(hairline)
+                    .border_color(if focused && active { look.focus } else { transparent })
+                    .text_size(px(theme.typography.body))
+                    .when(active, |e| e.bg(look.active_bg).text_color(look.active_text))
+                    .when(!active, |e| {
+                        e.text_color(if loading {
+                            theme.colors.text_muted
+                        } else {
+                            theme.colors.text
+                        })
+                    })
+                    .when(!active && !loading, |e| {
+                        e.hover(move |style| match look.hover_bg {
+                            Some(fill) => style.bg(fill),
+                            None => style.border_color(look.hover_border),
+                        })
+                    })
                     .child(
+                        // The disclosure target spans the row's leading padding and the chevron,
+                        // so the target is `spacing.small` plus the icon (24px) wide.
                         div()
                             .id(format!("{id}:disclosure"))
-                            .w(px(theme.spacing.medium * 2.0))
-                            .flex_shrink_0()
-                            .text_center()
+                            .flex_none()
+                            .h_full()
+                            .pl(px(theme.spacing.small))
+                            .flex()
+                            .items_center()
+                            .w(px(theme.spacing.small + icon_size))
                             .when(expandable && !loading, |disclosure| {
                                 let node_id = id.clone();
                                 let entity = entity.clone();
@@ -332,9 +464,11 @@ impl Render for Tree {
                                     });
                                 })
                             })
-                            .child(prefix),
+                            .when_some(glyph, |disclosure, glyph| {
+                                disclosure.child(icon(icon_size, glyph, icon_color))
+                            }),
                     )
-                    .child(div().child(label)),
+                    .child(div().flex_1().truncate().child(label)),
             );
         }
         root
@@ -372,7 +506,7 @@ mod tests {
             )
         });
         visual.update(|window, cx| window.draw(cx).clear(cx));
-        let second = point(px(15.0), px(30.0));
+        let second = point(px(15.0), px(48.0));
         visual.simulate_click(second, Modifiers::default());
         assert_eq!(
             tree.read_with(visual, |tree, _| tree.active().map(str::to_owned)),
@@ -423,8 +557,8 @@ mod tests {
         });
         visual.update(|window, cx| window.draw(cx).clear(cx));
 
-        // The second row's disclosure occupies the leading two spacing.medium units.
-        visual.simulate_click(point(px(12.0), px(30.0)), Modifiers::default());
+        // The second row starts 37 px down; its disclosure spans the leading 24 px of the row.
+        visual.simulate_click(point(px(12.0), px(48.0)), Modifiers::default());
         tree.read_with(visual, |tree, _| {
             assert_eq!(tree.active(), Some("active"));
             assert!(tree.is_expanded("branch"));
@@ -432,9 +566,9 @@ mod tests {
         assert_eq!(*events.borrow(), vec!["expand:branch:true"]);
 
         // The label area activates the row independently of its disclosure target.
-        visual.simulate_click(point(px(48.0), px(30.0)), Modifiers::default());
+        visual.simulate_click(point(px(48.0), px(48.0)), Modifiers::default());
         tree.read_with(visual, |tree, _| assert_eq!(tree.active(), Some("branch")));
-        visual.simulate_click(point(px(12.0), px(30.0)), Modifiers::default());
+        visual.simulate_click(point(px(12.0), px(48.0)), Modifiers::default());
         tree.read_with(visual, |tree, _| {
             assert_eq!(tree.active(), Some("branch"));
             assert!(!tree.is_expanded("branch"));
@@ -472,8 +606,8 @@ mod tests {
         });
         visual.update(|window, cx| window.draw(cx).clear(cx));
 
-        visual.simulate_click(point(px(12.0), px(30.0)), Modifiers::default());
-        visual.simulate_click(point(px(12.0), px(30.0)), Modifiers::default());
+        visual.simulate_click(point(px(12.0), px(48.0)), Modifiers::default());
+        visual.simulate_click(point(px(12.0), px(48.0)), Modifiers::default());
         tree.read_with(visual, |tree, _| {
             assert_eq!(tree.active(), Some("active"));
             assert!(!tree.is_expanded("lazy"));

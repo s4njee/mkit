@@ -101,7 +101,18 @@ state and validation are owned and exposed by the child fields.
 ## Theme tokens used
 
 The wrapper uses Global `Theme` spacing and body typography for its localized separator and layout.
-Child fields render with their own theme tokens.
+Child fields render with their own theme tokens: the DatePicker's shadcn input with the calendar
+disclosure inside its right end and its popover-wrapped Calendar card, and the TimeField's
+input-style segments with the accent fill on the focused segment (see their specs).
+
+The docs-site web preview (`site/src/demos/e7_expansion.ts`, `date-time-field`) draws one text input
+holding both date and time, with the calendar disclosure inside it. DateTimeField is a passive
+composition of two independent child components, so matching that single input would need a combined
+editor and a new value contract; the visual parity pass instead keeps the two restyled children side
+by side, which gives the same input, disclosure, and focus-ring look. The children are vertically
+centred on each other, `spacing.small` (8px) apart, with the localized separator in `text_muted` at
+`typography.body` (14px). The wrapper does not know the children's disabled state, so the separator
+is not dimmed when both children are disabled.
 
 ## WAI-ARIA pattern reference
 

@@ -46,7 +46,37 @@ The root has the `group` role and an optional accessible name from `label`. Call
 
 ## Theme tokens used
 
-`Theme.spacing.xsmall/small/medium/large/xxlarge`, `Theme.typography.body/caption`, and `Theme.colors.text/text_muted/danger`. No component colors or fixed sizes are hard-coded.
+`Theme.spacing.xsmall/small/medium/large/xlarge/xxlarge`, `Theme.controls.medium`,
+`Theme.typography.body/caption`, and `Theme.colors.text/text_muted/danger`. No component colours or
+fixed sizes are hard-coded.
+
+### Visual design
+
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-label`,
+`.ui-field`, `.ui-description`, and `.ui-error-text` in `site/src/ui/ui.css`) and shadcn/ui's field
+metrics. The same tokens apply in every theme, including high contrast, because the layout draws no
+fills or borders of its own.
+
+| Part | Default | Compact |
+|---|---|---|
+| Gap between rows (fields) | `spacing.xlarge` (24px, shadcn's field spacing) | `spacing.large` (16px) |
+| Label-to-control column gap | `spacing.large` (16px, the web grid's column gap) | `spacing.medium` (12px) |
+| Control-to-helper gap | `spacing.small` (8px, `.ui-field` `gap: 8px`) | `spacing.xsmall` (4px) |
+| Label | `typography.body` (14px), medium (500) weight, `text` | same |
+| Description | `typography.caption`, `text_muted` | same |
+| Error | `typography.caption`, `danger` | same |
+
+- **Label alignment.** The label box is at least `controls.medium` (36px, the default control
+  height) tall and centres its text vertically, so a label lines up with a default-height control;
+  the web preview does the same with `padding-top: 11px` on a 14px, line-height-1 label. Taller
+  controls keep the label at their top.
+- **Helper text size.** The web uses 13px descriptions and errors. There is no 13px token; the
+  nearest tokens are 12px (`caption`) and 14px (`body`), and `caption` keeps helper text visibly
+  secondary to the 14px label.
+- **Row gap.** The web preview's grid uses 16px between rows; shadcn's own form and field examples
+  space fields 24px apart, which reads better once descriptions and errors sit under controls. The
+  default follows shadcn; `compact(true)` gives the web grid's 16px.
+- Labels use medium weight, shadcn's `font-medium`; there is no font-weight token yet.
 
 ## WAI-ARIA pattern reference
 

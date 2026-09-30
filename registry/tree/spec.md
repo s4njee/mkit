@@ -37,7 +37,7 @@ accessibility:
       value: expandable treeitems expose expanded state
 controlled: Owner supplies expanded node IDs; requests emit ExpansionChanged and apply only after set_expanded. Uncontrolled mode updates before emitting.
 events: [ActiveChanged, ExpansionChanged, LoadChildrenRequested]
-theme_tokens: [surface, text, border, accent, accent_text, focus, spacing.medium]
+theme_tokens: [background, surface, text, text_muted, border, accent, accent_text, focus, spacing.xsmall, spacing.small, spacing.large, controls.small, radii.small, radii.large, borders.hairline, typography.body]
 open_questions: []
 ---
 
@@ -65,7 +65,7 @@ A focusable tree root renders visible `TreeNode` rows. Each row has an ID, label
 
 ## Pointer behaviour
 
-Clicking a visible row outside its disclosure target makes that node active; the tree root remains the keyboard focus target. Expandable rows provide a separate disclosure hit target, sized to two `spacing.medium` units and aligned before the label. Clicking it requests expansion or collapse without activating the row. Controlled expansion changes remain owner-applied: clicking disclosure emits `ExpansionChanged`, but expanded state and lazy loading presentation change only after `set_expanded`. A lazy expansion request emits `LoadChildrenRequested` once while that node remains expanded with children absent; repeated clicks while the request is pending do not duplicate the child-load event. Keyboard Right/Left retain their existing active-row expansion and navigation behavior.
+Clicking a visible row outside its disclosure target makes that node active; the tree root remains the keyboard focus target. Expandable rows provide a separate disclosure hit target, spanning the row's leading `spacing.small` padding and its 16px (`spacing.large`) chevron, 24px in all, before the label. Clicking it requests expansion or collapse without activating the row. Controlled expansion changes remain owner-applied: clicking disclosure emits `ExpansionChanged`, but expanded state and lazy loading presentation change only after `set_expanded`. A lazy expansion request emits `LoadChildrenRequested` once while that node remains expanded with children absent; repeated clicks while the request is pending do not duplicate the child-load event. Keyboard Right/Left retain their existing active-row expansion and navigation behavior.
 
 ## Accessibility role and properties
 
@@ -73,7 +73,51 @@ The root has tree role and accessible label. Visible rows have treeitem role, th
 
 ## Theme tokens used
 
-`surface`, `accent`, `accent_text`, `text`, `border`, `borders.hairline`, `spacing.small`, and `spacing.medium` are read from the GPUI `Theme`.
+`background`, `surface`, `text`, `text_muted`, `border`, `accent`, `accent_text`, `focus`,
+`borders.hairline`, `spacing.xsmall/small/large`, `controls.small`, `radii.small/large`, and
+`typography.body` are read from the GPUI `Theme`.
+
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, the `tree` demo built from
+`.ui-menu__item` rows, styled in `site/src/ui/ui.css` with the shadcn token mapping in
+`site/src/ui/tokens.ts`), which matches the restyled Sidebar items. Colours are resolved from the installed `Theme` in three variants, the way Button, Select, Tabs,
+and Sidebar do it: `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Accent" below is shadcn's `accent`/`muted`: `text` mixed 4% (light) or 12% (dark)
+into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Tree fill | `surface` | `surface` | `surface` |
+| Tree border | `border` | `text` at 10% | `border` |
+| Row text | `text` | `text` | `text` |
+| Chevrons and loader | `text_muted` | `text_muted` | `text` (`accent_text` on the active row) |
+| Active row | accent fill, `text` | accent fill, `text` | `accent` fill, `accent_text` |
+| Pointer hover | accent fill | accent fill | row outline in `border` |
+| Active row with keyboard focus | `borders.hairline` outline in `focus` inside the row | same | same |
+| Loading row text | `text_muted` | `text_muted` | `text_muted` |
+
+- **Geometry.** The tree is a card: radius `radii.large`, a `borders.hairline` border, and
+  `spacing.xsmall` (4px) padding. Rows are `controls.small` (32px) tall, the web's 14px text with
+  6px vertical padding, with radius `radii.small` and `typography.body` text. Each level indents by
+  `spacing.large` (16px, the web's `depth * 16px`). A row starts with a disclosure slot:
+  `spacing.small` (8px, the web's row padding) plus a `spacing.large` (16px) icon square, then an
+  8px (`spacing.small`) gap before the label. The whole slot is the disclosure pointer target, so
+  it is 24px wide. Labels truncate with an ellipsis.
+- **Icons.** Expanded branches show Lucide `chevron-down`, collapsed branches `chevron-right`, and
+  the placeholder row of a branch whose children are loading shows Lucide `loader` (eight rays),
+  all drawn as 2-unit vector strokes on a 24-unit grid in a 16px square, like Select's chevron.
+  Leaves keep an empty slot so labels align. The web preview's folder and file icons are content,
+  not part of this component's data model.
+- **Active row.** The active node (the tree's active descendant) always shows the accent fill, as
+  the web preview's `is-active` row does. It gains an inside focus outline while the tree has
+  keyboard focus (`:focus-visible`); rows reserve a transparent hairline border so the outline does
+  not shift content. A ring outside the row would overlap neighbouring rows, so the outline stays
+  inside. The tree now tracks its own focus handle internally (it was created implicitly by
+  `tab_index`) so render can tell when it has keyboard focus; tab order and click-to-focus are
+  unchanged and no public API is added.
+- In high contrast the active row keeps the solid `accent` fill, and hover draws the reserved row
+  border in `border` instead of a subtle fill.
 
 ## WAI-ARIA pattern reference
 

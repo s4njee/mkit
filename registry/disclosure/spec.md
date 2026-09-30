@@ -11,6 +11,9 @@ states:
   - id: disabled
     description: Trigger is unavailable and cannot change expanded state.
     fixture: disabled_fixture
+  - id: focused
+    description: The collapsed trigger has keyboard focus and shows the focus ring.
+    fixture: focused_fixture
 keys:
   - key: Enter
     modifiers: []
@@ -114,8 +117,54 @@ should set `controls` to the panel node.
 
 ## Theme tokens used
 
-Read surface, text, disabled text, spacing, typography, control height, border, and radius from the
-mkit-core Global `Theme`. No component colors or fixed sizes are introduced.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by `.ui-card`
+in `site/src/ui/ui.css` and `.e7-disclosure*` in `site/src/demos/e7_expansion.css`, with the shadcn
+token mapping in `site/src/ui/tokens.ts`) and shadcn/ui's Collapsible/Accordion trigger. It is
+resolved from the installed `Theme` in three variants. `high-contrast` is selected by theme name
+(the convention other registry components use); every other theme is treated as dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived
+colours use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no
+mkit-core API or tokens are added.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Card fill (shadcn `card`), also the trigger fill | `surface` | `surface` | `background` |
+| Card border | `border` | `text` at 10% over `surface`, composited opaque | `border` |
+| Trigger label | `text`, medium weight | same | `text`, medium weight |
+| Trigger hover | label turns `text_muted` (the preview's hover) | same | label underlined |
+| Chevron | `text_muted` | `text_muted` | `text` |
+| Panel text | `text` | `text` | `text` |
+| Disabled label, chevron | `text`, `text_muted` at 50% over the card fill | same | solid `disabled` |
+| Focus (`focus_visible`) | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+
+- **Card.** The `Disclosure` entity draws the preview's card: radius `radii.large`, a
+  `borders.regular` border and no shadow (the preview removes the card shadow). The preview's card
+  radius is `radius-lg + 4px` (12px); there is no such token in the shadcn themes, so the nearest,
+  `radii.large`, is used. The `DisclosureTrigger` and `DisclosurePanel` parts do not draw the card,
+  so composites such as PropertyInspector keep their own surfaces.
+- **Trigger.** Full width, `controls.large + spacing.xsmall` tall (44px, the preview's
+  `min-height`), with the preview's 16px card padding (`spacing.large`) moved onto the trigger so
+  the focus ring surrounds the whole row; the reserved focus border counts toward that inset, so the
+  label lines up with the panel text. Label and chevron are separated by at least
+  `spacing.large` (shadcn `gap-4`). The label is `typography.body` (14px) at medium weight (500),
+  shadcn's `font-medium`; there is no font-weight token yet. A transparent `borders.regular` border
+  with `radii.medium` corners is reserved for focus so focusing does not shift layout.
+- **Chevron.** A `spacing.large` (16px) Lucide `chevron-down` (6,9 → 12,15 → 18,9 on a 24-unit
+  grid) drawn as a vector path while collapsed. shadcn rotates it half a turn while open; GPUI cannot
+  rotate elements, so the expanded state draws the turned path (6,15 → 12,9 → 18,15) instead. The
+  web preview shows its single expanded sample without the rotation. The chevron strokes at
+  Lucide's 2/24 of its size in light and dark and at `borders.regular` in high contrast, and is
+  decorative (no accessibility node).
+- **Panel.** Padding `spacing.large` left, right and bottom and none on top, so the body text
+  lines up with the label (the preview uses a 14px bottom padding; the shadcn content uses `pb-4`,
+  16px, which is the nearest token). Text is `typography.body` in `text`.
+- **Disabled.** The web preview and shadcn use `opacity: .5`. GPUI applies element opacity to each
+  painted part separately, so the label and chevron colours are instead mixed 50% over the opaque
+  card fill. High contrast keeps solid `disabled` so unavailable triggers stay legible.
+- **Focus.** GPUI paints drop shadows as filled shapes that are not clipped to the element's
+  outside, so the trigger always has an opaque fill (the card fill) under the ring. Ring corners use
+  the trigger radius rather than CSS's radius-plus-spread. The 3px ring is the shadcn/ui ring width,
+  a fixed component value.
 
 Motion is optional and off by default. With `.motion(true)`, expanding fades the panel's opacity
 from 0 to 1 over the E4.4 `TransitionKind::Open` duration (`Theme.motion.normal_ms`) using
@@ -123,8 +172,8 @@ from 0 to 1 over the E4.4 `TransitionKind::Open` duration (`Theme.motion.normal_
 tree change immediately; only paint opacity animates. Collapsing is immediate because the panel is
 omitted. No animation element is created when `App::reduce_motion` is set or the resolved theme
 duration is zero (the high-contrast theme sets motion tokens to zero), and GPUI's
-`with_animation` independently renders the end state under reduced motion. The chevron glyph stays
-static because GPUI text elements cannot be rotated.
+`with_animation` independently renders the end state under reduced motion. The chevron swaps
+orientation immediately; it does not animate.
 
 ## WAI-ARIA pattern reference
 

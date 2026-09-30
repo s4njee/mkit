@@ -1,4 +1,6 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Render, Window, div, prelude::*, px, size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -9,8 +11,8 @@ use serde_json::Value;
 use std::{fs, path::PathBuf};
 
 const SIZE: (f32, f32) = (420.0, 260.0);
-const STATES: [&str; 7] =
-    ["default", "empty", "active", "dragging", "drop_target", "reordered", "controlled"];
+const STATES: [&str; 8] =
+    ["default", "empty", "active", "dragging", "drop_target", "reordered", "controlled", "focused"];
 
 struct Fixture {
     state: &'static str,
@@ -43,7 +45,7 @@ impl Render for Fixture {
                         ],
                     )
                     .active_id("a"),
-                    "active" | "drop_target" | "dragging" => {
+                    "active" | "drop_target" | "dragging" | "focused" => {
                         ReorderableList::new("Meeting tasks", items).active_id("b")
                     }
                     _ => ReorderableList::new("Meeting tasks", items),
@@ -90,6 +92,17 @@ fn capture(
             cx.bind_keys(mkit::reorderable_list::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        // The active row holds the list's only tab stop; Tab gives it keyboard focus.
+        session.update(|root, window, cx| {
+            window.dispatch_keystroke(gpui_pre::Keystroke::parse("tab").expect("Tab key"), cx);
+            window.focus_next(cx);
+            let list = root.read(cx).list.as_ref().expect("list initialized").clone();
+            let focus = list.read(cx).focus_handle(cx);
+            assert!(focus.contains_focused(window, cx), "Tab focuses the active row");
+            assert!(window.last_input_was_keyboard());
+        })?;
+    }
     if state == "dragging" || state == "drop_target" {
         let from = gpui_pre::point(px(100.0), px(105.0));
         let to = gpui_pre::point(

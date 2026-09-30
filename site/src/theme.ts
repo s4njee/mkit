@@ -36,7 +36,7 @@ export function mountThemeToggle() {
       paintToggles()
       // Component previews follow the site theme until toggled individually.
       const mode = lightMode ? 'light' : 'dark'
-      document.querySelectorAll<HTMLElement>('.preview-canvas').forEach((canvas) => (canvas.dataset.uiTheme = mode))
+      document.querySelectorAll<HTMLElement>('.preview-canvas, .card-stage').forEach((canvas) => (canvas.dataset.uiTheme = mode))
       document.querySelectorAll<HTMLButtonElement>('[data-preview-theme]').forEach((toggle) => {
         toggle.innerHTML = icon(lightMode ? 'moon' : 'sun', 14)
         toggle.setAttribute('aria-label', `Switch preview to ${lightMode ? 'dark' : 'light'} theme`)

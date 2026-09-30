@@ -55,7 +55,21 @@ Decorative separators do not set an accessibility role. Semantic separators requ
 
 ## Theme tokens used
 
-`Theme.colors.border` provides the line color and `Theme.borders.hairline` provides its thickness. No colors or dimensions are hard-coded.
+The look follows the docs-site web preview (`site/src/demos/e7.ts`, styled by `.ui-separator` in
+`site/src/ui/ui.css` with the shadcn token mapping in `site/src/ui/tokens.ts`), which in turn follows
+the shadcn/ui separator: a `borders.hairline` (1px) line in shadcn's `--border` colour that does not
+shrink in a flex row (`shrink-0`).
+
+| Theme | Line colour |
+|---|---|
+| Light (luminance of `background` ≥ 0.5) | `border` |
+| Dark (luminance of `background` < 0.5) | `text` at 10% alpha, the docs-site `--border` mapping |
+| High contrast (selected by theme name) | `border` (white), kept solid |
+
+Dark themes use an alpha colour rather than an opaque mix so the rule reads the same over
+`background`, `surface`, and elevated panels, as the web's `color-mix(… transparent)` does. The theme
+is classified with `mkit_core::contrast::relative_luminance`, the convention Button, Select, and Tabs
+use; no mkit-core API or tokens are added. No other colours or dimensions are hard-coded.
 
 ## WAI-ARIA pattern reference
 

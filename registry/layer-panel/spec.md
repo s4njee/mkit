@@ -17,6 +17,9 @@ states:
   - id: dragging
     description: A row is being dragged and a compatible same-parent row is highlighted as the insertion target; cross-parent rows cannot accept it.
     fixture: dragging_fixture
+  - id: focused
+    description: The panel has keyboard focus and ArrowDown moved the active row to the first child layer, which shows the active fill and the inside focus outline.
+    fixture: focused_fixture
 keys:
   - key: ArrowDown
     modifiers: []
@@ -91,8 +94,8 @@ accessibility:
       value: A labeled toggle button within each layer row exposes lock state.
 controlled: Owner supplies the full layer tree, active ID, and expanded group IDs. Interaction requests emit typed events and take effect after the owner applies set_layers, set_active, or set_expanded. Uncontrolled mode updates its local state before emitting the same events.
 events: [ActiveChanged, VisibilityChanged, LockChanged, GroupExpandedChanged, ReorderRequested]
-theme_tokens: [surface, elevated_surface, text, text_muted, border, accent, accent_text, focus, spacing.xsmall, spacing.small, spacing.medium, controls.xsmall, controls.small, radii.small, borders.hairline, borders.strong]
-open_questions: [Maintainer review of the public API, event names, keyboard and accessibility contract, and visual treatment.]
+theme_tokens: [background, surface, text, text_muted, border, accent, accent_text, focus, shadows.medium, spacing.xsmall, spacing.small, spacing.large, spacing.xlarge, controls.small, radii.small, radii.medium, radii.large, borders.hairline, borders.regular, typography.body]
+open_questions: [Maintainer review of the public API, event names, keyboard and accessibility contract, and visual treatment., Confirm the provisional E13.2 density decision to keep the 32px rows and existing toggle hit targets.]
 ---
 
 # Layer panel
@@ -142,16 +145,20 @@ thumbnails are hidden from the accessibility tree.
 
 ## Visual treatment and theme
 
-Use compact row density, quiet borders, and a raised selected-row surface with a focus-coloured edge inspired by shadcn
-editor surfaces. Read all colors, radii, border widths, and spacing from the `mkit_core::theme::Theme`
-Global. Thumbnails use caller-supplied colors and a theme border; no fixed palette is introduced.
+Rows follow the restyled Tree and Sidebar rows (E7, E13.1): radius-small rows in a bordered card,
+an accent fill for the active row, a ghost hover, vector chevrons, and an inside focus outline on the
+active row while the panel has keyboard focus. Visibility, lock and reorder controls are ghost icon
+buttons with vector glyphs, like the restyled IconButton. Read all colours, radii, border widths,
+and spacing from the `mkit_core::theme::Theme` Global. Thumbnails use caller-supplied colours in a
+bordered rounded tile; no fixed palette is introduced. The "Theme tokens used" section has the full
+table.
 
 ## Evidence and review
 
 Focused data tests cover visible-tree flattening, reorder validation, and controlled/uncontrolled
 state contracts. GPUI tests exercise keyboard navigation/reorder and pointer selection/toggles. The
 generated conformance manifest declares intended keyboard, accessibility, and screenshot cases;
-it is not evidence that the harness ran. The five visual states are captured under light, dark, and
+it is not evidence that the harness ran. The six visual states are captured under light, dark, and
 high-contrast themes at 1× and 2×. The dragging capture is made after a real pointer drag over a
 compatible sibling row. Focused data and GPUI tests cover visible-tree flattening, same-parent and
 cross-parent reorder behavior, controlled and uncontrolled requests, keyboard interaction, and
@@ -162,13 +169,15 @@ keyboard and accessibility contracts, and visual treatment remain required.
 
 A focusable tree root contains visible group and layer rows. Group rows show disclosure, label, and
 expanded state. Layer rows show an optional raster thumbnail or color swatch, label, visibility
-button, and lock button. The selected row uses an elevated surface with a focus-coloured edge.
+button, and lock button. The selected row uses the active fill, with an inside focus outline while
+the panel has keyboard focus.
 
 ## States
 
 `mixed-tree` is the standard expanded hierarchy, `selected-layer` marks the active layer,
 `collapsed-group` hides that group's children, `reordered` shows a sibling order after a move, and
-`dragging` highlights a compatible insertion target during a drag.
+`dragging` highlights a compatible insertion target during a drag, and `focused` shows the active
+row's keyboard focus outline after ArrowDown.
 Visibility and lock state are per-layer metadata and update through their typed event contracts.
 
 ## Props and events
@@ -202,10 +211,57 @@ buttons use button role, action-specific names, and toggled state. Thumbnail ima
 
 ## Theme tokens used
 
-Colors use `surface`, `elevated_surface`, `text`, `border`, and `focus`. Dimensions
-use `spacing.small`, `spacing.xsmall`, `controls.small`, `controls.xsmall`, `radii.small`, and
-`borders.hairline` from the GPUI `Theme` Global. The drag preview's 180 logical-pixel width is fixed
-to keep its label readable while following the pointer; row and thumbnail sizes use control tokens.
+Colours are resolved from the installed `Theme` in three variants, the way Button, Select, Tabs,
+Tree and Sidebar do it: `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" is shadcn's `accent`/`muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Panel (card) fill | `surface` | `surface` | `surface` |
+| Panel border, thumbnail border | `border` | `text` at 10% over `surface` | `border` |
+| Row label | `text` | `text` | `text` |
+| Chevrons | `text_muted` | `text_muted` | `text` |
+| Active row | muted fill, `text` | muted fill, `text` | `accent` fill; label and glyphs in `accent_text` |
+| Pointer hover (other rows) | muted fill | muted fill | row outline in `border` |
+| Active row while the panel has keyboard focus | `borders.hairline` outline in `focus` inside the row | same | same |
+| Compatible drop target while dragging | `borders.hairline` outline in `accent` inside the row plus the muted fill | same | outline in `accent` |
+| Toggle glyph, default state (visible, unlocked) | `text_muted` | `text_muted` | `text` |
+| Toggle glyph, exceptional state (hidden, locked) and reorder arrows | `text` | `text` | `text` |
+| Toggle and reorder hover (ghost) | muted mixed again over the row fill | same | `borders.regular` border in `accent` |
+| Swatch without a colour | muted fill | muted fill | `background` |
+| Drag preview | `surface` fill, panel border, `shadows.medium`, `text` | same | `background`, `border`, no shadow |
+
+- **Density (maintainer decision, provisional).** Rows keep their `controls.small` (32px) height and
+  indentation step, and the toggles keep a compact square hit target: `spacing.xlarge` (24px), about
+  the previous glyph-plus-padding target. shadcn's 36px control height is not adopted. Colours,
+  borders, radii, shadows, focus, hover and typography follow the everyday components.
+- **Geometry.** The panel is a card like Tree: radius `radii.large`, a `borders.hairline` border and
+  `spacing.xsmall` padding. Rows have radius `radii.small` and a transparent `borders.hairline`
+  border reserved for the focus and drop-target outlines, so they do not shift layout. A row starts
+  at `spacing.small` plus one `spacing.large` step per nesting level, then a `spacing.large` (16px)
+  disclosure slot that holds the group chevron and stays empty for layers so labels align, then a
+  `spacing.small` gap. Labels use `typography.body` and truncate.
+- **Glyphs.** Group rows show Lucide `chevron-down` while expanded and `chevron-right` while
+  collapsed. Visibility shows Lucide `eye` while visible and `eye-off` while hidden; lock shows
+  `lock-open` while unlocked and `lock` while locked; reorder controls show `arrow-up` and
+  `arrow-down`. All are 2-unit vector strokes on a 24-unit grid in a `spacing.large` (16px) square,
+  like Tree's chevrons, and are decorative. The default state is quieter (`text_muted`) than the
+  exceptional state so hidden and locked layers stand out.
+- **Toggles.** Visibility, lock and reorder controls are ghost icon buttons: `spacing.xlarge` squares
+  with radius `radii.medium`, a transparent `borders.regular` border, and no resting fill. They are
+  not keyboard tab stops (the row keys Space, `L` and Alt+Up/Down act on the active row), so they
+  have no focus ring; their accessibility nodes are unchanged.
+- **Thumbnails.** A `spacing.xlarge` (24px) tile with radius `radii.small` and a `borders.hairline`
+  border in the panel border colour; raster thumbnails are clipped to it.
+- **Drag preview.** A popover-like surface: radius `radii.medium`, `borders.hairline` border,
+  `shadows.medium`, `typography.body`. Its 180 logical-pixel width is fixed to keep its label
+  readable while following the pointer.
+- **Focus.** The active-row outline follows `:focus-visible`: it shows while the panel root or its
+  active row owns focus and the last input came from the keyboard. The outline stays inside the row
+  because a ring outside it would overlap neighbouring rows, as in Tree.
 
 ## WAI-ARIA pattern reference
 

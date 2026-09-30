@@ -2,11 +2,83 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    AnyElement, App, IntoElement, KeyBinding, RenderOnce, ScrollHandle, Window, actions, div,
-    point, prelude::*, px,
+    AnyElement, App, Bounds, IntoElement, KeyBinding, Pixels, RenderOnce, Rgba, ScrollHandle,
+    Window, actions, canvas, div, fill, point, prelude::*, px, size,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{contrast::relative_luminance, theme::Theme};
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+struct Look {
+    border: Rgba,
+    thumb: Rgba,
+    focus: Rgba,
+    ring: Rgba,
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look { border: c.border, thumb: c.border, focus: c.focus, ring: c.focus };
+    }
+    // shadcn "border": the theme border in light themes, `text` at 10% in dark themes.
+    let line = if relative_luminance(c.background) < 0.5 { c.text.opacity(0.1) } else { c.border };
+    Look { border: line, thumb: line, focus: c.focus, ring: c.focus.opacity(0.5) }
+}
+/// shadcn/ui focus ring width, drawn outside the viewport.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Paint overlay scrollbar thumbs for the viewport tracked by `handle`. The thumbs only
+/// indicate position; wheel, trackpad, and keyboard scrolling stay with GPUI and the actions.
+/// `inset` is the viewport border, `track` the track thickness and `pad` the gap around a thumb.
+fn paint_thumbs(
+    handle: &ScrollHandle,
+    inset: f32,
+    track: f32,
+    pad: f32,
+    min_thumb: f32,
+    color: Rgba,
+    window: &mut Window,
+) {
+    let bounds = handle.bounds();
+    let max = handle.max_offset();
+    let offset = handle.offset();
+    let (inset, track, pad) = (px(inset), px(track), px(pad));
+    let inner = Bounds::new(
+        bounds.origin + point(inset, inset),
+        size(bounds.size.width - inset * 2.0, bounds.size.height - inset * 2.0),
+    );
+    let (vertical, horizontal) = (max.y > px(0.5), max.x > px(0.5));
+    // One axis's thumb stops short of the other's track, like a scrollbar corner.
+    let thumb = |length: Pixels, visible: Pixels, extent: Pixels, scrolled: Pixels| {
+        let length = length - pad * 2.0;
+        let size = (length * (visible / (visible + extent))).max(px(min_thumb)).min(length);
+        let travel = length - size;
+        let at = pad + travel * (-scrolled / extent).clamp(0.0, 1.0);
+        (at, size)
+    };
+    if vertical {
+        let length = inner.size.height - if horizontal { track } else { px(0.) };
+        let (at, size_y) = thumb(length, inner.size.height, max.y, offset.y);
+        let origin = point(inner.right() - track + pad, inner.top() + at);
+        let quad = fill(Bounds::new(origin, size(track - pad * 2.0, size_y)), color);
+        window.paint_quad(quad.corner_radii((track - pad * 2.0) / 2.0));
+    }
+    if horizontal {
+        let length = inner.size.width - if vertical { track } else { px(0.) };
+        let (at, size_x) = thumb(length, inner.size.width, max.x, offset.x);
+        let origin = point(inner.left() + at, inner.bottom() - track + pad);
+        let quad = fill(Bounds::new(origin, size(size_x, track - pad * 2.0)), color);
+        window.paint_quad(quad.corner_radii((track - pad * 2.0) / 2.0));
+    }
+}
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 pub const KEY_CONTEXT: &str = "MkitScrollArea";
@@ -72,6 +144,9 @@ impl ScrollArea {
 impl RenderOnce for ScrollArea {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let thumb_handle = self.handle.clone();
+        let hairline = theme.borders.hairline;
         let page_up = self.handle.clone();
         let page_down = self.handle.clone();
         let line_up = self.handle.clone();
@@ -91,9 +166,9 @@ impl RenderOnce for ScrollArea {
             .track_scroll(&self.handle)
             .bg(theme.colors.surface)
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border_color(look.border)
             .rounded(px(theme.radii.medium))
-            .focus_visible(|el| el.border_color(theme.colors.focus))
+            .focus_visible(|el| el.border_color(look.focus).shadow(vec![focus_ring(look.ring)]))
             .on_action(move |_: &PageUp, window, _| {
                 let y = f32::from(page_up.offset().y) + f32::from(page_up.bounds().size.height);
                 set_vertical_offset(&page_up, y, window);
@@ -116,6 +191,30 @@ impl RenderOnce for ScrollArea {
                 set_vertical_offset(&end, y, window);
             })
             .child(self.content)
+            .child(
+                // Painted last so the thumbs sit above the content. The zero-size canvas adds
+                // nothing to the scrollable content size; it paints against the handle's bounds.
+                canvas(
+                    |_, _, _| (),
+                    move |_, (), window, _| {
+                        paint_thumbs(
+                            &thumb_handle,
+                            hairline,
+                            // shadcn's 10px track (`w-2.5`) with a 1px (`p-px`) gap: an 8px
+                            // (`spacing.small`) thumb inside a hairline on each side.
+                            theme.spacing.small + hairline * 2.0,
+                            hairline,
+                            theme.spacing.large,
+                            look.thumb,
+                            window,
+                        )
+                    },
+                )
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_0(),
+            )
     }
 }
 

@@ -2,10 +2,112 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    App, Bounds, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render,
+    Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for enabled rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    grip: Rgba,
+    active_grip: Rgba,
+    /// Active-row outline while the list does not have keyboard focus.
+    outline: Rgba,
+    focus: Rgba,
+    drop: Rgba,
+    disabled: Rgba,
+    disabled_grip: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            grip: c.text,
+            active_grip: c.accent_text,
+            // The solid accent fill marks the active row; the focus outline is added on focus.
+            outline: c.accent,
+            focus: c.focus,
+            drop: c.accent,
+            disabled: c.disabled,
+            disabled_grip: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "muted"/"accent": text mixed 4% (light) or 12% (dark) into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        grip: c.text_muted,
+        active_grip: c.text_muted,
+        outline: c.focus.opacity(0.5),
+        focus: c.focus,
+        drop: c.accent,
+        disabled: dim(c.text, c.surface),
+        disabled_grip: dim(c.text_muted, c.surface),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// Lucide `grip-vertical`: six dots of radius 1 with a 2-unit stroke on a 24-unit grid, drawn
+/// as filled circles so they stay crisp at every scale.
+fn grip(size: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let diameter = unit * 4.0;
+            for x in [9.0, 15.0] {
+                for y in [5.0, 12.0, 19.0] {
+                    let center = bounds.origin + point(unit * x, unit * y);
+                    let origin = center - point(diameter / 2.0, diameter / 2.0);
+                    window.paint_quad(
+                        gpui_pre::fill(
+                            Bounds::new(origin, gpui_pre::size(diameter, diameter)),
+                            color,
+                        )
+                        .corner_radii(diameter / 2.0),
+                    );
+                }
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 pub const KEY_CONTEXT: &str = "MkitReorderableList";
 actions!(reorderable_list, [MoveUp, MoveDown]);
@@ -56,16 +158,22 @@ struct DragPreview {
 impl Render for DragPreview {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         div()
             .w(px(180.0))
-            .h(px(theme.controls.small))
-            .px(px(theme.spacing.medium))
-            .py(px(theme.spacing.small))
-            .rounded(px(theme.radii.small))
+            .h(px(theme.controls.medium))
+            .px(px(theme.spacing.small))
+            .flex()
+            .items_center()
+            .gap(px(theme.spacing.small))
+            .rounded(px(theme.radii.medium))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.elevated_surface)
+            .border_color(look.border)
+            .bg(theme.colors.surface)
+            .when(!look.high_contrast, |e| e.shadow(vec![box_shadow(theme.shadows.medium)]))
+            .text_size(px(theme.typography.body))
             .text_color(theme.colors.text)
+            .child(grip(theme.spacing.large, look.grip))
             .child(self.label.clone())
     }
 }
@@ -186,9 +294,13 @@ impl Focusable for ReorderableList {
     }
 }
 impl Render for ReorderableList {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
+        // `:focus-visible`: the list or its active row has focus from the keyboard.
+        let focused = focus.contains_focused(window, cx) && window.last_input_was_keyboard();
+        let hairline = px(theme.borders.hairline);
         let mut root = div()
             .id(self.id.clone())
             .key_context(KEY_CONTEXT)
@@ -200,16 +312,20 @@ impl Render for ReorderableList {
             .w_full()
             .flex()
             .flex_col()
-            .rounded(px(theme.radii.small))
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface);
+            .p(px(theme.spacing.xsmall))
+            .rounded(px(theme.radii.large))
+            .border(hairline)
+            .border_color(look.border)
+            .bg(theme.colors.surface)
+            .text_size(px(theme.typography.body));
         if self.items.is_empty() {
             if let Some(text) = &self.empty_text {
                 root = root.child(
                     div()
-                        .px(px(theme.spacing.medium))
-                        .py(px(theme.spacing.small))
+                        .h(px(theme.controls.medium))
+                        .px(px(theme.spacing.small))
+                        .flex()
+                        .items_center()
                         .text_color(theme.colors.text_muted)
                         .child(text.clone()),
                 );
@@ -221,6 +337,14 @@ impl Render for ReorderableList {
             let item_id = item.id.clone();
             let row_id = format!("{}-{}", self.id, item.id);
             let row_selector = row_id.clone();
+            let enabled = !item.disabled;
+            let (text, grip_color) = if !enabled {
+                (look.disabled, look.disabled_grip)
+            } else if active {
+                (look.active_text, look.active_grip)
+            } else {
+                (theme.colors.text, look.grip)
+            };
             let mut row = div()
                 .id(row_id)
                 .debug_selector(move || row_selector.clone())
@@ -230,33 +354,53 @@ impl Render for ReorderableList {
                 .aria_position_in_set(index + 1)
                 .aria_size_of_set(self.items.len())
                 .tab_index(if active { 0 } else { -1 })
-                .h(px(theme.controls.small))
-                .px(px(theme.spacing.medium))
+                .relative()
+                .flex_none()
+                .h(px(theme.controls.medium))
+                .px(px(theme.spacing.small))
                 .flex()
                 .items_center()
-                .text_color(if item.disabled { theme.colors.disabled } else { theme.colors.text })
-                .bg(if active { theme.colors.elevated_surface } else { theme.colors.surface })
-                .when(active, |e| {
-                    e.border_l(px(theme.borders.strong)).border_color(theme.colors.focus)
+                .gap(px(theme.spacing.small))
+                .rounded(px(theme.radii.small))
+                .text_color(text)
+                .when(active, |e| e.bg(look.active_bg))
+                .when_some(look.hover_bg.filter(|_| enabled && !active), |e, fill| {
+                    e.hover(move |style| style.bg(fill))
                 })
-                .when(!item.disabled, |e| {
+                .when(enabled, |e| {
                     e.on_click(cx.listener(move |this, _, _, cx| {
                         this.active = Some(item_id.clone());
                         cx.notify();
                     }))
                 })
-                .child(div().flex_1().child(item.label.clone()));
+                .child(grip(theme.spacing.large, grip_color))
+                .child(div().flex_1().truncate().child(item.label.clone()))
+                .when(active, |e| {
+                    // The outline is an overlay so the drop indicator can use the row's top
+                    // border without recolouring the outline.
+                    e.child(
+                        div()
+                            .absolute()
+                            .inset_0()
+                            .rounded(px(theme.radii.small))
+                            .border(hairline)
+                            .border_color(if focused { look.focus } else { look.outline }),
+                    )
+                });
             let drag = DragItem { id: item.id.clone(), label: item.label.clone() };
             let target = item.id.clone();
-            if !item.disabled {
+            if enabled {
                 let hover_target = target.clone();
                 let drop_target = target.clone();
                 row = row
                     .drag_over::<DragItem>(move |style, dragged, _, _| {
                         if dragged.id != hover_target {
+                            // The insertion edge: a `borders.strong` (2px) line in the primary
+                            // colour along the target row's top.
                             style
                                 .border_t(px(theme.borders.strong))
-                                .border_color(theme.colors.accent)
+                                .border_color(look.drop)
+                                .rounded_t(px(0.))
                         } else {
                             style
                         }

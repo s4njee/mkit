@@ -124,9 +124,44 @@ state and the localized validation description.
 
 ## Theme tokens used
 
-The component reads Global `Theme` colors for surface, text, muted text, border, focus, accent,
-danger, and disabled content; spacing, control sizing, radii, borders, and body typography also use
-theme tokens.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by `.e7-time`
+in `site/src/demos/e7_expansion.css` with the shadcn token mapping in `site/src/ui/tokens.ts`): each
+segment is a small shadcn input and the focused segment takes the accent fill. It is resolved from
+the installed `Theme` in three variants, the same way Button, Select, TextField and Tabs do it.
+`high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `accent`/`muted`: `text` mixed 4% (light) or 12% (dark)
+into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Segment fill | `background` | `background` | `background` |
+| Segment border | `border` | `text` at 10% over the fill (shadcn dark `border`) | `border` |
+| Segment text | `text` | `text` | `text` |
+| Separator | `text_muted` | `text_muted` | `text_muted` |
+| Pointer hover | muted fill | muted fill | border `accent` |
+| Focused segment | muted fill, border `focus`, 3px ring of `focus` at 50% | same | border `focus`, 3px ring of opaque `focus` |
+| Invalid (validation shown) | every segment's border `danger`; the focused segment's ring is `danger` at 20% | same with the ring at 40% | border `danger`; focus keeps its opaque `focus` ring |
+| Validation message | `danger` | `danger` | `danger` |
+| Disabled | fill, border, text, and separator mixed 50% over `background` | same | `background` fill, `disabled` border, text, and separator |
+
+- **Focus.** A segment is an editable text position, so, like a text input's `:focus-visible`, the
+  fill, border, and ring show whenever the segment owns focus, whether it was focused by pointer or
+  keyboard (the web preview's `.is-focused`). The ring width is the shadcn/ui 3px ring, a fixed
+  component value; the preview's 2px ring at 45% is replaced by the kit-wide 3px ring at 50%. GPUI
+  paints drop shadows as filled shapes, so every segment fill is opaque.
+- **Disabled** matches the web convention of `opacity: .5` applied as one layer: each colour is
+  composited over `background` and mixed 50% with it, rather than using GPUI element opacity, which
+  dims each painted part separately. High contrast keeps solid colours so the value stays legible.
+- **Geometry.** Segments are `controls.small` (32px) tall, the nearest token to the preview's 30px,
+  and at least `controls.small` wide (the preview's `min-width: 32px`), with `spacing.xsmall` (4px,
+  the nearest token to the preview's 5px) horizontal padding, radius `radii.small`, and a
+  `borders.regular` border (2px in high contrast). Segments and separators are `spacing.xsmall`
+  apart (the preview's `gap: 4px`); the inline validation message is `spacing.small` (8px) from the
+  last segment so it clears the focus ring. Values and the validation message use `typography.body` (14px;
+  the preview's 13px has no token). The preview's monospaced digits need a font-family token that
+  `Theme` does not have, so segments use the inherited font and centre their text.
 
 ## WAI-ARIA pattern reference
 

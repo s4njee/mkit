@@ -1,8 +1,34 @@
 //! Read-only histogram visualization for image and signal editing tools.
 extern crate gpui_pre as gpui;
 
-use gpui::{App, IntoElement, RenderOnce, Window, div, prelude::*, px, relative};
-use mkit_core::theme::Theme;
+use gpui::{App, IntoElement, RenderOnce, Rgba, Window, div, point, prelude::*, px, relative};
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// The card border and plot baseline (the shadcn "border" role); see the spec's theme table.
+fn border_role(t: &Theme) -> Rgba {
+    let c = t.colors;
+    if t.name != "high-contrast" && relative_luminance(c.background) < 0.5 {
+        mix(c.text, c.background, 0.1)
+    } else {
+        c.border
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui::BoxShadow {
+    gpui::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 struct Series {
@@ -92,6 +118,7 @@ fn safe_bin(value: f32) -> f32 {
 impl RenderOnce for Histogram {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let line = border_role(&theme);
         let mut panel = div()
             .id("mkit-histogram")
             .role(gpui::accesskit::Role::Image)
@@ -102,28 +129,39 @@ impl RenderOnce for Histogram {
             .flex_col()
             .gap(px(theme.spacing.xsmall))
             .p(px(theme.spacing.small))
-            .rounded(px(theme.radii.small))
+            .rounded(px(theme.radii.large))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface);
+            .border_color(line)
+            .bg(theme.colors.background)
+            .shadow(vec![box_shadow(theme.shadows.small)]);
 
         if self.shadows_clipped || self.highlights_clipped {
-            let mut status = div().flex().items_center().gap(px(theme.spacing.small));
+            let indicator = |color: Rgba, label: &'static str| {
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(theme.spacing.xsmall))
+                    .child(
+                        div()
+                            .flex_none()
+                            .size(px(theme.spacing.small))
+                            .rounded(px(theme.radii.pill))
+                            .bg(color),
+                    )
+                    .child(
+                        div()
+                            .text_color(theme.colors.text)
+                            .text_size(px(theme.typography.caption))
+                            .font_weight(gpui::FontWeight::MEDIUM)
+                            .child(label),
+                    )
+            };
+            let mut status = div().flex().items_center().gap(px(theme.spacing.medium));
             if self.shadows_clipped {
-                status = status.child(
-                    div()
-                        .text_color(theme.colors.warning)
-                        .text_size(px(theme.typography.caption))
-                        .child("Shadows clipped"),
-                );
+                status = status.child(indicator(theme.colors.warning, "Shadows clipped"));
             }
             if self.highlights_clipped {
-                status = status.child(
-                    div()
-                        .text_color(theme.colors.danger)
-                        .text_size(px(theme.typography.caption))
-                        .child("Highlights clipped"),
-                );
+                status = status.child(indicator(theme.colors.danger, "Highlights clipped"));
             }
             panel = panel.child(status);
         }
@@ -150,16 +188,12 @@ impl RenderOnce for Histogram {
                 .flex()
                 .items_end()
                 .gap(px(theme.borders.hairline))
+                .border_b(px(theme.borders.hairline))
+                .border_color(line)
                 .when(series.values.is_empty(), |el| el.items_center());
             for value in series.values {
                 let normalized = if max > 0.0 { safe_bin(value) / max } else { 0.0 };
-                bars = bars.child(
-                    div()
-                        .flex_1()
-                        .h(relative(normalized))
-                        .bg(color)
-                        .rounded_t(px(theme.radii.none)),
-                );
+                bars = bars.child(div().flex_1().h(relative(normalized)).bg(color));
             }
             let row = div()
                 .flex()

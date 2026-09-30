@@ -44,7 +44,9 @@ The divider exposes splitter role, name, orientation, current value, and bounds;
 
 ## Theme
 
-`Theme.colors.border/focus/disabled/surface`, `Theme.borders.regular`, `Theme.spacing.xsmall/small`, `Theme.radii.small`.
+`Theme.colors.background/border/text/focus/disabled`, `Theme.borders.hairline`, `Theme.spacing.xsmall/medium/large`, `Theme.radii.small`.
+
+The handle follows the shadcn/ui resizable handle: a 1px line in the border colour with a small 12×18px grip showing six vector dots. A transparent 4px pointer target is centred on the line. Keyboard focus colours the line and grip border with `focus` and adds a 3px ring around the grip. Disabled handles mix every colour 50% into the background, and high contrast keeps white lines and a solid `disabled` colour. The grip is always shown; hiding it would need a new builder. The spec records the exact token mapping.
 
 ## Verification and limits
 

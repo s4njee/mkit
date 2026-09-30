@@ -2,12 +2,13 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    AnyElement, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render,
-    Window, actions, div, prelude::*, px,
+    AnyElement, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    Render, Rgba, Window, actions, div, point, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
-    theme::Theme,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -30,6 +31,147 @@ pub enum Severity {
     Success,
     Warning,
     Error,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+/// shadcn's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+
+/// Colours for one button: fill, border, text, hover fill, hover text.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ControlLook {
+    bg: Rgba,
+    border: Rgba,
+    fg: Rgba,
+    hover: Option<(Rgba, Rgba)>,
+    /// Opaque fill used while the focus ring is drawn.
+    focus_bg: Rgba,
+}
+
+/// Resolved colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Look {
+    border: Rgba,
+    icon: Rgba,
+    title: Rgba,
+    message: Rgba,
+    action: ControlLook,
+    dismiss: ControlLook,
+    ring: Rgba,
+    shadow_alpha: f32,
+}
+
+fn look(t: &Theme, severity: Severity, disabled: bool) -> Look {
+    let c = t.colors;
+    let transparent = c.background.opacity(0.);
+    let icon = match severity {
+        Severity::Info => c.text,
+        Severity::Success => c.success,
+        Severity::Warning => c.warning,
+        Severity::Error => c.danger,
+    };
+    if t.name == "high-contrast" {
+        let fg = if disabled { c.disabled } else { c.text };
+        let border = if disabled { c.disabled } else { c.border };
+        return Look {
+            border: c.border,
+            icon,
+            title: c.text,
+            message: c.text,
+            action: ControlLook {
+                bg: c.background,
+                border,
+                fg,
+                hover: None,
+                focus_bg: c.background,
+            },
+            dismiss: ControlLook {
+                bg: transparent,
+                border: transparent,
+                fg,
+                hover: None,
+                focus_bg: c.background,
+            },
+            ring: c.focus,
+            shadow_alpha: 0.0,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    let border = if dark { mix(c.text, c.background, 0.1) } else { c.border };
+    let error = severity == Severity::Error;
+    let mut action = ControlLook {
+        bg: c.background,
+        border,
+        fg: c.text,
+        hover: Some((muted, c.text)),
+        focus_bg: c.background,
+    };
+    let mut dismiss = ControlLook {
+        bg: transparent,
+        border: transparent,
+        fg: c.text_muted,
+        hover: Some((muted, c.text)),
+        focus_bg: c.background,
+    };
+    if disabled {
+        for control in [&mut action, &mut dismiss] {
+            let bg = if control.bg.a > 0.0 { dim(control.bg, c.background) } else { control.bg };
+            let border = if control.border.a > 0.0 {
+                dim(control.border, c.background)
+            } else {
+                control.border
+            };
+            *control = ControlLook {
+                bg,
+                border,
+                fg: dim(control.fg, c.background),
+                hover: None,
+                focus_bg: control.focus_bg,
+            };
+        }
+    }
+    Look {
+        border: match severity {
+            Severity::Warning | Severity::Error => mix(icon, border, 0.45),
+            _ => border,
+        },
+        icon,
+        title: if error { c.danger } else { c.text },
+        message: if error { mix(c.danger, c.background, 0.9) } else { c.text_muted },
+        action,
+        dismiss,
+        ring: c.focus.opacity(0.5),
+        shadow_alpha: if disabled { 0.5 } else { 1.0 },
+    }
+}
+
+fn box_shadow(shadow: ShadowToken, alpha: f32) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: Rgba { a: shadow.color.a * alpha, ..shadow.color }.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
+/// shadcn/ui focus ring width, drawn outside the focused button.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -161,26 +303,17 @@ impl Render for InlineAlert {
                 .get_or_insert_with(|| cx.focus_handle().tab_index(0).tab_stop(!self.disabled))
                 .clone()
         });
-        let (role, priority, severity_color) = match self.severity {
-            Severity::Info => {
-                (gpui_pre::accesskit::Role::Status, LiveRegionPriority::Polite, theme.colors.accent)
+        let (role, priority) = match self.severity {
+            Severity::Info | Severity::Success => {
+                (gpui_pre::accesskit::Role::Status, LiveRegionPriority::Polite)
             }
-            Severity::Success => (
-                gpui_pre::accesskit::Role::Status,
-                LiveRegionPriority::Polite,
-                theme.colors.success,
-            ),
-            Severity::Warning => (
-                gpui_pre::accesskit::Role::Alert,
-                LiveRegionPriority::Assertive,
-                theme.colors.warning,
-            ),
-            Severity::Error => (
-                gpui_pre::accesskit::Role::Alert,
-                LiveRegionPriority::Assertive,
-                theme.colors.danger,
-            ),
+            Severity::Warning | Severity::Error => {
+                (gpui_pre::accesskit::Role::Alert, LiveRegionPriority::Assertive)
+            }
         };
+        let look = look(&theme, self.severity, self.disabled);
+        let line = theme.spacing.large + theme.spacing.xsmall;
+        let enabled = !self.disabled;
         let mut root = div()
             .id(self.id.clone())
             .key_context(KEY_CONTEXT)
@@ -192,28 +325,41 @@ impl Render for InlineAlert {
             .items_start()
             .gap(px(theme.spacing.medium))
             .p(px(theme.spacing.medium))
-            .rounded(px(theme.radii.medium))
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface)
+            .rounded(px(theme.radii.large))
+            .border(px(theme.borders.regular))
+            .border_color(look.border)
+            .bg(theme.colors.background)
             .text_color(theme.colors.text)
-            .text_size(px(theme.typography.body));
+            .text_size(px(theme.typography.body))
+            .line_height(px(line));
         if let Some(icon) = self.icon.as_ref() {
-            root = root.child(div().text_color(severity_color).child(icon()));
+            root = root.child(
+                div()
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .w(px(theme.spacing.large))
+                    .h(px(line))
+                    .text_color(look.icon)
+                    .child(icon()),
+            );
         }
-        let mut body = div().flex().flex_col().items_start().gap(px(theme.spacing.small)).flex_1();
+        let mut body =
+            div().flex().flex_col().items_start().gap(px(theme.spacing.xsmall)).flex_1().min_w_0();
         if let Some(title) = self.title.as_ref() {
             body = body.child(
                 div()
                     .w_full()
-                    .text_color(theme.colors.text)
-                    .text_size(px(theme.typography.body_emphasis))
+                    .text_color(look.title)
+                    .font_weight(FontWeight::SEMIBOLD)
                     .child(title.clone()),
             );
         }
-        body = body.child(div().w_full().child(self.message.clone()));
+        body = body.child(div().w_full().text_color(look.message).child(self.message.clone()));
         if let Some(label) = self.action_label.clone() {
             let focus = action_focus.as_ref().expect("action focus initialized").clone();
+            let control = look.action;
             body = body.child(
                 div()
                     .id(format!("{}-action", self.id))
@@ -224,16 +370,29 @@ impl Render for InlineAlert {
                     .aria_label(label.clone())
                     .tab_stop(!self.disabled)
                     .tab_index(if self.disabled { -1 } else { 0 })
-                    .h(px(theme.controls.xsmall))
-                    .w(px(label.chars().count() as f32 * theme.typography.body * 0.65
-                        + theme.spacing.medium * 2.0))
+                    .mt(px(theme.spacing.small))
+                    .h(px(theme.controls.small))
                     .px(px(theme.spacing.medium))
                     .flex()
+                    .flex_none()
                     .items_center()
                     .justify_center()
-                    .rounded(px(theme.radii.small))
-                    .bg(theme.colors.accent)
-                    .text_color(theme.colors.accent_text)
+                    .rounded(px(theme.radii.medium))
+                    .border(px(theme.borders.regular))
+                    .border_color(control.border)
+                    .bg(control.bg)
+                    .shadow(vec![box_shadow(theme.shadows.small, look.shadow_alpha)])
+                    .text_color(control.fg)
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
+                    .when_some(control.hover.filter(|_| enabled), |e, (bg, fg)| {
+                        e.hover(move |s| s.bg(bg).text_color(fg))
+                    })
+                    .focus_visible(move |s| {
+                        s.border_color(theme.colors.focus)
+                            .bg(control.focus_bg)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
                     .when(self.disabled, |e| {
                         e.a11y_synthetic_children(|b| b.parent_node().set_disabled())
                     })
@@ -248,6 +407,7 @@ impl Render for InlineAlert {
         root = root.child(body);
         if self.dismissible {
             let focus = dismiss_focus.as_ref().expect("dismiss focus initialized").clone();
+            let control = look.dismiss;
             root = root.child(
                 div()
                     .id(format!("{}-dismiss", self.id))
@@ -259,11 +419,27 @@ impl Render for InlineAlert {
                     .tab_stop(!self.disabled)
                     .tab_index(if self.disabled { -1 } else { 0 })
                     .h(px(theme.controls.xsmall))
+                    // Centre the button on the title line without growing the card.
+                    .my(px(-(theme.controls.xsmall - line) / 2.0))
                     .px(px(theme.spacing.small))
                     .flex()
+                    .flex_none()
                     .items_center()
                     .justify_center()
-                    .text_color(theme.colors.text_muted)
+                    .rounded(px(theme.radii.medium))
+                    .border(px(theme.borders.regular))
+                    .border_color(control.border)
+                    .bg(control.bg)
+                    .text_color(control.fg)
+                    .font_weight(FontWeight::MEDIUM)
+                    .when_some(control.hover.filter(|_| enabled), |e, (bg, fg)| {
+                        e.hover(move |s| s.bg(bg).text_color(fg))
+                    })
+                    .focus_visible(move |s| {
+                        s.border_color(theme.colors.focus)
+                            .bg(control.focus_bg)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
                     .when(self.disabled, |e| {
                         e.a11y_synthetic_children(|b| b.parent_node().set_disabled())
                     })
@@ -341,6 +517,20 @@ mod tests {
             window.debug_bounds("inline-alert-dismiss").expect("disabled dismiss control rendered");
         window.simulate_click(bounds.center(), gpui::Modifiers::default());
         assert!(!view.read_with(window, |alert, _| alert.is_dismissed()));
+    }
+
+    #[test]
+    fn disabled_controls_dim_and_high_contrast_stays_solid() {
+        use mkit_core::theme::{HIGH_CONTRAST, SHADCN_DARK};
+        let resting = look(&SHADCN_DARK, Severity::Info, false);
+        let disabled = look(&SHADCN_DARK, Severity::Info, true);
+        let bg = SHADCN_DARK.colors.background;
+        assert_eq!(disabled.action.fg, dim(resting.action.fg, bg));
+        assert_eq!(disabled.action.hover, None);
+        assert_eq!(disabled.message, resting.message, "the message is not dimmed");
+        let hc = look(&HIGH_CONTRAST, Severity::Error, true);
+        assert_eq!(hc.action.fg, HIGH_CONTRAST.colors.disabled);
+        assert_eq!(hc.ring, HIGH_CONTRAST.colors.focus);
     }
 
     #[test]

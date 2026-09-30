@@ -29,7 +29,7 @@ function page(): { html: string; title: string; mount: () => (() => void) | void
     if (card) return { html: renderDocs(card), title: `${card.name} · mkit`, mount: mountDocs }
   }
   if (route.name === 'home') {
-    return { html: renderHome(), title: 'mkit · Components for pro apps', mount: mountHome }
+    return { html: renderHome(), title: 'mkit: Rust Components backed by GPUI', mount: mountHome }
   }
   return { html: renderNotFound(location.pathname), title: 'Not found · mkit', mount: () => {} }
 }

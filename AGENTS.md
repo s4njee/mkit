@@ -19,4 +19,13 @@ Follow `plan.md` for product scope and priorities. Work in small changes that a 
 - Request human review for public API and naming, component specs (including keyboard and accessibility contracts), visual baseline changes, and book accuracy. Agents may implement, test, and draft documentation, but these interfaces need maintainer judgment.
 - Run the relevant workspace build, tests, lint, book build, and coexistence check for the area changed. Record commands and results in the PR.
 
+## Screenshots and the site
+
+- Capture book and site screenshots with the `SHADCN_LIGHT`, `SHADCN_DARK`, and `HIGH_CONTRAST` themes at 1× and 2×. The first image in a component chapter is the shadcn dark 2× capture, because the book and site are dark by default. After refreshing E7 registry baselines, run `python3 scripts/sync_e7_book_images.py`.
+- The site in `site/` builds component pages from the book. Do not edit `site/src/generated/`; change the book or `site/content/catalog.json`, then run `npm --prefix site run content`.
+- Every component chapter needs a live web preview in `site/src/demos/`, keyed by the chapter file name. Catalog cards show the card's `featured` preview, or the first chapter's preview when none is set. When a component's states, variants, or keyboard behavior change, update its preview in the same change.
+- Build previews from the `.ui-*` primitives and `--ui-*` variables in `site/src/ui/`. Those variables come from mkit-core's shadcn themes, so do not hard-code chrome colors. Colors that are app data, such as histogram channels or gradient stops, are fine.
+- A preview illustrates the component; it is not evidence. Keep the harness capture in the page's "GPUI render" tab, and never cite a preview as a test result.
+- For site changes, run `npm --prefix site run typecheck` and `npm --prefix site run build`. Check affected pages in both site themes and at a 375 px width.
+
 The E0 foundation may not yet have all harness and book checks. State which checks exist and which are pending instead of treating planned checks as complete.

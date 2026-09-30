@@ -21,6 +21,10 @@ function rule(mode: 'light' | 'dark', theme: ThemeTokens) {
     input: mode === 'light' ? c.border : `color-mix(in srgb, ${c.text} 15%, transparent)`,
     ring: c.focus,
     destructive: c.danger,
+    // shadcn keeps destructive text light in both modes; the light theme's
+    // background and dark theme's text are those light values.
+    'destructive-foreground': mode === 'light' ? c.background : c.text,
+    overlay: `color-mix(in srgb, ${mode === 'light' ? c.text : c.background} 50%, transparent)`,
     success: c.success,
     warning: c.warning,
     muted: `color-mix(in srgb, ${c.text} ${mix}%, ${c.background})`,

@@ -19,6 +19,7 @@
       "status": "ready",
       "tags": ["checkbox", "slider", "switch"],
       "preview": "controls",
+      "featured": "switch",
       "accent": "violet",
       "sources": ["e7/checkbox.md", "e7/radio-group.md", "e7/switch.md", "e7/slider.md", "e7/progress.md"]
     },
@@ -63,6 +64,7 @@
       "status": "ready",
       "tags": ["dialog", "popover", "toast"],
       "preview": "overlays",
+      "featured": "dialog",
       "accent": "pink",
       "sources": ["e7/tooltip.md", "e7/popover.md", "e7/dialog.md", "e7/sheet.md", "e7/toast.md"]
     },
@@ -85,6 +87,7 @@
       "status": "ready",
       "tags": ["table", "tree", "virtual list"],
       "preview": "table",
+      "featured": "data-table",
       "accent": "purple",
       "sources": ["e7/virtual-list.md", "e7/tree.md", "e7/data-table.md"]
     },
@@ -162,6 +165,7 @@
       "status": "in progress",
       "tags": ["badge", "avatar", "shortcut", "link"],
       "preview": "controls",
+      "featured": "badge",
       "accent": "pink",
       "sources": ["e7/badge.md", "e7/avatar.md", "e7/key-hint.md", "e7/link.md"]
     },

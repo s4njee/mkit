@@ -121,7 +121,43 @@ The focusable root requests group role, a caller-provided name, and a keyboard d
 
 ## Theme tokens used
 
-The frame, toolbar, surface, border, text, accent, focus treatment, rulers, and guides read the GPUI Global `Theme` tokens already used by the E7 controls. The surface uses `background`, the toolbar and ruler strips use `surface`, controls use `controls.xsmall`/`small`, padding uses `spacing.small`/`medium`, border uses `borders.hairline`, guide lines use `focus`, and radius uses `radii.medium`. This follows shadcn's quiet panel chrome and clear focus treatment while preserving mkit theme ownership. No component color is hard-coded.
+The chrome follows the restyled everyday components (Button, Toolbar, Slider, Tree) and is resolved
+from the installed `Theme` in three variants. `high-contrast` is selected by theme name; every other
+theme is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise
+light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" is `text` mixed 4%
+(light) or 12% (dark) into `background`. "Divider" is `border` in light and `text` at 10% alpha in
+dark.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Frame | `background` fill, divider border, radius `radii.large` | same | `background`, `border` |
+| Frame keyboard focus | `focus` border plus a 3px ring of `focus` at 50% | same | `focus` border plus a 3px ring of opaque `focus` |
+| Toolbar strip | `background`, divider under it | same | `background`, `border` |
+| Zoom readout | `text_muted`, `typography.caption` | same | same |
+| Toolbar buttons | the Button `outline` variant: `background`, `text`, `border` outline, `shadows.small`; hover muted fill | same with `text` at 10% over `background` as the outline | `background`, `text`, `border`; hover border `accent` |
+| Toolbar button focus | `focus` border, opaque `background`, 3px ring of `focus` at 50% in place of the shadow | same | same ring in opaque `focus` |
+| Ruler strips and corner | muted fill, divider along the canvas edge | same | `background`, `border` |
+| Ruler ticks | divider | divider | `border` |
+| Ruler labels | `text_muted`, `typography.caption` (12px) | same | same |
+| Guide lines | `focus`, `borders.hairline` | same | same |
+| Guide handles | the Slider thumb look: opaque `background` fill, `borders.hairline` border in the guide colour, `shadows.small` | same | same (the shadow is transparent) |
+
+- **Density (maintainer decision, provisional).** Pro components keep their existing dense
+  geometry: the toolbar stays `controls.small` (32px) tall with `controls.xsmall` (28px) buttons
+  (`controls.small` minimum width, `spacing.small` padding), and the rulers stay
+  `controls.xsmall` wide. Colours, borders, radii, shadows, focus, hover and typography follow the
+  everyday components. Button labels use `typography.body` (14px) at medium weight (500), like
+  Button; there is no font-weight token yet. The 3px focus ring is the shadcn/ui ring width.
+- **Guide handles.** Each visible guide draws a `spacing.medium` (12px) circle in the ruler it
+  crosses, against the canvas edge of the strip so it clears most tick labels. Handles are painted
+  with vector quads, never glyphs. They are decorative: guides remain static, app-supplied overlays
+  and expose no accessibility nodes.
+- GPUI paints drop shadows as filled shapes, so the frame, buttons and handles keep opaque fills
+  under their shadows and rings.
+- The viewport has no disabled state. Every matrix state is captured with keyboard focus on the
+  viewport (each fixture focuses it and dispatches its key actions), so the focus ring is covered in
+  all 24 cases.
 
 ## WAI-ARIA pattern reference
 

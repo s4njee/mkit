@@ -4,10 +4,133 @@ extern crate gpui_pre as gpui;
 use gpui_pre::{
     App, Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, IntoElement,
     KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PathBuilder, Pixels,
-    Render, SharedString, Subscription, Window, actions, canvas, div, point, prelude::*, px,
+    Render, Rgba, SharedString, Subscription, Window, actions, canvas, div, point, prelude::*, px,
     relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved plot, handle and option colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    /// Graph card border and grid lines (the shadcn "border" role).
+    line: Rgba,
+    reference: Rgba,
+    curve: Rgba,
+    handle_fill: Rgba,
+    handle_border: Rgba,
+    /// `shadows.small`, halved when disabled; transparent in high contrast.
+    shadow: ShadowToken,
+    ring: Rgba,
+    group_fill: Rgba,
+    group_border: Option<Rgba>,
+    option_fill: Rgba,
+    option_border: Rgba,
+    option_text: Rgba,
+    option_muted_text: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// A disabled editor renders at 50% opacity as one layer, like the web look's `opacity: .5`.
+/// GPUI applies element opacity to each painted part separately, so each colour is composited
+/// opaque over `background` and then mixed 50% with it instead.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. { color } else { mix(composite(color, background), background, 0.5) }
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (line, curve, handle_border, option_text, option_muted_text) = if disabled {
+            (c.disabled, c.disabled, c.disabled, c.disabled, c.disabled)
+        } else {
+            (c.border, c.accent, c.accent, c.accent_text, c.text_muted)
+        };
+        return Look {
+            line,
+            reference: if disabled { c.disabled } else { c.text_muted },
+            curve,
+            handle_fill: c.background,
+            handle_border,
+            shadow: t.shadows.small,
+            ring: c.focus,
+            group_fill: c.background,
+            group_border: Some(line),
+            option_fill: if disabled { c.background } else { c.accent },
+            option_border: if disabled { c.disabled } else { c.accent },
+            option_text,
+            option_muted_text,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    // Selected fills stay opaque: GPUI drop shadows are not clipped to the element's outside.
+    let (option_fill, option_border) = if dark {
+        let input = c.text.opacity(0.15);
+        (composite(input, muted), input)
+    } else {
+        (c.background, c.background.opacity(0.))
+    };
+    let look = Look {
+        line: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        reference: c.text_muted,
+        curve: c.accent,
+        handle_fill: c.background,
+        handle_border: c.accent,
+        shadow: t.shadows.small,
+        ring: c.focus.opacity(0.5),
+        group_fill: muted,
+        group_border: None,
+        option_fill,
+        option_border,
+        option_text: c.text,
+        option_muted_text: c.text_muted,
+    };
+    if !disabled {
+        return look;
+    }
+    let bg = c.background;
+    Look {
+        line: dim(look.line, bg),
+        reference: dim(look.reference, bg),
+        curve: dim(look.curve, bg),
+        handle_fill: dim(look.handle_fill, bg),
+        handle_border: dim(look.handle_border, bg),
+        shadow: ShadowToken {
+            color: look.shadow.color.opacity(look.shadow.color.a * 0.5),
+            ..look.shadow
+        },
+        group_fill: dim(look.group_fill, bg),
+        option_fill: dim(look.option_fill, bg),
+        option_border: dim(look.option_border, bg),
+        option_text: dim(look.option_text, bg),
+        option_muted_text: dim(look.option_muted_text, bg),
+        ..look
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the graph card or a selected handle.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "CurveEditor";
 pub const MAX_POINTS: usize = 64;
@@ -394,134 +517,111 @@ impl Render for CurveEditor {
         let disabled = self.disabled;
         let selected = self.selected_point;
         let entity = cx.entity();
-        let mut tabs = div().flex().gap(px(theme.spacing.xsmall));
+        let look = look(&theme, disabled);
+        let focus_visible =
+            !disabled && focus.is_focused(window) && window.last_input_was_keyboard();
+        let transparent = theme.colors.background.opacity(0.);
+        let option_height = theme.controls.small;
+        let group = || {
+            div()
+                .flex()
+                .p(px(theme.spacing.xsmall))
+                .rounded(px(theme.radii.large))
+                .bg(look.group_fill)
+                .when_some(look.group_border, |el, color| {
+                    el.border(px(theme.borders.hairline)).border_color(color)
+                })
+        };
+        let option = |id: SharedString, label: SharedString, selected: bool| {
+            div()
+                .id(id)
+                .h(px(option_height))
+                .px(px(theme.spacing.small))
+                .flex()
+                .items_center()
+                .justify_center()
+                .rounded(px(theme.radii.medium))
+                .border(px(theme.borders.hairline))
+                .border_color(if selected { look.option_border } else { transparent })
+                .when(selected, |el| el.bg(look.option_fill).shadow(vec![box_shadow(look.shadow)]))
+                .text_size(px(theme.typography.body))
+                .font_weight(gpui_pre::FontWeight::MEDIUM)
+                .whitespace_nowrap()
+                .text_color(if selected { look.option_text } else { look.option_muted_text })
+                .role(gpui_pre::accesskit::Role::Button)
+                .aria_label(label.clone())
+                .aria_description(if selected { "Selected" } else { "Not selected" })
+                .child(label)
+        };
+        let mut tabs = group();
         for (index, channel) in self.channels.iter().enumerate() {
-            let label = channel.name.clone();
             tabs = tabs.child(
-                div()
-                    .id(SharedString::from(format!("curve-channel-{index}")))
-                    .px(px(theme.spacing.small))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
-                    .bg(if index == active {
-                        theme.colors.surface
-                    } else {
-                        theme.colors.background
-                    })
-                    .text_color(if index == active {
-                        theme.colors.text
-                    } else {
-                        theme.colors.text_muted
-                    })
-                    .role(gpui_pre::accesskit::Role::Button)
-                    .aria_label(label.clone())
-                    .aria_description(if index == active { "Selected" } else { "Not selected" })
-                    .on_mouse_down(
-                        MouseButton::Left,
-                        cx.listener(
-                            move |this: &mut Self,
-                                  _: &MouseDownEvent,
-                                  _: &mut Window,
-                                  cx: &mut Context<Self>| {
-                                if !this.disabled {
-                                    this.select_channel(index, cx);
-                                }
-                            },
-                        ),
-                    )
-                    .child(label),
+                option(
+                    SharedString::from(format!("curve-channel-{index}")),
+                    SharedString::from(channel.name.clone()),
+                    index == active,
+                )
+                .on_mouse_down(
+                    MouseButton::Left,
+                    cx.listener(
+                        move |this: &mut Self,
+                              _: &MouseDownEvent,
+                              _: &mut Window,
+                              cx: &mut Context<Self>| {
+                            if !this.disabled {
+                                this.select_channel(index, cx);
+                            }
+                        },
+                    ),
+                ),
             );
         }
-        let mut mode = div().flex().gap(px(theme.spacing.xsmall));
+        let mut mode = group();
         for (label, value) in [("Linear", Interpolation::Linear), ("Smooth", Interpolation::Smooth)]
         {
             mode = mode.child(
-                div()
-                    .id(SharedString::from(format!("curve-mode-{}", label.to_lowercase())))
-                    .px(px(theme.spacing.small))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
-                    .bg(if value == interpolation {
-                        theme.colors.surface
-                    } else {
-                        theme.colors.background
-                    })
-                    .text_color(if value == interpolation {
-                        theme.colors.text
-                    } else {
-                        theme.colors.text_muted
-                    })
-                    .role(gpui_pre::accesskit::Role::Button)
-                    .aria_label(label)
-                    .aria_description(if value == interpolation {
-                        "Selected"
-                    } else {
-                        "Not selected"
-                    })
-                    .on_mouse_down(
-                        MouseButton::Left,
-                        cx.listener(
-                            move |this: &mut Self,
-                                  _: &MouseDownEvent,
-                                  _: &mut Window,
-                                  cx: &mut Context<Self>| {
-                                this.set_mode(value, cx)
-                            },
-                        ),
-                    )
-                    .child(label),
+                option(
+                    SharedString::from(format!("curve-mode-{}", label.to_lowercase())),
+                    SharedString::from(label),
+                    value == interpolation,
+                )
+                .on_mouse_down(
+                    MouseButton::Left,
+                    cx.listener(
+                        move |this: &mut Self,
+                              _: &MouseDownEvent,
+                              _: &mut Window,
+                              cx: &mut Context<Self>| {
+                            this.set_mode(value, cx)
+                        },
+                    ),
+                ),
             );
         }
         let graph_h = theme.controls.large * 6.0;
         let graph_entity = entity.clone();
-        let graph = div()
+        let mut graph = div()
             .id("curve-editor-graph")
             .debug_selector(|| "mkit-curve-editor-graph".into())
             .relative()
             .w_full()
             .h(px(graph_h))
-            .rounded(px(theme.radii.medium))
+            .rounded(px(theme.radii.large))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border_color(if focus_visible { theme.colors.focus } else { look.line })
             .bg(theme.colors.background)
-            .overflow_hidden()
+            .shadow(if focus_visible {
+                vec![focus_ring(look.ring)]
+            } else {
+                vec![box_shadow(look.shadow)]
+            })
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label(format!("{} curve graph", self.channels[active].name))
             .aria_description(
                 "Click to add a point; drag to move; right click or Delete to remove a point. Arrow keys nudge the selected point.",
             )
             .when(disabled, |el| el.a11y_synthetic_children(|b| b.parent_node().set_disabled()));
-        let mut graph = graph;
-        for (i, p) in channel_points.iter().enumerate() {
-            let size = theme.controls.xsmall * 0.5;
-            graph = graph.child(
-                div()
-                    .id(SharedString::from(format!("curve-point-{i}")))
-                    .absolute()
-                    .left(relative(p.x as f32))
-                    .top(relative((1.0 - p.y) as f32))
-                    .ml(px(-size / 2.0))
-                    .mt(px(-size / 2.0))
-                    .size(px(size))
-                    .rounded(px(theme.radii.pill))
-                    .bg(if disabled { theme.colors.disabled } else { theme.colors.surface })
-                    .border(px(if selected == Some(i) {
-                        theme.borders.strong
-                    } else {
-                        theme.borders.hairline
-                    }))
-                    .border_color(if selected == Some(i) {
-                        theme.colors.focus
-                    } else {
-                        theme.colors.accent
-                    })
-                    .role(gpui_pre::accesskit::Role::Button)
-                    .aria_label(format!(
-                        "{} point {}, input {:.3}, output {:.3}",
-                        self.channels[active].name, i, p.x, p.y
-                    )),
-            );
-        }
+        let curve_points = channel_points.clone();
         graph = graph.child(
             canvas(
                 move |_, _, _| (),
@@ -537,26 +637,26 @@ impl Render for CurveEditor {
                         vertical.move_to(point(x, origin.y));
                         vertical.line_to(point(x, origin.y + height));
                         if let Ok(path) = vertical.build() {
-                            window.paint_path(path, theme.colors.border);
+                            window.paint_path(path, look.line);
                         }
                         let mut horizontal = PathBuilder::stroke(px(theme.borders.hairline));
                         horizontal.move_to(point(origin.x, y));
                         horizontal.line_to(point(origin.x + width, y));
                         if let Ok(path) = horizontal.build() {
-                            window.paint_path(path, theme.colors.border);
+                            window.paint_path(path, look.line);
                         }
                     }
                     let mut reference = PathBuilder::stroke(px(theme.borders.hairline));
                     reference.move_to(origin + point(px(0.0), height));
                     reference.line_to(origin + point(width, px(0.0)));
                     if let Ok(path) = reference.build() {
-                        window.paint_path(path, theme.colors.text_muted);
+                        window.paint_path(path, look.reference);
                     }
                     let mut curve = PathBuilder::stroke(px(theme.borders.strong));
                     let samples = 96;
                     for i in 0..=samples {
                         let t = i as f64 / samples as f64;
-                        let y = sample_curve(&channel_points, interpolation, t);
+                        let y = sample_curve(&curve_points, interpolation, t);
                         let at = point(
                             origin.x + width * t as f32,
                             origin.y + height * (1.0 - y) as f32,
@@ -568,10 +668,7 @@ impl Render for CurveEditor {
                         }
                     }
                     if let Ok(path) = curve.build() {
-                        window.paint_path(
-                            path,
-                            if disabled { theme.colors.disabled } else { theme.colors.accent },
-                        );
+                        window.paint_path(path, look.curve);
                     }
                     let down = graph_entity.clone();
                     window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
@@ -599,6 +696,44 @@ impl Render for CurveEditor {
             .absolute()
             .inset_0(),
         );
+        // Handles paint above the grid and curve so the curve never shows through a handle.
+        // GPUI keeps an element's corner radius when it spreads a ring shadow, which would square
+        // off a round handle's ring, so the selected ring is its own circle behind the handle.
+        let handle_size = theme.controls.xsmall * 0.5;
+        let ring_size = handle_size + FOCUS_RING_WIDTH * 2.0;
+        for (i, p) in channel_points.iter().enumerate() {
+            let ringed = selected == Some(i) && !disabled;
+            graph = graph.child(
+                div()
+                    .id(SharedString::from(format!("curve-point-{i}")))
+                    .absolute()
+                    .left(relative(p.x as f32))
+                    .top(relative((1.0 - p.y) as f32))
+                    .ml(px(-ring_size / 2.0))
+                    .mt(px(-ring_size / 2.0))
+                    .size(px(ring_size))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .rounded(px(theme.radii.pill))
+                    .when(ringed, |el| el.bg(look.ring))
+                    .role(gpui_pre::accesskit::Role::Button)
+                    .aria_label(format!(
+                        "{} point {}, input {:.3}, output {:.3}",
+                        self.channels[active].name, i, p.x, p.y
+                    ))
+                    .child(
+                        div()
+                            .size(px(handle_size))
+                            .flex_none()
+                            .rounded(px(theme.radii.pill))
+                            .bg(look.handle_fill)
+                            .border(px(theme.borders.hairline))
+                            .border_color(look.handle_border)
+                            .when(!ringed, |el| el.shadow(vec![box_shadow(look.shadow)])),
+                    ),
+            );
+        }
         div()
             .id("curve-editor")
             .key_context(KEY_CONTEXT)

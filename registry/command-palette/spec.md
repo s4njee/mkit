@@ -135,7 +135,7 @@ Typing updates the query and resets the active result to the first match. Fuzzy 
 
 ## Props and events
 
-Required input is an action list. Each action has a stable string ID, label, and optional group, keywords, and display-only keybinding. Duplicate IDs are invalid. Keybinding strings are presentation content; the palette does not install or execute shortcut bindings. `CommandAction::keybinding` keeps its `String` API. The palette passes each keybinding to KeyHint's shared `KeyChord::parse` and renders a parsed chord with `KeyHint::inline()`, so modifier names and order match menus and ShortcutEditor: `⌘⇧S` and `cmd-shift-s` both display as `⇧⌘S` on macOS and `Shift+Super+S` elsewhere. Text KeyHint cannot parse is shown verbatim. The inline presentation keeps the caption-sized, muted (or accent-text when active) shortcut column; keycap boxes were not adopted because they would change row density and the shadcn Command reference look.
+Required input is an action list. Each action has a stable string ID, label, and optional group, keywords, and display-only keybinding. Duplicate IDs are invalid. Keybinding strings are presentation content; the palette does not install or execute shortcut bindings. `CommandAction::keybinding` keeps its `String` API. The palette passes each keybinding to KeyHint's shared `KeyChord::parse` and renders a parsed chord with `KeyHint::inline()`, so modifier names and order match menus and ShortcutEditor: `⌘⇧S` and `cmd-shift-s` both display as `⇧⌘S` on macOS and `Shift+Super+S` elsewhere. Text KeyHint cannot parse is shown verbatim. The inline presentation keeps the caption-sized, muted shortcut column; keycap boxes were not adopted because they would change row density and the shadcn Command reference look.
 
 The implementation depends on `mkit-registry-key-hint` for this shared formatting and presentation. This is a documented draft exception to the mkit-core/GPUI-only default pending maintainer approval.
 
@@ -157,7 +157,7 @@ The open surface exposes dialog role, accessible name “Command palette”, and
 
 ## Theme tokens used
 
-Read all colors, spacing, radii, borders, typography, and control heights from the Global `Theme`. Use surface/elevated-surface, border, text/text-muted, accent/accent-text, and focus tokens. The default search field uses the medium control height. The palette is width-constrained to a justified 560 logical pixels and its result viewport shows at most eight rows before scrolling.
+Read all colors, spacing, radii, borders, typography, and control heights from the Global `Theme`. Use surface, border, text/text-muted, accent/accent-text, and focus tokens. The dialog pane is `surface`, shadcn's popover. The active row follows shadcn Command's `bg-accent`: text mixed into the background at 12% (dark) or 4% (light), with `text` and `text_muted` keeping their colors; high contrast uses solid `accent` with `accent_text`. Query selection and the caret keep `accent`. The default search field uses the medium control height. The palette is width-constrained to a justified 560 logical pixels and its result viewport shows at most eight rows before scrolling.
 
 ## WAI-ARIA pattern reference
 

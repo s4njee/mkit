@@ -19,6 +19,9 @@ states:
   - id: dismissed
     description: Dismissible alert is removed after dismissal.
     fixture: dismissed_fixture
+  - id: focused
+    description: Informational alert whose action button has keyboard focus after Tab.
+    fixture: focused_fixture
 keys:
   - key: Enter
     modifiers: []
@@ -44,7 +47,7 @@ accessibility:
       when: error
 controlled: Owner controls dismissed state with controlled constructor and set_dismissed; uncontrolled dismissal hides before emitting.
 events: [ActionInvoked, DismissRequested]
-theme_tokens: [surface, elevated_surface, text, text_muted, border, accent, danger, disabled, spacing.small, spacing.medium, spacing.large, radii.medium, borders.hairline, typography.body, typography.body_emphasis, controls.xsmall]
+theme_tokens: [background, text, text_muted, border, focus, success, warning, danger, disabled, spacing.xsmall, spacing.small, spacing.medium, spacing.large, radii.medium, radii.large, borders.regular, typography.body, controls.xsmall, controls.small, shadows.small]
 open_questions: [Review urgency mapping for warning messages and whether info/success should ever be assertive.]
 ---
 
@@ -56,7 +59,7 @@ Show a persistent contextual message near the content it explains, with an optio
 
 ## Anatomy
 
-An alert region has a severity marker, message, optional title, optional compact action button, and optional dismiss button. The component supplies layout and styling; callers supply icon elements and action labels. The action width follows the label using the body typography token for its text estimate and token-based inline padding rather than stretching across the message column.
+An alert region has a severity marker, message, optional title, optional compact action button, and optional dismiss button. The component supplies layout and styling; callers supply icon elements and action labels. The icon slot is a fixed square beside the title that sets the severity colour for its content. The action button sizes to its label rather than stretching across the message column.
 
 ## States
 
@@ -80,7 +83,54 @@ Info and success use status role with polite live-region priority. Warning and e
 
 ## Theme tokens used
 
-Read surface, elevated surface, text, muted text, border, accent, danger, disabled, spacing, radii, hairline, control height, and typography from the mkit-core Global `Theme`. The severity marker uses the matching semantic token and does not introduce literal colors. Fixed icon glyphs are not imposed; icons are application supplied.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by `.e7-alert*`
+in `site/src/demos/e7_expansion.css` with the shadcn token mapping in `site/src/ui/tokens.ts`), which
+in turn follows the shadcn/ui `Alert`; the action and dismiss controls follow Button's `outline` and
+`ghost` variants. It is resolved from the installed `Theme` in three variants, the same way Button,
+Select, and Tabs do it. `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Border" is `border` in light themes and `text` at 10% over `background` in dark
+themes; "muted" is `text` mixed 4% (light) or 12% (dark) into `background`.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Card fill | `background` | `background` |
+| Card border | info and success: border; warning and error: the severity colour mixed 45% into the border (the preview's `.e7-alert--warning`) | `border` |
+| Icon slot colour | info `text`, success `success`, warning `warning`, error `danger` | the same tokens |
+| Title | `text`; error `danger` (shadcn `destructive`) | `text` |
+| Message | `text_muted`; error `danger` 90% over `background` (shadcn `text-destructive/90`) | `text` |
+| Action button | `background` fill, border, `text`, `shadows.small`; hover muted | `background` fill, `border` border, `text` |
+| Dismiss button | transparent, `text_muted`; hover muted fill and `text` | transparent, `text` |
+| Keyboard focus (either button) | border `focus` plus a 3px ring of `focus` at 50%, over an opaque fill | border `focus` plus a 3px ring of opaque `focus` |
+| Disabled controls | each control colour mixed 50% over `background`; shadow alpha halved; no hover | `background` fill, `disabled` text and border |
+
+- **Severity** is never carried by colour alone: the role, the caller's title and message, and the
+  caller's icon carry it too. The icon slot only sets the text colour its content inherits; icons
+  stay application supplied (the screenshot fixtures pass Lucide icons drawn as vector paths that
+  read the inherited colour).
+- **Rings and shadows.** GPUI paints drop shadows as filled shapes that are not clipped to the
+  element's outside, so both buttons use an opaque fill while focused (`background` for the
+  transparent dismiss button). Ring corners use the button radius rather than CSS's
+  radius-plus-spread.
+- **Disabled** matches shadcn's `opacity: .5` as one layer, the way Select and TextField do it; GPUI
+  element opacity is not used. Only the controls are dimmed: the message stays readable, as the
+  alert content itself is not unavailable. High contrast keeps solid colours instead.
+- **Geometry.** The card has radius `radii.large` (shadcn `rounded-lg`), a `borders.regular` border,
+  `spacing.medium` (12px, the preview's padding) padding, and a `spacing.medium` gap between the
+  icon slot and the text column (shadcn `gap-x-3`; the preview uses 10px, which has no token). Text
+  is `typography.body` (14px) with a 20px line height (`spacing.large + spacing.xsmall`, Tailwind's
+  `text-sm` line box); the title is semibold (600, the preview's `b`) and sits `spacing.xsmall`
+  (4px) above the message (the preview uses 3px). The icon slot is `spacing.large` (16px, shadcn
+  `size-4`) wide and one 20px line tall, so the icon centres on the title line. The action button is
+  `controls.small` (32px, Button's small size) tall with `spacing.medium` padding, radius
+  `radii.medium`, medium weight (500), and sits `spacing.small` (8px) below the message; the dismiss
+  button is `controls.xsmall` (28px) tall with `spacing.small` padding and radius `radii.medium`,
+  centred on the title line by an equal negative vertical margin.
+  There is no font-weight token yet. The 3px focus ring is the shadcn/ui ring width, a fixed
+  component value.
+- The `focused` screenshot state dispatches a keyboard Tab in the `info` fixture and moves focus to
+  the first tab stop, the action button.
 
 ## WAI-ARIA pattern reference
 

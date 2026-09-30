@@ -1,5 +1,6 @@
 use gpui_pre::{
-    App, Context, IntoElement, Render, ScrollHandle, Window, div, point, prelude::*, px, size,
+    App, Context, IntoElement, Keystroke, Render, ScrollHandle, Window, div, point, prelude::*, px,
+    size,
 };
 use image::RgbaImage;
 use mkit::{
@@ -55,7 +56,14 @@ impl Render for ScrollAreaFixture {
     }
 }
 
-fn capture(scrolled: bool, theme_value: Theme, scale: u32) -> Result<RgbaImage, ScreenshotError> {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum State {
+    Idle,
+    Scrolled,
+    Focused,
+}
+
+fn capture(state: State, theme_value: Theme, scale: u32) -> Result<RgbaImage, ScreenshotError> {
     let mut session = HeadlessSession::new(
         ScrollAreaFixture { handle: ScrollHandle::new() },
         size(px(SIZE.0), px(SIZE.1)),
@@ -63,9 +71,19 @@ fn capture(scrolled: bool, theme_value: Theme, scale: u32) -> Result<RgbaImage, 
         |cx: &mut App| {
             gpui_kit::base::init(cx);
             theme::set_theme(cx, theme_value);
+            cx.bind_keys(mkit::scroll_area::default_key_bindings());
         },
     )?;
-    if scrolled {
+    if state == State::Focused {
+        // The viewport is the fixture's only tab stop; Tab gives it keyboard focus.
+        session.update(|_, window, cx| {
+            window.dispatch_keystroke(Keystroke::parse("tab").expect("Tab key"), cx);
+            window.focus_next(cx);
+            assert!(window.focused(cx).is_some(), "Tab focuses the scroll area");
+            assert!(window.last_input_was_keyboard());
+        })?;
+    }
+    if state == State::Scrolled {
         session.update(|root, window, cx| {
             let handle = root.read(cx).handle.clone();
             let line = cx.global::<Theme>().spacing.large * 2.0;
@@ -120,11 +138,12 @@ fn run() -> Result<(), ScreenshotError> {
         serde_json::from_str(include_str!("../../../registry/scroll-area/tests/conformance.json"))
             .expect("ScrollArea manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 12, "two states × three themes × two scales");
+    assert_eq!(cases.len(), 18, "three states × three themes × two scales");
     for case in cases {
-        let scrolled = match case["state"].as_str().expect("state") {
-            "idle" => false,
-            "scrolled" => true,
+        let state = match case["state"].as_str().expect("state") {
+            "idle" => State::Idle,
+            "scrolled" => State::Scrolled,
+            "focused" => State::Focused,
             other => panic!("unmapped ScrollArea state: {other}"),
         };
         let theme_value = match case["theme"].as_str().expect("theme") {
@@ -135,7 +154,7 @@ fn run() -> Result<(), ScreenshotError> {
         };
         let scale = u32::try_from(case["scale"].as_u64().expect("scale")).expect("u32 scale");
         let baseline = case["baseline"].as_str().expect("baseline");
-        let actual = capture(scrolled, theme_value, scale)?;
+        let actual = capture(state, theme_value, scale)?;
         assert_eq!(actual.dimensions(), (SIZE.0 as u32 * scale, SIZE.1 as u32 * scale));
         compare_or_update(&actual, baseline);
     }

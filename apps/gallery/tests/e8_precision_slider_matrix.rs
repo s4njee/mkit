@@ -1,6 +1,6 @@
 use gpui_pre::{
-    App, Context, Entity, InputEvent, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent,
-    Render, Window, div, point, prelude::*, px, size,
+    App, Context, Entity, Focusable, InputEvent, IntoElement, Keystroke, MouseButton,
+    MouseDownEvent, MouseMoveEvent, Render, Window, div, point, prelude::*, px, size,
 };
 use image::RgbaImage;
 use mkit::{
@@ -28,6 +28,9 @@ impl Render for PrecisionSliderFixture {
                 "middle" => PrecisionSlider::new("Exposure", 0.0, -100.0, 100.0, 1.0).bipolar(true),
                 "maximum" => PrecisionSlider::new("Exposure", 100.0, -100.0, 100.0, 1.0),
                 "dragging" => PrecisionSlider::new("Exposure", 0.0, -100.0, 100.0, 1.0),
+                "focused" => {
+                    PrecisionSlider::new("Exposure", 40.0, -100.0, 100.0, 1.0).bipolar(true)
+                }
                 "disabled" => {
                     PrecisionSlider::new("Exposure", 35.0, -100.0, 100.0, 1.0).disabled(true)
                 }
@@ -93,6 +96,18 @@ fn capture(
             assert!(slider.read(cx).value() > 0.0, "pointer drag must update slider value");
         })?;
     }
+    if state == "focused" {
+        // Focus the slider, then press an unbound key so GPUI records keyboard modality and the
+        // thumb paints its keyboard focus ring.
+        session.update(|root, window, cx| {
+            let slider = root.read(cx).slider.as_ref().expect("slider initialized").clone();
+            let focus = slider.focus_handle(cx);
+            window.focus(&focus, cx);
+            window.dispatch_keystroke(Keystroke::parse("escape").expect("Escape key"), cx);
+            assert!(focus.is_focused(window), "slider keeps keyboard focus");
+            assert!(window.last_input_was_keyboard(), "keyboard modality recorded");
+        })?;
+    }
     session.capture()
 }
 
@@ -140,7 +155,7 @@ fn run() -> Result<(), ScreenshotError> {
     ))
     .expect("PrecisionSlider manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 30, "five states × three themes × two scales");
+    assert_eq!(cases.len(), 36, "six states × three themes × two scales");
     let update_state = std::env::var("UPDATE_SNAPSHOT_STATE").ok();
     let updating =
         std::env::var_os("UPDATE_SNAPSHOTS").as_deref() == Some(std::ffi::OsStr::new("1"));
@@ -151,6 +166,7 @@ fn run() -> Result<(), ScreenshotError> {
             "maximum" => ("maximum", "maximum_fixture"),
             "dragging" => ("dragging", "dragging_fixture"),
             "disabled" => ("disabled", "disabled_fixture"),
+            "focused" => ("focused", "focused_fixture"),
             other => panic!("unmapped PrecisionSlider state: {other}"),
         };
         assert_eq!(case["load_fixture"].as_str(), Some(fixture));

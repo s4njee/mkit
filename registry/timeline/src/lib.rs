@@ -2,12 +2,15 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render,
-    ScrollDelta, ScrollHandle, ScrollWheelEvent, Window, actions, canvas, div, prelude::*, px,
-    relative,
+    App, Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, FontWeight,
+    IntoElement, KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    PathBuilder, Pixels, Render, Rgba, ScrollDelta, ScrollHandle, ScrollWheelEvent, Window,
+    actions, canvas, div, point, prelude::*, px, relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::{
     cell::{Cell, RefCell},
     collections::HashMap,
@@ -24,6 +27,169 @@ const MAX_TICKS: usize = 512;
 const KEYFRAME_STACK_ROWS: usize = 3;
 pub const SNAP_TOLERANCE_PX: f64 = 8.0;
 pub const PLAYHEAD_STEP_SECONDS: f64 = 0.1;
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// shadcn "muted": ruler fill and hover fill.
+    muted: Rgba,
+    /// Half-strength muted fill behind a track's keyframe marker band.
+    band: Rgba,
+    /// Frame border, dividers, ticks, and the resting clip border.
+    divider: Rgba,
+    /// Opaque outline-button border.
+    control_border: Rgba,
+    selected_track_bg: Rgba,
+    selected_track_text: Rgba,
+    /// Clip fill, label, and outline: shadcn's secondary button look.
+    clip_bg: Rgba,
+    clip_text: Rgba,
+    clip_border: Rgba,
+    /// Outline of the selected clip, drawn inside its focus ring.
+    clip_selected_border: Rgba,
+    ring: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            muted: c.background,
+            band: c.background,
+            divider: c.border,
+            control_border: c.border,
+            selected_track_bg: c.accent,
+            selected_track_text: c.accent_text,
+            clip_bg: c.accent,
+            clip_text: c.accent_text,
+            clip_border: c.border,
+            clip_selected_border: c.focus,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        muted,
+        band: mix(c.text, c.background, if dark { 0.06 } else { 0.02 }),
+        divider: if dark { c.text.opacity(0.1) } else { c.border },
+        control_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        selected_track_bg: muted,
+        selected_track_text: c.text,
+        clip_bg: muted,
+        clip_text: c.text,
+        clip_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        clip_selected_border: c.text,
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused or selected element.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `plus`.
+const PLUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)], &[(12., 5.), (12., 19.)]];
+/// Lucide `minus`.
+const MINUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)]];
+/// Lucide `check`.
+const CHECK: &[&[(f32, f32)]] = &[&[(20., 6.), (9., 17.), (4., 12.)]];
+
+/// A diamond through the four points `half` away from `centre`.
+fn diamond(
+    mut path: PathBuilder,
+    centre: gpui_pre::Point<Pixels>,
+    half: Pixels,
+) -> Option<gpui_pre::Path<Pixels>> {
+    path.move_to(centre - point(px(0.), half));
+    path.line_to(centre + point(half, px(0.)));
+    path.line_to(centre + point(px(0.), half));
+    path.line_to(centre - point(half, px(0.)));
+    path.close();
+    path.build().ok()
+}
+/// A keyframe marker drawn as a vector diamond in the restyled Slider thumb look: an opaque
+/// `background` fill, a hairline `accent` border, and the small shadow. A selected keyframe is
+/// filled with `accent` and gains the focus ring in place of the shadow.
+fn keyframe_diamond(theme: Theme, look: Look, selected: bool) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let c = theme.colors;
+            let centre = bounds.center();
+            let half = px(theme.spacing.large / 2.0);
+            if selected {
+                // The ring's perpendicular width is `FOCUS_RING_WIDTH`; a diamond's half-diagonal
+                // grows by that width times the square root of two.
+                let ring = half + px(FOCUS_RING_WIDTH * std::f32::consts::SQRT_2);
+                if let Some(path) = diamond(PathBuilder::fill(), centre, ring) {
+                    window.paint_path(path, look.ring);
+                }
+            } else {
+                let shadow = theme.shadows.small;
+                let offset = centre + point(px(shadow.x), px(shadow.y));
+                if let Some(path) =
+                    diamond(PathBuilder::fill(), offset, half + px(shadow.blur / 2.0))
+                {
+                    window.paint_path(path, shadow.color);
+                }
+            }
+            if let Some(path) = diamond(PathBuilder::fill(), centre, half) {
+                window.paint_path(path, if selected { c.accent } else { c.background });
+            }
+            let border = PathBuilder::stroke(px(theme.borders.hairline));
+            if let Some(path) = diamond(border, centre, half) {
+                window.paint_path(path, c.accent);
+            }
+        },
+    )
+    .absolute()
+    .inset_0()
+}
 
 actions!(
     timeline,
@@ -947,6 +1113,8 @@ impl Render for Timeline {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_stop(true)).clone();
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let transparent = theme.colors.background.opacity(0.);
         let range = self.visible_range;
         let playhead = self.playhead;
         let playhead_fraction =
@@ -967,22 +1135,40 @@ impl Render for Timeline {
         let fit_entity = cx.entity();
         let zoom_in_entity = cx.entity();
         let zoom_out_entity = cx.entity();
+        let icon_size = theme.spacing.large;
         let fit_button =
             tool_button("timeline-fit", "Fit", "Fit all clips", theme, move |_, _, cx| {
                 fit_entity.update(cx, |this, cx| this.fit_range(cx));
             });
-        let zoom_in = tool_button("timeline-zoom-in", "+", "Zoom in", theme, move |_, _, cx| {
-            zoom_in_entity.update(cx, |this, cx| this.zoom_center(ZOOM_FACTOR, cx));
-        });
-        let zoom_out =
-            tool_button("timeline-zoom-out", "−", "Zoom out", theme, move |_, _, cx| {
+        let zoom_in = tool_button(
+            "timeline-zoom-in",
+            icon(icon_size, PLUS, theme.colors.text),
+            "Zoom in",
+            theme,
+            move |_, _, cx| {
+                zoom_in_entity.update(cx, |this, cx| this.zoom_center(ZOOM_FACTOR, cx));
+            },
+        );
+        let zoom_out = tool_button(
+            "timeline-zoom-out",
+            icon(icon_size, MINUS, theme.colors.text),
+            "Zoom out",
+            theme,
+            move |_, _, cx| {
                 zoom_out_entity.update(cx, |this, cx| this.zoom_center(1.0 / ZOOM_FACTOR, cx));
-            });
+            },
+        );
         let toolbar = div()
             .flex()
             .items_center()
             .justify_between()
-            .child(div().text_color(theme.colors.text).child(self.label.clone()))
+            .child(
+                div()
+                    .text_color(theme.colors.text)
+                    .text_size(px(theme.typography.body))
+                    .font_weight(FontWeight::MEDIUM)
+                    .child(self.label.clone()),
+            )
             .child(
                 div()
                     .flex()
@@ -1000,15 +1186,23 @@ impl Render for Timeline {
             .flex()
             .w_full()
             .h(px(ruler_height))
-            .bg(theme.colors.surface)
+            .bg(look.muted)
+            .border_b(px(theme.borders.hairline))
+            .border_color(look.divider)
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label("Time ruler");
         ruler = ruler.child(
             div()
                 .w(px(label_width))
                 .h_full()
+                .flex()
+                .items_center()
+                .px(px(theme.spacing.medium))
                 .border_r(px(theme.borders.hairline))
-                .border_color(theme.colors.border)
+                .border_color(look.divider)
+                .text_color(theme.colors.text_muted)
+                .text_size(px(theme.typography.caption))
+                .font_weight(FontWeight::MEDIUM)
                 .child("Track"),
         );
         let mut ruler_lane = div()
@@ -1033,15 +1227,20 @@ impl Render for Timeline {
                     .top_0()
                     .bottom_0()
                     .w(px(theme.borders.hairline))
-                    .bg(theme.colors.border),
+                    .bg(look.divider),
             );
             ruler_lane = ruler_lane.child(
                 div()
                     .absolute()
                     .when(fraction >= 0.95, |el| {
-                        el.right_0().w(px(theme.controls.large * 2.0)).justify_end()
+                        el.right_0()
+                            .w(px(theme.controls.large * 2.0))
+                            .justify_end()
+                            .pr(px(theme.spacing.xsmall))
                     })
-                    .when(fraction < 0.95, |el| el.left(relative(fraction)))
+                    .when(fraction < 0.95, |el| {
+                        el.left(relative(fraction)).pl(px(theme.spacing.xsmall))
+                    })
                     .top_0()
                     .bottom_0()
                     .flex()
@@ -1054,16 +1253,32 @@ impl Render for Timeline {
                     ),
             );
         }
-        ruler_lane = ruler_lane.child(
-            div()
-                .id("timeline-playhead")
-                .absolute()
-                .left(relative(playhead_fraction))
-                .top_0()
-                .bottom_0()
-                .w(px(theme.borders.hairline.max(1.0)))
-                .bg(theme.colors.focus),
-        );
+        let playhead_head = theme.spacing.medium;
+        ruler_lane = ruler_lane
+            .child(
+                div()
+                    .id("timeline-playhead")
+                    .absolute()
+                    .left(relative(playhead_fraction))
+                    .top_0()
+                    .bottom_0()
+                    .w(px(theme.borders.hairline.max(1.0)))
+                    .bg(theme.colors.accent),
+            )
+            .child(
+                // The playhead head: the restyled Slider thumb look at `spacing.medium`.
+                div()
+                    .absolute()
+                    .left(relative(playhead_fraction))
+                    .ml(px((theme.borders.hairline.max(1.0) - playhead_head) / 2.0))
+                    .top_0()
+                    .size(px(playhead_head))
+                    .rounded(px(theme.radii.pill))
+                    .border(px(theme.borders.hairline))
+                    .border_color(theme.colors.accent)
+                    .bg(theme.colors.background)
+                    .shadow(vec![box_shadow(theme.shadows.small)]),
+            );
         let pointer_entity = cx.entity();
         let pointer_bounds = self.playhead_bounds.clone();
         ruler_lane = ruler_lane.child(
@@ -1168,12 +1383,25 @@ impl Render for Timeline {
                 .h_full()
                 .border_l(px(theme.borders.hairline))
                 .border_b(px(theme.borders.hairline))
-                .border_color(theme.colors.border)
+                .border_color(look.divider)
                 .bg(theme.colors.background)
                 .role(gpui_pre::accesskit::Role::Group)
                 .aria_label(format!("{} track", track.label))
                 .aria_description(format!("Track {}", track.id));
             lane = lane.on_scroll_wheel(cx.listener(Self::on_wheel));
+            if marker_band > 0.0 {
+                lane = lane.child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .left_0()
+                        .right_0()
+                        .h(px(marker_band))
+                        .bg(look.band)
+                        .border_b(px(theme.borders.hairline))
+                        .border_color(look.divider),
+                );
+            }
             for tick in ticks.iter().copied() {
                 let fraction = ((tick - range.start) / range.duration()) as f32;
                 lane = lane.child(
@@ -1183,7 +1411,7 @@ impl Render for Timeline {
                         .top_0()
                         .bottom_0()
                         .w(px(theme.borders.hairline))
-                        .bg(theme.colors.border),
+                        .bg(look.divider),
                 );
             }
             lane = lane.child(
@@ -1193,7 +1421,7 @@ impl Render for Timeline {
                     .top_0()
                     .bottom_0()
                     .w(px(theme.borders.hairline.max(1.0)))
-                    .bg(theme.colors.focus),
+                    .bg(theme.colors.accent),
             );
             for clip in &track.clips {
                 let preview = match self.edit {
@@ -1229,21 +1457,25 @@ impl Render for Timeline {
                         .px(px(theme.spacing.xsmall))
                         .flex()
                         .items_center()
+                        .gap(px(theme.spacing.xsmall))
                         .overflow_hidden()
-                        .rounded(px(theme.radii.small))
-                        .border(px(if selected_clip {
-                            theme.borders.strong
-                        } else {
-                            theme.borders.hairline
-                        }))
+                        .whitespace_nowrap()
+                        .rounded(px(theme.radii.medium))
+                        .border(px(theme.borders.hairline))
                         .border_color(if selected_clip {
-                            theme.colors.focus
+                            look.clip_selected_border
                         } else {
-                            theme.colors.border
+                            look.clip_border
                         })
-                        .bg(theme.colors.accent)
-                        .text_color(theme.colors.accent_text)
+                        .bg(look.clip_bg)
+                        .shadow(if selected_clip {
+                            vec![focus_ring(look.ring)]
+                        } else {
+                            vec![box_shadow(theme.shadows.small)]
+                        })
+                        .text_color(look.clip_text)
                         .text_size(px(theme.typography.caption))
+                        .font_weight(FontWeight::MEDIUM)
                         .role(gpui_pre::accesskit::Role::Group)
                         .aria_label(format!("{} clip", clip.label))
                         .aria_description(format!(
@@ -1263,11 +1495,8 @@ impl Render for Timeline {
                                 }
                             }),
                         )
-                        .child(if selected_clip {
-                            format!("✓ {}", clip.label)
-                        } else {
-                            clip.label.clone()
-                        }),
+                        .when(selected_clip, |el| el.child(icon(icon_size, CHECK, look.clip_text)))
+                        .child(clip.label.clone()),
                 );
             }
             if let Some(EditPreview::Clip { id, track_id, start }) = self.edit
@@ -1285,10 +1514,19 @@ impl Render for Timeline {
                         .w(relative(width))
                         .top(px(marker_band + theme.spacing.xsmall))
                         .bottom(px(theme.spacing.xsmall))
-                        .bg(theme.colors.accent)
-                        .border(px(theme.borders.strong))
-                        .border_color(theme.colors.focus)
-                        .text_color(theme.colors.accent_text)
+                        .px(px(theme.spacing.xsmall))
+                        .flex()
+                        .items_center()
+                        .overflow_hidden()
+                        .whitespace_nowrap()
+                        .rounded(px(theme.radii.medium))
+                        .bg(look.clip_bg)
+                        .border(px(theme.borders.hairline))
+                        .border_color(look.clip_selected_border)
+                        .shadow(vec![focus_ring(look.ring)])
+                        .text_color(look.clip_text)
+                        .text_size(px(theme.typography.caption))
+                        .font_weight(FontWeight::MEDIUM)
                         .aria_label(format!("{} clip move preview", clip.label))
                         .aria_description(format!(
                             "Proposed on track {} at {} seconds",
@@ -1319,10 +1557,16 @@ impl Render for Timeline {
                         .top(px(marker_row as f32 * marker_pitch))
                         .w(px(marker_size))
                         .h(px(marker_size))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .text_size(px(theme.typography.caption))
+                        .rounded(px(theme.radii.small))
+                        .border(px(theme.borders.hairline))
+                        .border_color(transparent)
+                        .hover(move |s| {
+                            if look.high_contrast {
+                                s.border_color(theme.colors.border)
+                            } else {
+                                s.bg(look.muted)
+                            }
+                        })
                         .role(gpui_pre::accesskit::Role::Group)
                         .aria_label(format!("{} keyframe", keyframe.label))
                         .aria_description(format!(
@@ -1334,8 +1578,6 @@ impl Render for Timeline {
                             format_time(preview_time),
                             if selected { "Selected" } else { "Not selected" }
                         ))
-                        .text_color(theme.colors.accent_text)
-                        .bg(if selected { theme.colors.focus } else { theme.colors.accent })
                         .on_mouse_down(
                             MouseButton::Left,
                             cx.listener(move |this, event, window, cx| {
@@ -1352,7 +1594,7 @@ impl Render for Timeline {
                                 }
                             }),
                         )
-                        .child("◆"),
+                        .child(keyframe_diamond(theme, look, selected)),
                 );
             }
             let lane_bounds = self.lane_bounds.clone();
@@ -1384,21 +1626,9 @@ impl Render for Timeline {
                             .role(gpui_pre::accesskit::Role::Group)
                             .w(px(label_width))
                             .h_full()
-                            .flex()
-                            .items_center()
-                            .px(px(theme.spacing.small))
+                            .p(px(theme.spacing.xsmall))
                             .border_b(px(theme.borders.hairline))
-                            .border_color(theme.colors.border)
-                            .bg(if selected_track {
-                                theme.colors.accent
-                            } else {
-                                theme.colors.surface
-                            })
-                            .text_color(if selected_track {
-                                theme.colors.accent_text
-                            } else {
-                                theme.colors.text
-                            })
+                            .border_color(look.divider)
                             .aria_label(format!("{} track", track.label))
                             .aria_description(if selected_track {
                                 "Selected"
@@ -1417,7 +1647,36 @@ impl Render for Timeline {
                                     }
                                 }),
                             )
-                            .child(track.label.clone()),
+                            .child(
+                                // The restyled Sidebar/Tree row: radius-small, accent fill when
+                                // selected, a muted fill on hover, and a reserved hairline border.
+                                div()
+                                    .size_full()
+                                    .flex()
+                                    .items_center()
+                                    .px(px(theme.spacing.small))
+                                    .overflow_hidden()
+                                    .whitespace_nowrap()
+                                    .rounded(px(theme.radii.small))
+                                    .border(px(theme.borders.hairline))
+                                    .border_color(transparent)
+                                    .text_size(px(theme.typography.body))
+                                    .when(selected_track, |el| {
+                                        el.bg(look.selected_track_bg)
+                                            .text_color(look.selected_track_text)
+                                            .font_weight(FontWeight::MEDIUM)
+                                    })
+                                    .when(!selected_track, |el| {
+                                        el.text_color(theme.colors.text).hover(move |s| {
+                                            if look.high_contrast {
+                                                s.border_color(theme.colors.border)
+                                            } else {
+                                                s.bg(look.muted)
+                                            }
+                                        })
+                                    })
+                                    .child(track.label.clone()),
+                            ),
                     )
                     .child(lane),
             );
@@ -1455,11 +1714,14 @@ impl Render for Timeline {
             .flex_col()
             .gap(px(theme.spacing.xsmall))
             .p(px(theme.spacing.medium))
-            .rounded(px(theme.radii.medium))
+            .rounded(px(theme.radii.large))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border_color(look.divider)
             .bg(theme.colors.surface)
             .text_color(theme.colors.text)
+            .focus_visible(move |el| {
+                el.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label(self.label.clone())
             .aria_description("Ordered tracks and clips with time spans. Use left and right arrows to pan, plus and minus to zoom, and F to fit all clips.")
@@ -1489,13 +1751,17 @@ impl Render for Timeline {
     }
 }
 
+/// A small outline button (the restyled Button's `outline` variant) at the dense
+/// `controls.xsmall` toolbar height.
 fn tool_button(
     id: &'static str,
-    text: &'static str,
+    content: impl IntoElement,
     label: &'static str,
     theme: Theme,
     on_click: impl Fn(&gpui_pre::ClickEvent, &mut Window, &mut App) + 'static,
 ) -> impl IntoElement {
+    let look = look(&theme);
+    let c = theme.colors;
     div()
         .id(id)
         .role(gpui_pre::accesskit::Role::Button)
@@ -1507,15 +1773,23 @@ fn tool_button(
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(theme.radii.small))
-        .border(px(theme.borders.hairline))
-        .border_color(theme.colors.border)
-        .bg(theme.colors.elevated_surface)
-        .text_color(theme.colors.text)
-        .text_size(px(theme.typography.caption))
-        .focus_visible(|el| el.border_color(theme.colors.focus))
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(look.control_border)
+        .bg(c.background)
+        .shadow(vec![box_shadow(theme.shadows.small)])
+        .text_color(c.text)
+        .text_size(px(theme.typography.body))
+        .font_weight(FontWeight::MEDIUM)
+        .whitespace_nowrap()
+        .hover(
+            move |s| if look.high_contrast { s.border_color(c.accent) } else { s.bg(look.muted) },
+        )
+        .focus_visible(move |s| {
+            s.border_color(c.focus).bg(c.background).shadow(vec![focus_ring(look.ring)])
+        })
         .on_click(on_click)
-        .child(text)
+        .child(content)
 }
 
 fn normalize_clips(mut clips: Vec<Clip>) -> Vec<Clip> {

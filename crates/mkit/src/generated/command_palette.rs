@@ -9,7 +9,25 @@ use gpui_pre::{
     IntoElement, KeyBinding, Pixels, Render, UTF16Selection, WeakFocusHandle, Window, actions,
     canvas, div, point, prelude::*, px, size,
 };
+use mkit_core::contrast::{composite, relative_luminance};
 use mkit_core::theme::Theme;
+
+/// Active-row colours: shadcn Command's `bg-accent`, which is text mixed into the
+/// background (the same recipe as DropdownMenu). High contrast keeps the solid
+/// accent so the active row stays unmistakable.
+fn active_row(t: &Theme) -> (gpui_pre::Rgba, gpui_pre::Rgba, gpui_pre::Rgba) {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return (c.accent, c.accent_text, c.accent_text);
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let weight = if dark { 0.12 } else { 0.04 };
+    let bg = composite(
+        gpui_pre::Rgba { a: weight, ..c.text },
+        gpui_pre::Rgba { a: 1.0, ..c.background },
+    );
+    (bg, c.text, c.text_muted)
+}
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_key_hint::{KeyChord, KeyHint, shortcut_label};
 use std::ops::Range;
@@ -538,6 +556,7 @@ impl Render for CommandPalette {
                     .child("No results found."),
             );
         } else {
+            let (active_bg, active_text, active_muted) = active_row(&theme);
             for (index, action) in matches.iter().enumerate().take(8) {
                 let id = action.id.clone();
                 let label = action.label.clone();
@@ -559,17 +578,14 @@ impl Render for CommandPalette {
                     .rounded(px(theme.radii.small))
                     .text_color(theme.colors.text);
                 if selected {
-                    row = row
-                        .aria_active_descendant()
-                        .bg(theme.colors.accent)
-                        .text_color(theme.colors.accent_text);
+                    row = row.aria_active_descendant().bg(active_bg).text_color(active_text);
                 }
                 row = row.child(div().flex_1().child(label));
                 if let Some(group) = group {
                     row = row.child(
                         div()
                             .text_color(if selected {
-                                theme.colors.accent_text
+                                active_muted
                             } else {
                                 theme.colors.text_muted
                             })
@@ -581,7 +597,7 @@ impl Render for CommandPalette {
                     row = row.child(
                         div()
                             .text_color(if selected {
-                                theme.colors.accent_text
+                                active_muted
                             } else {
                                 theme.colors.text_muted
                             })
@@ -621,7 +637,8 @@ impl Render for CommandPalette {
                     .rounded(px(theme.radii.medium))
                     .border(px(theme.borders.hairline))
                     .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
+                    // shadcn's popover surface, so the accent active row stays visible.
+                    .bg(theme.colors.surface)
                     .shadow(vec![{
                         let shadow = theme.shadows.medium;
                         gpui_pre::BoxShadow {

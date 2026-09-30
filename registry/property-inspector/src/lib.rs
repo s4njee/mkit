@@ -6,10 +6,14 @@ use crate::disclosure::{
     DisclosurePanel, DisclosureTrigger, default_key_bindings as disclosure_key_bindings,
 };
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement, KeyBinding,
-    KeyDownEvent, Render, Window, actions, div, prelude::*, px,
+    Context, Div, EventEmitter, FocusHandle, Focusable, FontWeight, InteractiveElement, IntoElement,
+    KeyBinding, KeyDownEvent, PathBuilder, Render, Rgba, Stateful, Window, actions, canvas, div,
+    point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_disclosure::{
     DisclosurePanel, DisclosureTrigger, default_key_bindings as disclosure_key_bindings,
@@ -29,6 +33,258 @@ pub fn default_key_bindings() -> [KeyBinding; 6] {
         disclosure_space,
         disclosure_enter,
     ]
+}
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    card: Rgba,
+    card_border: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for rows; `None` outlines the row instead (high contrast).
+    hover_bg: Option<Rgba>,
+    hover_border: Rgba,
+    /// Weight of the shadcn "muted" mix, reused for ghost hovers over a row fill.
+    muted_weight: Option<f32>,
+    text: Rgba,
+    label: Rgba,
+    placeholder: Rgba,
+    field_bg: Rgba,
+    field_border: Rgba,
+    select_bg: Rgba,
+    button_bg: Rgba,
+    button_border: Rgba,
+    button_hover_bg: Option<Rgba>,
+    button_hover_border: Option<Rgba>,
+    icon: Rgba,
+    track_off: Rgba,
+    track_on: Rgba,
+    track_border_off: Rgba,
+    track_border_on: Rgba,
+    thumb_off: Rgba,
+    thumb_on: Rgba,
+    reset_idle: Rgba,
+    /// Mixed badge fill; `None` fills with the muted mix over the row fill.
+    badge_bg: Option<Rgba>,
+    badge_text: Rgba,
+    caret: Rgba,
+    focus: Rgba,
+    ring: Rgba,
+    shadow: ShadowToken,
+    high_contrast: bool,
+}
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+
+/// shadcn's disabled `opacity: .5` as one layer: composite opaque over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    if color.a == 0. { color } else { mix(composite(color, base), base, 0.5) }
+}
+
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    let transparent = c.background.opacity(0.);
+    if t.name == "high-contrast" {
+        return Look {
+            card: c.background,
+            card_border: c.border,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            hover_border: c.border,
+            muted_weight: None,
+            text: c.text,
+            label: c.text_muted,
+            placeholder: c.text_muted,
+            field_bg: c.background,
+            field_border: c.border,
+            select_bg: c.background,
+            button_bg: c.background,
+            button_border: c.border,
+            button_hover_bg: None,
+            button_hover_border: Some(c.accent),
+            icon: c.text,
+            track_off: c.background,
+            track_on: c.accent,
+            track_border_off: c.border,
+            track_border_on: c.accent,
+            thumb_off: c.text,
+            thumb_on: c.accent_text,
+            reset_idle: c.disabled,
+            badge_bg: Some(c.text),
+            badge_text: c.background,
+            caret: c.accent,
+            focus: c.focus,
+            ring: c.focus,
+            shadow: t.shadows.none,
+            high_contrast: true,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let weight = if dark { 0.12 } else { 0.04 };
+    // shadcn "accent"/"muted": text mixed into the background.
+    let muted = mix(c.text, c.background, weight);
+    let card = c.surface;
+    let card_border = if dark { mix(c.text, card, 0.1) } else { c.border };
+    // shadcn `--input`, and TextField's `dark:bg-input/30` fill.
+    let field_bg = if dark { mix(c.text, c.background, 0.045) } else { c.background };
+    let input = |fill: Rgba| if dark { mix(c.text, fill, 0.15) } else { c.border };
+    Look {
+        card,
+        card_border,
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        hover_border: transparent,
+        muted_weight: Some(weight),
+        text: c.text,
+        label: c.text_muted,
+        placeholder: c.text_muted,
+        field_bg,
+        field_border: input(field_bg),
+        select_bg: c.background,
+        button_bg: c.background,
+        button_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        button_hover_bg: Some(muted),
+        button_hover_border: None,
+        icon: c.text_muted,
+        track_off: input(c.background),
+        track_on: c.accent,
+        track_border_off: transparent,
+        track_border_on: transparent,
+        thumb_off: if dark { c.text } else { c.background },
+        thumb_on: c.background,
+        reset_idle: dim(c.text_muted, card),
+        badge_bg: None,
+        badge_text: c.text_muted,
+        caret: c.accent,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        shadow: t.shadows.small,
+        high_contrast: false,
+    }
+}
+
+impl Look {
+    /// Disabled colours: 50% over the card fill, or solid `disabled` in high contrast.
+    fn disabled(self, t: &Theme) -> Self {
+        let c = t.colors;
+        if self.high_contrast {
+            let off = c.disabled;
+            return Self {
+                text: off,
+                label: off,
+                placeholder: off,
+                field_border: off,
+                button_border: off,
+                button_hover_border: None,
+                icon: off,
+                track_on: dim(self.track_on, c.background),
+                track_border_off: off,
+                track_border_on: dim(self.track_border_on, c.background),
+                thumb_off: off,
+                reset_idle: off,
+                badge_bg: Some(off),
+                hover_border: c.background.opacity(0.),
+                ..self
+            };
+        }
+        let base = self.card;
+        let d = |color: Rgba| dim(color, base);
+        Self {
+            text: d(self.text),
+            label: d(self.label),
+            placeholder: d(self.placeholder),
+            field_bg: d(self.field_bg),
+            field_border: d(self.field_border),
+            select_bg: d(self.select_bg),
+            button_bg: d(self.button_bg),
+            button_border: d(self.button_border),
+            button_hover_bg: None,
+            icon: d(self.icon),
+            track_off: d(self.track_off),
+            track_on: d(self.track_on),
+            thumb_off: d(self.thumb_off),
+            thumb_on: d(self.thumb_on),
+            reset_idle: d(self.reset_idle),
+            badge_text: d(self.badge_text),
+            hover_bg: None,
+            shadow: ShadowToken { color: self.shadow.color.opacity(self.shadow.color.a * 0.5), ..self.shadow },
+            ..self
+        }
+    }
+}
+
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+
+/// shadcn/ui focus ring width, drawn outside focused editors and buttons.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = bounds.origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `minus`.
+const MINUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)]];
+/// Lucide `plus`.
+const PLUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)], &[(12., 5.), (12., 19.)]];
+/// Lucide `chevron-down`.
+const CHEVRON_DOWN: &[&[(f32, f32)]] = &[&[(6., 9.), (12., 15.), (18., 9.)]];
+
+/// TextField/Select chrome shared by the inline editors: 28px tall, input border, resting
+/// shadow, and a focus border plus ring for keyboard focus.
+fn field(el: Stateful<Div>, look: &Look, theme: &Theme, fill: Rgba) -> Stateful<Div> {
+    let (focus, ring) = (look.focus, look.ring);
+    el.h(px(theme.controls.xsmall))
+        .px(px(theme.spacing.small))
+        .flex()
+        .items_center()
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(look.field_border)
+        .bg(fill)
+        .shadow(vec![box_shadow(look.shadow)])
+        .text_size(px(theme.typography.body))
+        .focus_visible(move |s| s.border_color(focus).shadow(vec![focus_ring(ring)]))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -366,6 +622,7 @@ impl PropertyInspector {
         group_index: usize,
         property_index: usize,
         theme: Theme,
+        focused: bool,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let property = &self.groups[group_index].properties[property_index];
@@ -377,9 +634,29 @@ impl PropertyInspector {
         let disabled = self.disabled || property.disabled;
         let active = self.active.as_deref() == Some(&id);
         let is_mixed = value == PropertyValue::Mixed;
+        let base = look(&theme);
+        let look = if disabled { base.disabled(&theme) } else { base };
+        // Parts drawn straight on the row take the active row's text colour (high contrast only
+        // changes it, as Tree does).
+        let row_fill = if active { look.active_bg } else { look.card };
+        let on_row = |color: Rgba| if active && look.high_contrast { look.active_text } else { color };
+        let transparent = look.card.opacity(0.);
         let selector_id = id.clone();
         let reset_id = id.clone();
         let reset_default = default.clone();
+        let reset_color = if value != default {
+            on_row(look.text)
+        } else if active && look.high_contrast {
+            dim(look.active_text, look.active_bg)
+        } else if look.high_contrast {
+            look.reset_idle
+        } else {
+            dim(theme.colors.text_muted, row_fill)
+        };
+        let reset_color = if disabled && !look.high_contrast { look.reset_idle } else { reset_color };
+        let ghost_hover_bg = look.muted_weight.map(|weight| mix(theme.colors.text, row_fill, weight));
+        let ghost_hover_border = on_row(theme.colors.accent);
+        let (focus, ring) = (look.focus, look.ring);
         let reset = div()
             .id(format!("reset-{id}"))
             .debug_selector({
@@ -391,11 +668,23 @@ impl PropertyInspector {
             .tab_index(if disabled { -1 } else { 0 })
             .h(px(theme.controls.xsmall))
             .px(px(theme.spacing.small))
-            .rounded(px(theme.radii.small))
-            .text_size(px(theme.typography.caption))
-            .text_color(theme.colors.text_muted)
-            .hover(|this| this.bg(theme.colors.elevated_surface).text_color(theme.colors.text))
-            .when(disabled, |this| this.opacity(0.5))
+            .flex()
+            .items_center()
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(transparent)
+            .text_size(px(theme.typography.body))
+            .font_weight(FontWeight::MEDIUM)
+            .text_color(reset_color)
+            .when(!disabled, |this| {
+                this.hover(move |style| match ghost_hover_bg {
+                    Some(fill) => style.bg(fill),
+                    None => style.border_color(ghost_hover_border),
+                })
+            })
+            .focus_visible(move |s| {
+                s.bg(row_fill).border_color(focus).shadow(vec![focus_ring(ring)])
+            })
             .when(!disabled && value != default, |this| {
                 this.on_click(cx.listener(move |this, _, _, cx| {
                     this.request(&reset_id, reset_default.clone(), cx)
@@ -403,6 +692,8 @@ impl PropertyInspector {
             })
             .child("Reset");
 
+        let hover_bg = look.hover_bg;
+        let hover_border = look.hover_border;
         let mut row = div()
             .id(format!("property-{id}"))
             .debug_selector(move || format!("property-{selector_id}"))
@@ -412,31 +703,135 @@ impl PropertyInspector {
             .items_center()
             .gap(px(theme.spacing.small))
             .px(px(theme.spacing.small))
-            .py(px(theme.spacing.xsmall))
-            .border_t(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .when(active, |el| el.bg(theme.colors.elevated_surface))
-            .when(disabled, |el| el.text_color(theme.colors.disabled));
+            // The hairline border replaces the old row separator, so the row pitch is unchanged.
+            .pt(px(theme.spacing.xsmall))
+            .pb(px(theme.spacing.xsmall - theme.borders.hairline))
+            .rounded(px(theme.radii.small))
+            .border(px(theme.borders.hairline))
+            .border_color(if focused && active { look.focus } else { transparent })
+            .text_color(on_row(look.text))
+            .when(active, |el| el.bg(look.active_bg))
+            .when(!active && !disabled, |el| {
+                el.hover(move |style| match hover_bg {
+                    Some(fill) => style.bg(fill),
+                    None => style.border_color(hover_border),
+                })
+            });
 
         let display = |value: String, label: String, role: gpui_pre::accesskit::Role| {
+            field(
+                div()
+                    .id(format!("display-{label}"))
+                    .role(role)
+                    .aria_label(label)
+                    .tab_index(if disabled { -1 } else { 0 }),
+                &look,
+                &theme,
+                look.field_bg,
+            )
+            .min_w(px(theme.controls.small * 2.0))
+            .justify_center()
+            .text_color(if is_mixed { look.placeholder } else { look.text })
+            .child(value)
+        };
+        let channel_names = ["red", "green", "blue"];
+        let channel_readout = |channel: usize, value: u8| {
             div()
-                .id(format!("display-{label}"))
-                .role(role)
-                .aria_label(label)
-                .tab_index(if disabled { -1 } else { 0 })
-                .min_w(px(theme.controls.small * 2.0))
-                .h(px(theme.controls.xsmall))
-                .px(px(theme.spacing.small))
-                .flex()
-                .items_center()
-                .justify_center()
+                .text_size(px(theme.typography.caption))
+                .text_color(on_row(look.label))
+                .child(format!("{} {value}", ["R", "G", "B"][channel]))
+        };
+        let swatch = |color: &str| {
+            div()
+                .flex_none()
+                .size(px(theme.spacing.medium))
                 .rounded(px(theme.radii.small))
                 .border(px(theme.borders.hairline))
-                .border_color(if active { theme.colors.focus } else { theme.colors.border })
-                .bg(theme.colors.surface)
-                .text_size(px(theme.typography.caption))
-                .text_color(if is_mixed { theme.colors.text_muted } else { theme.colors.text })
-                .child(value)
+                .border_color(on_row(look.card_border))
+                .bg(rgba_from_hex(color))
+        };
+        let text_field = |text_id: String, aria_value: String, muted: bool| {
+            let selector = format!("text-{text_id}");
+            field(
+                div()
+                    .id(format!("text-{text_id}"))
+                    .debug_selector(move || selector.clone())
+                    .role(gpui_pre::accesskit::Role::TextInput)
+                    .aria_label(label.clone())
+                    .aria_value(aria_value)
+                    .tab_index(if disabled { -1 } else { 0 }),
+                &look,
+                &theme,
+                look.field_bg,
+            )
+            .min_w(px(theme.controls.small * 3.0))
+            .text_color(if muted { look.placeholder } else { look.text })
+        };
+        let editing = self.editing_text && active;
+        let caret = || {
+            div()
+                .flex_none()
+                .w(px(theme.borders.hairline))
+                .h(px(theme.typography.body))
+                .bg(look.caret)
+        };
+        let select = |enum_id: String| {
+            let selector = format!("enum-{enum_id}");
+            field(
+                div()
+                    .id(format!("enum-{enum_id}"))
+                    .debug_selector(move || selector.clone())
+                    .role(gpui_pre::accesskit::Role::ComboBox)
+                    .aria_label(label.clone())
+                    .tab_index(if disabled { -1 } else { 0 }),
+                &look,
+                &theme,
+                look.select_bg,
+            )
+            .min_w(px(theme.controls.small * 2.75))
+            .justify_between()
+            .gap(px(theme.spacing.small))
+        };
+        let boolean = |bool_id: &str, state: Option<bool>| {
+            let selector = format!("boolean-{bool_id}");
+            let on = state == Some(true);
+            let height = theme.controls.xsmall * 0.68;
+            let thumb = (height - 2.0 * theme.borders.hairline).min(theme.spacing.large);
+            div()
+                .id(format!("boolean-{bool_id}"))
+                .debug_selector(move || selector.clone())
+                .role(gpui_pre::accesskit::Role::CheckBox)
+                .aria_label(label.clone())
+                .aria_toggled(match state {
+                    Some(value) => gpui_pre::accesskit::Toggled::from(value),
+                    None => gpui_pre::accesskit::Toggled::Mixed,
+                })
+                .when(state.is_none(), |el| el.aria_description("Mixed value"))
+                .tab_index(if disabled { -1 } else { 0 })
+                .flex_none()
+                .w(px(theme.controls.small))
+                .h(px(height))
+                .rounded(px(theme.radii.pill))
+                .border(px(theme.borders.hairline))
+                .border_color(if on { look.track_border_on } else { look.track_border_off })
+                .bg(if on { look.track_on } else { look.track_off })
+                .shadow(vec![box_shadow(look.shadow)])
+                .flex()
+                .items_center()
+                // A mixed value centres the thumb so it differs from both concrete values.
+                .map(|el| match state {
+                    Some(true) => el.justify_end(),
+                    Some(false) => el.justify_start(),
+                    None => el.justify_center(),
+                })
+                .focus_visible(move |s| s.border_color(focus).shadow(vec![focus_ring(ring)]))
+                .child(
+                    div()
+                        .size(px(thumb))
+                        .rounded(px(theme.radii.pill))
+                        .bg(if on { look.thumb_on } else { look.thumb_off })
+                        .shadow(vec![box_shadow(look.shadow)]),
+                )
         };
 
         let mut editor = div().flex().items_center().gap(px(theme.spacing.xsmall));
@@ -448,9 +843,10 @@ impl PropertyInspector {
                 let up_id = id.clone();
                 editor = editor
                     .child(step_button(
-                        "−",
+                        MINUS,
                         format!("Decrease {label}"),
                         theme,
+                        look,
                         disabled,
                         cx.listener(move |this, _, _, cx| {
                             this.request(&down_id, PropertyValue::Number(number - step), cx)
@@ -462,9 +858,10 @@ impl PropertyInspector {
                         gpui_pre::accesskit::Role::SpinButton,
                     ))
                     .child(step_button(
-                        "+",
+                        PLUS,
                         format!("Increase {label}"),
                         theme,
+                        look,
                         disabled,
                         cx.listener(move |this, _, _, cx| {
                             this.request(&up_id, PropertyValue::Number(number + step), cx)
@@ -482,9 +879,10 @@ impl PropertyInspector {
                     let up_id = id.clone();
                     editor = editor
                         .child(step_button(
-                            "−",
+                            MINUS,
                             format!("Decrease {label}"),
                             theme,
+                            look,
                             disabled,
                             cx.listener(move |this, _, _, cx| {
                                 this.request(
@@ -500,9 +898,10 @@ impl PropertyInspector {
                             gpui_pre::accesskit::Role::SpinButton,
                         ))
                         .child(step_button(
-                            "+",
+                            PLUS,
                             format!("Increase {label}"),
                             theme,
+                            look,
                             disabled,
                             cx.listener(move |this, _, _, cx| {
                                 this.request(
@@ -518,27 +917,10 @@ impl PropertyInspector {
                 let text_id = id.clone();
                 let initial_text = text.clone();
                 editor = editor.child(
-                    div()
-                        .id(format!("text-{id}"))
-                        .debug_selector({
-                            let selector = format!("text-{id}");
-                            move || selector.clone()
+                    text_field(id.clone(), text.clone(), false)
+                        .when(editing, |el| {
+                            el.border_color(look.focus).shadow(vec![focus_ring(look.ring)])
                         })
-                        .role(gpui_pre::accesskit::Role::TextInput)
-                        .aria_label(label.clone())
-                        .aria_value(text.clone())
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .min_w(px(theme.controls.small * 3.0))
-                        .h(px(theme.controls.xsmall))
-                        .px(px(theme.spacing.small))
-                        .flex()
-                        .items_center()
-                        .rounded(px(theme.radii.small))
-                        .border(px(theme.borders.hairline))
-                        .border_color(if active { theme.colors.focus } else { theme.colors.border })
-                        .bg(theme.colors.surface)
-                        .text_size(px(theme.typography.caption))
-                        .text_color(theme.colors.text)
                         .when(!disabled, |el| {
                             el.on_click(cx.listener(move |this, _, _, cx| {
                                 this.active = Some(text_id.clone());
@@ -547,41 +929,18 @@ impl PropertyInspector {
                                 cx.notify();
                             }))
                         })
-                        .child(if self.editing_text && active {
-                            format!("{text}▏")
-                        } else {
-                            text.clone()
-                        }),
+                        .child(text.clone())
+                        .when(editing, |el| el.child(caret())),
                 );
             }
             (PropertyKind::Text, PropertyValue::Mixed) => {
                 let text_id = id.clone();
+                let aria_value = if editing { self.text_draft.clone() } else { String::new() };
                 editor = editor.child(
-                    div()
-                        .id(format!("text-{id}"))
-                        .debug_selector({
-                            let selector = format!("text-{id}");
-                            move || selector.clone()
+                    text_field(id.clone(), aria_value, !editing)
+                        .when(editing, |el| {
+                            el.border_color(look.focus).shadow(vec![focus_ring(look.ring)])
                         })
-                        .role(gpui_pre::accesskit::Role::TextInput)
-                        .aria_label(label.clone())
-                        .aria_value(if self.editing_text && active {
-                            self.text_draft.clone()
-                        } else {
-                            String::new()
-                        })
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .min_w(px(theme.controls.small * 3.0))
-                        .h(px(theme.controls.xsmall))
-                        .px(px(theme.spacing.small))
-                        .flex()
-                        .items_center()
-                        .rounded(px(theme.radii.small))
-                        .border(px(theme.borders.hairline))
-                        .border_color(if active { theme.colors.focus } else { theme.colors.border })
-                        .bg(theme.colors.surface)
-                        .text_size(px(theme.typography.caption))
-                        .text_color(theme.colors.text_muted)
                         .when(!disabled, |el| {
                             el.on_click(cx.listener(move |this, _, _, cx| {
                                 this.active = Some(text_id.clone());
@@ -590,158 +949,62 @@ impl PropertyInspector {
                                 cx.notify();
                             }))
                         })
-                        .child(if self.editing_text && active {
-                            format!("{}▏", self.text_draft)
-                        } else {
-                            "Mixed".into()
-                        }),
+                        .child(if editing { self.text_draft.clone() } else { "Mixed".into() })
+                        .when(editing, |el| el.child(caret())),
                 );
             }
             (PropertyKind::Boolean, PropertyValue::Boolean(value)) => {
                 let next = !value;
                 let bool_id = id.clone();
-                let bool_selector = format!("boolean-{id}");
-                editor = editor.child(
-                    div()
-                        .id(format!("boolean-{id}"))
-                        .debug_selector(move || bool_selector.clone())
-                        .role(gpui_pre::accesskit::Role::CheckBox)
-                        .aria_label(label.clone())
-                        .aria_toggled(gpui_pre::accesskit::Toggled::from(*value))
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .w(px(theme.controls.small))
-                        .h(px(theme.controls.xsmall * 0.68))
-                        .rounded(px(theme.radii.pill))
-                        .bg(if *value { theme.colors.accent } else { theme.colors.border })
-                        .flex()
-                        .items_center()
-                        .when(*value, |el| el.justify_end())
-                        .when(!*value, |el| el.justify_start())
-                        .p(px(theme.spacing.xsmall))
-                        .when(!disabled, |el| {
-                            el.on_click(cx.listener(move |this, _, _, cx| {
-                                this.request(&bool_id, PropertyValue::Boolean(next), cx)
-                            }))
-                        })
-                        .child(
-                            div()
-                                .size(px(theme.spacing.small))
-                                .rounded(px(theme.radii.pill))
-                                .bg(theme.colors.surface),
-                        ),
-                );
+                editor = editor.child(boolean(&id, Some(*value)).when(!disabled, |el| {
+                    el.on_click(cx.listener(move |this, _, _, cx| {
+                        this.request(&bool_id, PropertyValue::Boolean(next), cx)
+                    }))
+                }));
             }
             (PropertyKind::Boolean, PropertyValue::Mixed) => {
                 let bool_id = id.clone();
-                let bool_selector = format!("boolean-{id}");
-                editor = editor.child(
-                    div()
-                        .id(format!("boolean-{id}"))
-                        .debug_selector(move || bool_selector.clone())
-                        .role(gpui_pre::accesskit::Role::CheckBox)
-                        .aria_label(label.clone())
-                        .aria_toggled(gpui_pre::accesskit::Toggled::Mixed)
-                        .aria_description("Mixed value")
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .w(px(theme.controls.small))
-                        .h(px(theme.controls.xsmall * 0.68))
-                        .rounded(px(theme.radii.pill))
-                        .bg(theme.colors.border)
-                        .flex()
-                        .items_center()
-                        .justify_start()
-                        .p(px(theme.spacing.xsmall))
-                        .when(!disabled, |el| {
-                            el.on_click(cx.listener(move |this, _, _, cx| {
-                                this.request(&bool_id, PropertyValue::Boolean(true), cx)
-                            }))
-                        })
-                        .child(
-                            div()
-                                .size(px(theme.spacing.small))
-                                .rounded(px(theme.radii.pill))
-                                .bg(theme.colors.surface),
-                        ),
-                );
+                editor = editor.child(boolean(&id, None).when(!disabled, |el| {
+                    el.on_click(cx.listener(move |this, _, _, cx| {
+                        this.request(&bool_id, PropertyValue::Boolean(true), cx)
+                    }))
+                }));
             }
             (PropertyKind::Enum { options }, PropertyValue::Enum(current)) => {
                 let next = cycle_option(options, current);
                 let enum_id = id.clone();
                 editor = editor.child(
-                    div()
-                        .id(format!("enum-{id}"))
-                        .debug_selector({
-                            let selector = format!("enum-{id}");
-                            move || selector.clone()
-                        })
-                        .role(gpui_pre::accesskit::Role::ComboBox)
-                        .aria_label(label.clone())
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .min_w(px(theme.controls.small * 2.75))
-                        .h(px(theme.controls.xsmall))
-                        .px(px(theme.spacing.small))
-                        .flex()
-                        .items_center()
-                        .justify_between()
-                        .gap(px(theme.spacing.small))
-                        .rounded(px(theme.radii.small))
-                        .border(px(theme.borders.hairline))
-                        .border_color(theme.colors.border)
-                        .bg(theme.colors.surface)
-                        .text_size(px(theme.typography.caption))
+                    select(id.clone())
+                        .text_color(look.text)
                         .when(!disabled, |el| {
                             el.on_click(cx.listener(move |this, _, _, cx| {
                                 this.request(&enum_id, PropertyValue::Enum(next.clone()), cx)
                             }))
                         })
                         .child(current.clone())
-                        .child("⌄"),
+                        .child(icon(theme.spacing.large, CHEVRON_DOWN, look.icon)),
                 );
             }
             (PropertyKind::Enum { options }, PropertyValue::Mixed) => {
                 let first = options.first().cloned().unwrap_or_default();
                 let enum_id = id.clone();
                 editor = editor.child(
-                    div()
-                        .id(format!("enum-{id}"))
-                        .debug_selector({
-                            let selector = format!("enum-{id}");
-                            move || selector.clone()
-                        })
-                        .role(gpui_pre::accesskit::Role::ComboBox)
-                        .aria_label(label.clone())
+                    select(id.clone())
                         .aria_value("Mixed")
-                        .tab_index(if disabled { -1 } else { 0 })
-                        .min_w(px(theme.controls.small * 2.75))
-                        .h(px(theme.controls.xsmall))
-                        .px(px(theme.spacing.small))
-                        .flex()
-                        .items_center()
-                        .justify_between()
-                        .gap(px(theme.spacing.small))
-                        .rounded(px(theme.radii.small))
-                        .border(px(theme.borders.hairline))
-                        .border_color(theme.colors.border)
-                        .bg(theme.colors.surface)
-                        .text_size(px(theme.typography.caption))
+                        .text_color(look.placeholder)
                         .when(!disabled, |el| {
                             el.on_click(cx.listener(move |this, _, _, cx| {
                                 this.request(&enum_id, PropertyValue::Enum(first.clone()), cx)
                             }))
                         })
                         .child("Mixed")
-                        .child("⌄"),
+                        .child(icon(theme.spacing.large, CHEVRON_DOWN, look.icon)),
                 );
             }
             (PropertyKind::Color, PropertyValue::Color(color)) => {
                 let parsed = parse_hex_rgb(color);
                 editor = editor.child(
-                    div().flex().items_center().gap(px(theme.spacing.xsmall)).child(
-                        div()
-                            .size(px(theme.spacing.medium))
-                            .rounded(px(theme.radii.small))
-                            .bg(rgba_from_hex(color)),
-                    ),
+                    div().flex().items_center().gap(px(theme.spacing.xsmall)).child(swatch(color)),
                 );
                 for (channel, value) in [parsed.0, parsed.1, parsed.2].into_iter().enumerate() {
                     let down_id = id.clone();
@@ -754,12 +1017,10 @@ impl PropertyInspector {
                             .items_center()
                             .gap(px(theme.spacing.xsmall))
                             .child(step_button(
-                                "−",
-                                format!(
-                                    "Decrease {label} {} channel",
-                                    ["red", "green", "blue"][channel]
-                                ),
+                                MINUS,
+                                format!("Decrease {label} {} channel", channel_names[channel]),
                                 theme,
+                                look,
                                 disabled,
                                 cx.listener(move |this, _, _, cx| {
                                     this.request(
@@ -769,19 +1030,12 @@ impl PropertyInspector {
                                     )
                                 }),
                             ))
-                            .child(
-                                div()
-                                    .text_size(px(theme.typography.caption))
-                                    .text_color(theme.colors.text_muted)
-                                    .child(format!("{} {value}", ["R", "G", "B"][channel])),
-                            )
+                            .child(channel_readout(channel, value))
                             .child(step_button(
-                                "+",
-                                format!(
-                                    "Increase {label} {} channel",
-                                    ["red", "green", "blue"][channel]
-                                ),
+                                PLUS,
+                                format!("Increase {label} {} channel", channel_names[channel]),
                                 theme,
+                                look,
                                 disabled,
                                 cx.listener(move |this, _, _, cx| {
                                     this.request(&up_id, PropertyValue::Color(up_color.clone()), cx)
@@ -792,12 +1046,7 @@ impl PropertyInspector {
             }
             (PropertyKind::Color, PropertyValue::Mixed) => {
                 if let PropertyValue::Color(default_color) = &default {
-                    editor = editor.child(
-                        div()
-                            .size(px(theme.spacing.medium))
-                            .rounded(px(theme.radii.small))
-                            .bg(rgba_from_hex(default_color)),
-                    );
+                    editor = editor.child(swatch(default_color));
                     let channels = parse_hex_rgb(default_color);
                     for (channel, value) in
                         [channels.0, channels.1, channels.2].into_iter().enumerate()
@@ -811,19 +1060,12 @@ impl PropertyInspector {
                                 .flex()
                                 .items_center()
                                 .gap(px(theme.spacing.xsmall))
-                                .child(
-                                    div()
-                                        .text_size(px(theme.typography.caption))
-                                        .text_color(theme.colors.text_muted)
-                                        .child(format!("{} {value}", ["R", "G", "B"][channel])),
-                                )
+                                .child(channel_readout(channel, value))
                                 .child(step_button(
-                                    "−",
-                                    format!(
-                                        "Decrease {label} {} channel",
-                                        ["red", "green", "blue"][channel]
-                                    ),
+                                    MINUS,
+                                    format!("Decrease {label} {} channel", channel_names[channel]),
                                     theme,
+                                    look,
                                     disabled,
                                     cx.listener(move |this, _, _, cx| {
                                         this.request(
@@ -834,12 +1076,10 @@ impl PropertyInspector {
                                     }),
                                 ))
                                 .child(step_button(
-                                    "+",
-                                    format!(
-                                        "Increase {label} {} channel",
-                                        ["red", "green", "blue"][channel]
-                                    ),
+                                    PLUS,
+                                    format!("Increase {label} {} channel", channel_names[channel]),
                                     theme,
+                                    look,
                                     disabled,
                                     cx.listener(move |this, _, _, cx| {
                                         this.request(
@@ -871,9 +1111,10 @@ impl PropertyInspector {
                     up[index] += step;
                     editor = editor
                         .child(step_button(
-                            "−",
+                            MINUS,
                             format!("Decrease {label} component {}", index + 1),
                             theme,
+                            look,
                             disabled,
                             cx.listener(move |this, _, _, cx| {
                                 this.request(&down_id, PropertyValue::Vector(down.clone()), cx)
@@ -885,9 +1126,10 @@ impl PropertyInspector {
                             gpui_pre::accesskit::Role::SpinButton,
                         ))
                         .child(step_button(
-                            "+",
+                            PLUS,
                             format!("Increase {label} component {}", index + 1),
                             theme,
+                            look,
                             disabled,
                             cx.listener(move |this, _, _, cx| {
                                 this.request(&up_id, PropertyValue::Vector(up.clone()), cx)
@@ -912,9 +1154,10 @@ impl PropertyInspector {
                         up[index] += step;
                         editor = editor
                             .child(step_button(
-                                "−",
+                                MINUS,
                                 format!("Decrease {label} component {}", index + 1),
                                 theme,
+                                look,
                                 disabled,
                                 cx.listener(move |this, _, _, cx| {
                                     this.request(&down_id, PropertyValue::Vector(down.clone()), cx)
@@ -926,9 +1169,10 @@ impl PropertyInspector {
                                 gpui_pre::accesskit::Role::SpinButton,
                             ))
                             .child(step_button(
-                                "+",
+                                PLUS,
                                 format!("Increase {label} component {}", index + 1),
                                 theme,
+                                look,
                                 disabled,
                                 cx.listener(move |this, _, _, cx| {
                                     this.request(&up_id, PropertyValue::Vector(up.clone()), cx)
@@ -944,17 +1188,33 @@ impl PropertyInspector {
             div()
                 .flex_1()
                 .min_w(px(theme.controls.small * 2.375))
-                .text_size(px(theme.typography.caption))
-                .text_color(if disabled { theme.colors.disabled } else { theme.colors.text_muted })
+                .text_size(px(theme.typography.body))
+                .text_color(on_row(look.label))
                 .child(label),
         );
         if is_mixed {
+            // A filled (secondary) badge, so the tag does not read as another outlined editor.
+            let (badge_bg, badge_text) = match look.badge_bg {
+                Some(_) if active => (look.active_text, look.active_bg),
+                Some(fill) => (fill, look.badge_text),
+                None => (
+                    mix(theme.colors.text, row_fill, look.muted_weight.unwrap_or(0.)),
+                    look.badge_text,
+                ),
+            };
+            let badge_bg = if disabled && !look.high_contrast { dim(badge_bg, look.card) } else { badge_bg };
             row = row.child(
                 div()
                     .id(format!("mixed-{id}"))
                     .aria_label("Mixed value")
+                    .flex_none()
+                    .px(px(theme.spacing.xsmall))
+                    .rounded(px(theme.radii.small))
+                    .border(px(theme.borders.hairline))
+                    .border_color(transparent)
+                    .bg(badge_bg)
                     .text_size(px(theme.typography.caption))
-                    .text_color(theme.colors.text_muted)
+                    .text_color(badge_text)
                     .child("Mixed"),
             );
         }
@@ -969,9 +1229,12 @@ impl Focusable for PropertyInspector {
 }
 
 impl Render for PropertyInspector {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
+        // `:focus-visible`: the active row outline shows while the root has keyboard focus.
+        let focused = focus.is_focused(window) && window.last_input_was_keyboard();
         let disabled = self.disabled;
         let mut root = div()
             .id("mkit-property-inspector")
@@ -991,10 +1254,10 @@ impl Render for PropertyInspector {
             .w_full()
             .flex()
             .flex_col()
-            .rounded(px(theme.radii.medium))
+            .rounded(px(theme.radii.large))
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface);
+            .border_color(look.card_border)
+            .bg(look.card);
 
         let entity = cx.entity().downgrade();
         for group_index in 0..self.groups.len() {
@@ -1003,6 +1266,9 @@ impl Render for PropertyInspector {
             let group_id = self.groups[group_index].id.clone();
             let toggle_entity = entity.clone();
             let toggle_group_id = group_id.clone();
+            if group_index > 0 {
+                root = root.child(div().w_full().h(px(theme.borders.hairline)).bg(look.card_border));
+            }
             root = root.child(
                 DisclosureTrigger::new(format!("group-{group_id}"), label.clone())
                     .expanded(expanded)
@@ -1011,21 +1277,20 @@ impl Render for PropertyInspector {
                         toggle_entity
                             .update(cx, |this, cx| this.toggle_group(&toggle_group_id, cx))
                             .ok();
-                    })
-                    .bg(theme.colors.elevated_surface)
-                    .text_color(theme.colors.text)
-                    .when(group_index == 0, |el| el.rounded_t(px(theme.radii.medium))),
+                    }),
             );
             if expanded {
                 let rows = (0..self.groups[group_index].properties.len())
                     .map(|property_index| {
-                        self.render_property(group_index, property_index, theme, cx)
+                        self.render_property(group_index, property_index, theme, focused, cx)
                             .into_any_element()
                     })
                     .collect::<Vec<_>>();
                 root = root.child(
                     DisclosurePanel::new(format!("group-panel-{group_id}"), label)
                         .p_0()
+                        .px(px(theme.spacing.xsmall))
+                        .pb(px(theme.spacing.xsmall))
                         .w_full()
                         .flex()
                         .flex_col()
@@ -1037,33 +1302,50 @@ impl Render for PropertyInspector {
     }
 }
 
+/// Outline Button look with a vector minus/plus, at the inspector's compact size.
 fn step_button(
-    text: &'static str,
+    glyph: &'static [&'static [(f32, f32)]],
     label: String,
     theme: Theme,
+    look: Look,
     disabled: bool,
     click: impl Fn(&gpui_pre::ClickEvent, &mut Window, &mut gpui_pre::App) + 'static,
 ) -> impl IntoElement {
     let selector_label = label.clone();
+    let (focus, ring) = (look.focus, look.ring);
+    let (hover_bg, hover_border) = (look.button_hover_bg, look.button_hover_border);
     div()
         .id(format!("control-{label}"))
         .debug_selector(move || format!("control-{selector_label}"))
         .role(gpui_pre::accesskit::Role::Button)
         .aria_label(label)
         .tab_index(if disabled { -1 } else { 0 })
+        .flex_none()
         .w(px(theme.controls.xsmall * 0.72))
         .h(px(theme.controls.xsmall))
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(theme.radii.small))
-        .border(px(theme.borders.hairline))
-        .border_color(theme.colors.border)
-        .bg(theme.colors.surface)
-        .text_color(theme.colors.text)
-        .when(disabled, |el| el.opacity(0.5))
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(look.button_border)
+        .bg(look.button_bg)
+        .shadow(vec![box_shadow(look.shadow)])
+        .when(!disabled, |el| {
+            el.hover(move |s| {
+                let s = match hover_bg {
+                    Some(fill) => s.bg(fill),
+                    None => s,
+                };
+                match hover_border {
+                    Some(color) => s.border_color(color),
+                    None => s,
+                }
+            })
+        })
+        .focus_visible(move |s| s.border_color(focus).shadow(vec![focus_ring(ring)]))
         .when(!disabled, |el| el.on_click(click))
-        .child(text)
+        .child(icon(theme.spacing.large, glyph, look.text))
 }
 
 fn cycle_option(options: &[String], current: &str) -> String {

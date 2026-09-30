@@ -2,10 +2,197 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, Render, Window, actions, div,
-    prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, PathBuilder, Render,
+    Rgba, Window, actions, canvas, div, point, prelude::*, px, relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn is_high_contrast(t: &Theme) -> bool {
+    t.name == "high-contrast"
+}
+fn is_dark(t: &Theme) -> bool {
+    relative_luminance(t.colors.background) < 0.5
+}
+/// Resolved colours for one toolbar control; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct ItemLook {
+    bg: Rgba,
+    fg: Rgba,
+    border: Rgba,
+    shadow: bool,
+    hover_bg: Option<Rgba>,
+    hover_border: Option<Rgba>,
+    ring: Rgba,
+}
+fn item_look(t: &Theme, state: &ButtonState) -> ItemLook {
+    let c = t.colors;
+    let pressed = state.pressed && state.expanded.is_none();
+    let open = state.expanded == Some(true);
+    if is_high_contrast(t) {
+        let (bg, fg, border, hover_border) = match (state.disabled, pressed, open) {
+            (true, true, _) => (c.disabled, c.accent_text, c.disabled, None),
+            (true, false, _) => (c.background, c.disabled, c.disabled, None),
+            (false, true, _) => (c.accent, c.accent_text, c.accent, Some(c.text)),
+            (false, false, true) => (c.background, c.text, c.accent, None),
+            (false, false, false) => (c.background, c.text, c.border, Some(c.accent)),
+        };
+        return ItemLook {
+            bg,
+            fg,
+            border,
+            shadow: false,
+            hover_bg: None,
+            hover_border,
+            ring: c.focus,
+        };
+    }
+    let dark = is_dark(t);
+    // shadcn "accent"/"muted": text mixed into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    // The outline border is the web's translucent dark `input`/`border`, composited opaque.
+    let outline = if dark { mix(c.text, c.background, 0.1) } else { c.border };
+    let (bg, fg, border, hover_bg) = if pressed {
+        // shadcn `default` (the preview's `ui-btn--primary` for `aria-pressed`).
+        (c.accent, c.accent_text, c.accent, mix(c.accent, c.background, 0.9))
+    } else if open {
+        // shadcn `data-[state=open]:bg-accent` on the overflow trigger.
+        (muted, c.text, outline, muted)
+    } else {
+        (c.background, c.text, outline, muted)
+    };
+    if state.disabled {
+        // The preview's `opacity: .5`, flattened over the background part by part.
+        return ItemLook {
+            bg: mix(bg, c.background, 0.5),
+            fg: mix(fg, c.background, 0.5),
+            border: mix(border, c.background, 0.5),
+            shadow: false,
+            hover_bg: None,
+            hover_border: None,
+            ring: c.focus.opacity(0.5),
+        };
+    }
+    ItemLook {
+        bg,
+        fg,
+        border,
+        shadow: true,
+        hover_bg: Some(hover_bg),
+        hover_border: None,
+        ring: c.focus.opacity(0.5),
+    }
+}
+/// Resolved container and overflow-menu colours.
+#[derive(Clone, Copy)]
+struct BarLook {
+    bar_bg: Rgba,
+    bar_border: Rgba,
+    separator: Rgba,
+    pane: Rgba,
+    pane_border: Rgba,
+    row_text: Rgba,
+    row_muted: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    active_muted: Rgba,
+    disabled_text: Rgba,
+    disabled_muted: Rgba,
+    icon_stroke: IconStroke,
+}
+fn bar_look(t: &Theme) -> BarLook {
+    let c = t.colors;
+    if is_high_contrast(t) {
+        return BarLook {
+            bar_bg: c.background,
+            bar_border: c.border,
+            separator: c.border,
+            pane: c.background,
+            pane_border: c.border,
+            row_text: c.text,
+            row_muted: c.text_muted,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            active_muted: c.accent_text,
+            disabled_text: c.disabled,
+            disabled_muted: c.disabled,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = is_dark(t);
+    let pane = c.surface;
+    let border = if dark { mix(c.text, c.background, 0.1) } else { c.border };
+    BarLook {
+        bar_bg: c.background,
+        bar_border: border,
+        separator: border,
+        pane,
+        pane_border: if dark { mix(c.text, pane, 0.1) } else { c.border },
+        row_text: c.text,
+        row_muted: c.text_muted,
+        active_bg: mix(c.text, c.background, if dark { 0.12 } else { 0.04 }),
+        active_text: c.text,
+        active_muted: c.text_muted,
+        disabled_text: mix(c.text, pane, 0.5),
+        disabled_muted: mix(c.text_muted, pane, 0.5),
+        icon_stroke: IconStroke::Relative,
+    }
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+/// Decorative Lucide `check` (20,6 → 9,17 → 4,12) drawn as a vector path on a 24-unit grid.
+fn check_icon(size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let mut path = PathBuilder::stroke(width);
+            for (i, (x, y)) in [(20.0, 6.0), (9.0, 17.0), (4.0, 12.0)].into_iter().enumerate() {
+                let p = bounds.origin + point(unit * x, unit * y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the control.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "MkitToolbar";
 actions!(toolbar, [Next, Previous, NextVertical, PreviousVertical, First, Last, Activate, Dismiss]);
@@ -506,7 +693,11 @@ impl Render for Toolbar {
         let row = self.orientation == Orientation::Horizontal;
         let hidden = self.hidden_indices();
         let entity = cx.entity();
-        let mut shell = div().id("mkit-toolbar-shell").relative().w_full().flex().flex_col();
+        let bar = bar_look(&theme);
+        // The toolbar hugs its controls like the preview; the inner wrapper (no role) anchors the
+        // overflow menu to the toolbar's own edges.
+        let shell = div().id("mkit-toolbar-shell").w_full().flex().flex_col().items_start();
+        let mut anchor = div().relative().flex().flex_col();
         let mut root = div()
             .id("mkit-toolbar")
             .key_context(KEY_CONTEXT)
@@ -518,10 +709,15 @@ impl Render for Toolbar {
                 gpui_pre::accesskit::Orientation::Vertical
             })
             .flex()
-            .when(row, |el| el.flex_row())
-            .when(!row, |el| el.flex_col())
-            .items_center()
-            .gap(px(theme.spacing.small))
+            .when(row, |el| el.flex_row().items_center())
+            .when(!row, |el| el.flex_col().items_stretch())
+            .gap(px(theme.spacing.xsmall))
+            .p(px(theme.spacing.xsmall))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(bar.bar_border)
+            .bg(bar.bar_bg)
+            .shadow(vec![box_shadow(theme.shadows.small)])
             .on_action(cx.listener(Self::move_next))
             .on_action(cx.listener(Self::move_previous))
             .on_action(cx.listener(Self::move_down))
@@ -549,13 +745,12 @@ impl Render for Toolbar {
                 if previous_is_action && next_is_action {
                     root = root.child(
                         div()
+                            .flex_none()
                             .when(row, |el| {
-                                el.w(px(theme.borders.hairline)).h(px(theme.controls.medium))
+                                el.w(px(theme.borders.hairline)).h(px(theme.spacing.xlarge))
                             })
-                            .when(!row, |el| {
-                                el.w(px(theme.controls.medium)).h(px(theme.borders.hairline))
-                            })
-                            .bg(theme.colors.border),
+                            .when(!row, |el| el.h(px(theme.borders.hairline)))
+                            .bg(bar.separator),
                     );
                 }
                 continue;
@@ -684,17 +879,20 @@ impl Render for Toolbar {
                 },
             ));
             if self.overflow_open {
+                let icon_size = theme.spacing.large;
                 let mut menu = div()
                     .id("toolbar-overflow-menu")
                     .debug_selector(|| "toolbar-overflow-menu".into())
                     .role(gpui_pre::accesskit::Role::Menu)
                     .flex()
                     .flex_col()
+                    .min_w(px(theme.spacing.xxlarge * 4.0))
                     .p(px(theme.spacing.xsmall))
                     .rounded(px(theme.radii.medium))
                     .border(px(theme.borders.regular))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.surface);
+                    .border_color(bar.pane_border)
+                    .bg(bar.pane)
+                    .shadow(vec![box_shadow(theme.shadows.medium)]);
                 for (menu_index, index) in hidden.into_iter().enumerate() {
                     let active = self.overflow_active == menu_index;
                     let (id, label, disabled, checked) = match &self.items[index] {
@@ -709,6 +907,13 @@ impl Render for Toolbar {
                         }
                         Item::Separator => continue,
                     };
+                    let (fg, muted) = if disabled {
+                        (bar.disabled_text, bar.disabled_muted)
+                    } else if active {
+                        (bar.active_text, bar.active_muted)
+                    } else {
+                        (bar.row_text, bar.row_muted)
+                    };
                     let menu_entity = entity.clone();
                     menu = menu.child(
                         div()
@@ -718,9 +923,7 @@ impl Render for Toolbar {
                             } else {
                                 gpui_pre::accesskit::Role::MenuItem
                             })
-                            .when(active, |el| {
-                                el.aria_active_descendant().bg(theme.colors.elevated_surface)
-                            })
+                            .when(active, |el| el.aria_active_descendant().bg(bar.active_bg))
                             .aria_label(label.clone())
                             .when(disabled, |el| {
                                 el.a11y_synthetic_children(|builder| {
@@ -740,35 +943,37 @@ impl Render for Toolbar {
                                     })
                                 })
                             })
+                            .flex()
+                            .items_center()
+                            .gap(px(theme.spacing.small))
                             .px(px(theme.spacing.small))
                             .h(px(theme.controls.small))
-                            .text_color(if disabled {
-                                theme.colors.disabled
-                            } else {
-                                theme.colors.text
+                            .rounded(px(theme.radii.small))
+                            .text_size(px(theme.typography.body))
+                            .text_color(fg)
+                            .when_some(checked, |el, checked| {
+                                el.child(div().size(px(icon_size)).flex_none().when(
+                                    checked,
+                                    |slot| {
+                                        slot.child(check_icon(icon_size, bar.icon_stroke, muted))
+                                    },
+                                ))
                             })
-                            .child(label),
+                            .child(div().flex_grow(1.0).whitespace_nowrap().child(label)),
                     );
                 }
-                let visible_rows = self
-                    .items
-                    .iter()
-                    .enumerate()
-                    .filter(|(index, _)| self.is_visible(*index))
-                    .count()
-                    + 1;
-                let vertical_offset = theme.controls.medium * visible_rows as f32
-                    + theme.spacing.small * visible_rows.saturating_sub(1) as f32;
+                // shadcn's `sideOffset={4}` below the toolbar, aligned to its trailing edge
+                // (horizontal) or leading edge (vertical).
                 menu = menu
                     .absolute()
-                    .when(row, |el| {
-                        el.right(px(0.)).top(px(theme.controls.medium + theme.spacing.small))
-                    })
-                    .when(!row, |el| el.left(px(0.)).top(px(vertical_offset)));
-                shell = shell.child(menu);
+                    .top(relative(1.))
+                    .mt(px(theme.spacing.xsmall))
+                    .when(row, |el| el.right(px(0.)))
+                    .when(!row, |el| el.left(px(0.)));
+                anchor = anchor.child(menu);
             }
         }
-        shell.child(root)
+        shell.child(anchor.child(root))
     }
 }
 
@@ -789,6 +994,7 @@ fn button_element(
     click: impl Fn(&mut gpui_pre::App) + 'static,
 ) -> impl IntoElement {
     let selector = id.clone();
+    let look = item_look(&theme, &state);
     div()
         .id(id)
         .debug_selector(move || selector.clone())
@@ -804,23 +1010,36 @@ fn button_element(
         })
         .when(!state.disabled, |el| el.on_click(move |_, _, cx| click(cx)))
         .flex()
+        .flex_none()
         .items_center()
         .justify_center()
-        .h(px(theme.controls.medium))
-        .px(px(theme.spacing.small))
+        .gap(px(theme.spacing.small))
+        .h(px(theme.controls.small))
+        .px(px(theme.spacing.medium))
         .rounded(px(theme.radii.medium))
         .border(px(theme.borders.regular))
-        .border_color(if state.pressed { theme.colors.accent } else { theme.colors.border })
-        .bg(if state.pressed { theme.colors.accent } else { theme.colors.surface })
-        .text_color(if state.disabled {
-            theme.colors.disabled
-        } else if state.pressed {
-            theme.colors.accent_text
-        } else {
-            theme.colors.text
-        })
+        .border_color(look.border)
+        .bg(look.bg)
+        .when(look.shadow, |el| el.shadow(vec![box_shadow(theme.shadows.small)]))
+        .text_color(look.fg)
         .text_size(px(theme.typography.body))
-        .focus_visible(|style| style.border_color(theme.colors.focus))
+        .font_weight(FontWeight::MEDIUM)
+        .whitespace_nowrap()
+        .when(!state.disabled, |el| {
+            el.hover(move |s| {
+                let s = match look.hover_bg {
+                    Some(color) => s.bg(color),
+                    None => s,
+                };
+                match look.hover_border {
+                    Some(color) => s.border_color(color),
+                    None => s,
+                }
+            })
+        })
+        .focus_visible(move |s| {
+            s.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+        })
         .child(label.to_owned())
 }
 

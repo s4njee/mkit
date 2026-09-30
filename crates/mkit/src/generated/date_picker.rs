@@ -11,10 +11,14 @@ use crate::{
 };
 use gpui_pre::{
     AnchoredPositionMode, Context, Entity, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, KeyDownEvent, Render, Window, actions, anchored, deferred, div, point, prelude::*,
-    px,
+    KeyBinding, KeyDownEvent, PathBuilder, Render, Rgba, Window, actions, anchored, canvas,
+    deferred, div, point, prelude::*, px,
 };
-use mkit_core::{CivilDate, theme::Theme};
+use mkit_core::{
+    CivilDate,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_calendar::{
     Calendar, Selection as CalendarSelection, SelectionChanged as CalendarSelectionChanged,
@@ -25,6 +29,134 @@ use mkit_registry_text_field::{
     InputChanged, TextField, default_key_bindings as text_field_key_bindings,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc};
+
+/// Resolved disclosure and popover colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    trigger_fill: Rgba,
+    icon: Rgba,
+    /// Pointer-hover fill; `None` in high contrast.
+    hover_bg: Option<Rgba>,
+    /// Pointer-hover border in high contrast.
+    hover_border: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+    popover_fill: Rgba,
+    popover_border: Rgba,
+    /// `shadows.medium`; `None` in high contrast.
+    popover_shadow: Option<ShadowToken>,
+    message: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// The web convention's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            trigger_fill: c.background,
+            icon: if disabled { c.disabled } else { c.text },
+            hover_bg: None,
+            hover_border: Some(c.accent),
+            focus: c.focus,
+            ring: c.focus,
+            popover_fill: c.background,
+            popover_border: c.border,
+            popover_shadow: None,
+            message: c.text,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    // TextField's fill: shadcn `dark:bg-input/30` (text at 15% x 30%), or the page in light themes.
+    let field_fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    let popover_fill = c.surface;
+    let (trigger_fill, icon) = if disabled {
+        (dim(field_fill, c.background), dim(c.text_muted, c.background))
+    } else {
+        (field_fill, c.text_muted)
+    };
+    Look {
+        trigger_fill,
+        icon,
+        hover_bg: Some(muted),
+        hover_border: None,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        popover_fill,
+        popover_border: if dark { mix(c.text, popover_fill, 0.1) } else { c.border },
+        popover_shadow: Some(t.shadows.medium),
+        message: c.text_muted,
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the disclosure.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// The anchored popover surface shared by the calendar and the no-dates message.
+fn popover(t: &Theme, look: Look) -> gpui_pre::Div {
+    div()
+        .rounded(px(t.radii.medium))
+        .border(px(t.borders.regular))
+        .border_color(look.popover_border)
+        .bg(look.popover_fill)
+        .when_some(look.popover_shadow, |panel, shadow| panel.shadow(vec![box_shadow(shadow)]))
+        .text_color(t.colors.text)
+}
+/// Decorative Lucide `calendar` icon drawn as vector strokes on a 24-unit grid (2-unit stroke), so
+/// it stays crisp at every scale: two pins, a rule, and an 18x18 rectangle with radius 2 at (3, 4).
+fn calendar_icon(size: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let at = |x: f32, y: f32| bounds.origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for (from, to) in
+                [((8., 2.), (8., 6.)), ((16., 2.), (16., 6.)), ((3., 10.), (21., 10.))]
+            {
+                path.move_to(at(from.0, from.1));
+                path.line_to(at(to.0, to.1));
+            }
+            path.move_to(at(5., 4.));
+            path.line_to(at(19., 4.));
+            path.curve_to(at(21., 6.), at(21., 4.));
+            path.line_to(at(21., 20.));
+            path.curve_to(at(19., 22.), at(21., 22.));
+            path.line_to(at(5., 22.));
+            path.curve_to(at(3., 20.), at(3., 22.));
+            path.line_to(at(3., 6.));
+            path.curve_to(at(5., 4.), at(3., 4.));
+            path.close();
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 pub const KEY_CONTEXT: &str = "DatePicker";
 actions!(date_picker, [OpenCalendar, Dismiss, Commit]);
@@ -618,21 +750,29 @@ impl Render for DatePicker {
         self.last_open = self.open;
         let theme = *cx.global::<Theme>();
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_stop(true)).clone();
+        let look = look(&theme, self.disabled);
         let count = if self.range_mode { 2 } else { 1 };
-        let mut fields = div().flex().items_center().gap(px(theme.spacing.small));
+        // Seven Calendar columns plus the card's padding and border; see the spec's "Field width".
+        let min_width =
+            7. * theme.controls.medium + 2. * theme.spacing.small + 2. * theme.borders.regular;
+        let mut fields =
+            div().flex().items_start().gap(px(theme.spacing.small)).min_w(px(min_width));
+        let mut wraps = Vec::with_capacity(count);
         for index in 0..count {
             let field = self.fields[index].as_ref().unwrap().clone();
             let end = index == 1;
-            fields = fields.child(
+            wraps.push(
                 div()
                     .id(if end { "date-end-wrap" } else { "date-start-wrap" })
                     .on_click(cx.listener(move |this, _, window, cx| {
                         this.text_input_focus(end, window, cx)
                     }))
-                    .flex_1()
+                    .w_full()
                     .child(field),
             );
         }
+        // Centres the disclosure in the input: half of `controls.medium - controls.xsmall`.
+        let inset = (theme.controls.medium - theme.controls.xsmall) / 2.;
         let button = div()
             .id("date-picker-trigger")
             .debug_selector(|| "mkit-date-picker-trigger".into())
@@ -645,67 +785,49 @@ impl Render for DatePicker {
             .aria_expanded(self.open)
             .track_focus(&focus)
             .tab_stop(!self.disabled)
-            .px(px(theme.spacing.small))
-            .py(px(theme.spacing.small))
+            .absolute()
+            .top(px(inset))
+            .right(px(inset))
+            .size(px(theme.controls.xsmall))
+            .flex()
+            .items_center()
+            .justify_center()
             .rounded(px(theme.radii.small))
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.surface)
-            .text_color(theme.colors.text)
-            .when(self.disabled, |button| button.opacity(0.55))
+            .border(px(theme.borders.regular))
+            .border_color(look.trigger_fill.opacity(0.))
+            .bg(look.trigger_fill)
+            .occlude()
             .when(!self.disabled, |button| {
-                button.on_click(
-                    cx.listener(|this, _, window, cx| this.open_action(&OpenCalendar, window, cx)),
-                )
+                button
+                    .hover(move |style| {
+                        let style = match look.hover_bg {
+                            Some(color) => style.bg(color),
+                            None => style,
+                        };
+                        match look.hover_border {
+                            Some(color) => style.border_color(color),
+                            None => style,
+                        }
+                    })
+                    .focus_visible(move |style| {
+                        style
+                            .border_color(look.focus)
+                            .bg(look.trigger_fill)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.open_action(&OpenCalendar, window, cx)
+                    }))
             })
-            .child(
-                div()
-                    .size(px(14.0))
-                    .rounded(px(theme.radii.small))
-                    .border(px(theme.borders.hairline))
-                    .border_color(theme.colors.text)
-                    .flex()
-                    .flex_col()
-                    .overflow_hidden()
-                    .child(div().h(px(3.0)).w_full().bg(theme.colors.text))
-                    .child(
-                        div()
-                            .flex_1()
-                            .flex()
-                            .flex_col()
-                            .justify_around()
-                            .px(px(2.0))
-                            .child(
-                                div()
-                                    .flex()
-                                    .justify_between()
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    )
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    )
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    ),
-                            )
-                            .child(
-                                div()
-                                    .flex()
-                                    .justify_between()
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    )
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    )
-                                    .child(
-                                        div().size(px(2.0)).rounded(px(1.0)).bg(theme.colors.text),
-                                    ),
-                            ),
-                    ),
-            );
-        fields = fields.child(button);
+            .child(calendar_icon(theme.spacing.large, look.icon));
+        // The disclosure sits inside the right end of the last input, as in the web preview.
+        let last = wraps.len() - 1;
+        let mut button = Some(button);
+        for (index, wrap) in wraps.into_iter().enumerate() {
+            let disclosure = if index == last { button.take() } else { None };
+            fields = fields.child(div().relative().flex_1().child(wrap).children(disclosure));
+        }
+
         let anchor_bounds = self.field_bounds.borrow().as_ref().copied();
         let field_bounds = Rc::clone(&self.field_bounds);
         let mut root = div()
@@ -733,15 +855,10 @@ impl Render for DatePicker {
             .child(fields);
         if self.open {
             if let Some(calendar) = self.calendar.as_ref() {
-                let panel = div()
+                let panel = popover(&theme, look)
                     .id("date-picker-calendar")
                     .debug_selector(|| "mkit-date-picker-calendar".into())
-                    .p(px(theme.spacing.medium))
-                    .rounded(px(theme.radii.medium))
-                    .border(px(theme.borders.regular))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
-                    .text_color(theme.colors.text)
+                    .p(px(theme.spacing.xsmall))
                     .child(calendar.clone());
                 if let Some(bounds) = anchor_bounds {
                     root = root.child(
@@ -760,14 +877,11 @@ impl Render for DatePicker {
                     );
                 }
             } else if let Some(bounds) = anchor_bounds {
-                let panel = div()
+                let panel = popover(&theme, look)
                     .id("date-picker-empty-calendar")
                     .p(px(theme.spacing.medium))
-                    .rounded(px(theme.radii.medium))
-                    .border(px(theme.borders.regular))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
-                    .text_color(theme.colors.text)
+                    .text_size(px(theme.typography.body))
+                    .text_color(look.message)
                     .child(self.text_labels.no_available_dates.clone());
                 root = root.child(
                     deferred(

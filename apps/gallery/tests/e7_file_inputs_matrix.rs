@@ -1,4 +1,7 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Keystroke, Render, Window, div, prelude::*, px,
+    size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -10,8 +13,8 @@ use serde_json::Value;
 use std::{fs, path::PathBuf};
 
 const SIZE: (f32, f32) = (760.0, 360.0);
-const DROP_STATES: [&str; 3] = ["idle", "selected", "disabled"];
-const FIELD_STATES: [&str; 4] = ["empty", "selected", "multiple", "disabled"];
+const DROP_STATES: [&str; 4] = ["idle", "focused", "selected", "disabled"];
+const FIELD_STATES: [&str; 5] = ["empty", "focused", "selected", "multiple", "disabled"];
 
 struct FileInputsFixture {
     component: &'static str,
@@ -38,7 +41,7 @@ impl Render for FileInputsFixture {
                             DroppedFile::new("/tmp/notes.txt"),
                         ]),
                         "disabled" => base.disabled(true),
-                        "idle" => base,
+                        "idle" | "focused" => base,
                         other => panic!("unmapped FileDropZone screenshot state: {other}"),
                     }
                 })
@@ -76,7 +79,7 @@ impl Render for FileInputsFixture {
                         "disabled" => {
                             base.files(vec![FieldFile::new("/tmp/archived.pdf")]).disabled(true)
                         }
-                        "empty" => base,
+                        "empty" | "focused" => base,
                         other => panic!("unmapped FileField screenshot state: {other}"),
                     }
                 })
@@ -125,6 +128,24 @@ fn capture(
             cx.bind_keys(file_field::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        // A Tab keystroke marks the last input as keyboard, so `:focus-visible` styling applies;
+        // focus then moves to the Browse button, the first tab stop.
+        let focused = session.update(|root, window, cx| {
+            window.dispatch_keystroke(Keystroke::parse("tab").expect("Tab key"), cx);
+            let fixture = root.read(cx);
+            let handle = match component {
+                "file-drop-zone" => fixture.zone.as_ref().expect("zone rendered").focus_handle(cx),
+                _ => fixture.field.as_ref().expect("field rendered").focus_handle(cx),
+            };
+            handle.focus(window, cx);
+            handle
+        })?;
+        assert!(
+            session.update(|_, window, _| focused.is_focused(window))?,
+            "{component} Browse button holds keyboard focus"
+        );
+    }
     session.capture()
 }
 
@@ -166,7 +187,9 @@ fn run_component(
     states: &[&'static str],
 ) -> Result<(), ScreenshotError> {
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 30, "five declared states × three themes × two scales");
+    let declared: std::collections::BTreeSet<_> =
+        cases.iter().map(|case| case["state"].as_str().expect("state")).collect();
+    assert_eq!(cases.len(), declared.len() * 6, "declared states × three themes × two scales");
     for case in cases {
         let state = case["state"].as_str().expect("state");
         if case["status"].as_str() == Some("unsupported_headless_capture") {

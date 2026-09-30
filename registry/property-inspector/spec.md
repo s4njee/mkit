@@ -17,6 +17,9 @@ states:
   - id: disabled
     description: The panel is disabled; editor and group controls are removed from keyboard traversal.
     fixture: disabled_fixture
+  - id: focused
+    description: The inspector root has keyboard focus and ArrowDown made Opacity the active row, which shows the active fill and the inside focus outline.
+    fixture: focused_fixture
 keys:
   - key: ArrowDown
     modifiers: []
@@ -162,10 +165,87 @@ Disabled editors expose disabled state. Reset controls are named “Reset {prope
 
 ## Theme tokens used
 
-Use Global `Theme` tokens for surface, elevated surface, text, muted text, border, accent, focus,
-disabled state, spacing, radius, border width, control height, and typography. No fixed colours are
-permitted. Compact row height and editor minimum widths derive from the small control token; fixed
-editor width ratios are implementation layout choices for maintainer review.
+Use Global `Theme` tokens for background, surface, text, muted text, border, accent, accent text,
+focus, disabled state, shadows, spacing, radius, border width, control height, and typography. No
+fixed colours are permitted.
+
+### Visual design (E13.2 P3)
+
+The inspector follows the everyday look restyled in E7.1–E7.7 and E13.1: rows use the Sidebar and
+Tree row look, group headers are the restyled Disclosure parts, and the inspector's own inline
+editors are restyled locally to match TextField, Switch, Select and Button chrome. The inspector
+keeps its own editor implementations and adds no registry dependency beyond Disclosure.
+
+Colours are resolved from the installed `Theme` in three variants, the way Button, Select, Tabs,
+Tree and Sidebar do it: `high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" is shadcn's `accent`/`muted`: `text` mixed 4% (light) or 12% (dark) into
+`background`. "Input" is shadcn's `--input`: `border` in light themes and `text` at 15% in dark
+themes, composited opaque.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Panel (card) fill | `surface` | `surface` | `background` |
+| Panel border and group dividers | `border` | `text` at 10% over `surface` | `border` |
+| Group header | Disclosure trigger defaults (card fill, `text` medium weight, vector chevron) | same | same |
+| Property label | `text_muted` | `text_muted` | `text_muted` |
+| Active row | muted fill | muted fill | `accent` fill; label, tags and glyphs in `accent_text` |
+| Pointer hover (other rows) | muted fill | muted fill | row outline in `border` |
+| Active row while the root has keyboard focus | `borders.hairline` outline in `focus` inside the row | same | same |
+| Value display, text field | `background` fill (dark: `text` at 4.5% over `background`), input border, `shadows.small` | same | `background`, `border`, no shadow |
+| Enum field | `background` fill, input border, `shadows.small`, `text_muted` vector chevron | same | `background`, `border`, `text` chevron |
+| Step buttons (outline) | `background` fill, light `border` / dark `text` at 10% border, `shadows.small`, vector minus/plus in `text`; hover muted | same | `background`, `border`; hover border `accent` |
+| Boolean (switch look) | off track input, on track `accent`, thumb `background` (dark off: `text`), `shadows.small` | same | off `background` with `border`, on `accent`; thumb `text` / `accent_text` |
+| Colour swatch | caller colour in a `borders.hairline` tile with the panel border colour | same | same with `border` |
+| Reset (ghost) | non-default: `text`; at default: `text_muted` at 50% over the row fill; hover muted over the row fill | same | non-default `text`, at default `disabled`; hover border `accent` |
+| Mixed tag | `text_muted` caption in a filled badge: muted mixed again over the row fill, `radii.small` | same | `background` text on a `text` fill (`accent` on `accent_text` on the active row) |
+| Keyboard focus on an editor, step button or reset | border `focus` plus a 3px ring of `focus` at 50% over an opaque fill | same | border `focus` plus a 3px ring of opaque `focus` |
+| Disabled property or inspector | every colour composited over the card fill and mixed 50% with it; shadow alpha halved | same | solid `disabled` text, borders and glyphs over `background` fills |
+
+- **Density (maintainer decision, provisional).** The inspector keeps its existing row heights and
+  hit targets: editors, value displays and step buttons stay `controls.xsmall` (28px) tall, step
+  buttons stay `controls.xsmall × 0.72` wide, and the boolean track stays `controls.small` wide and
+  `controls.xsmall × 0.68` tall. Rows keep `spacing.xsmall` vertical padding plus one
+  `borders.hairline`, as before. Only colours, borders, radii, shadows, focus, hover and typography
+  follow the everyday components; shadcn's 36px control height is not adopted.
+- **Rows.** Rows are radius `radii.small` inside the group panel, which is inset by
+  `spacing.xsmall` on the sides and bottom, like Tree rows in their card. The old hairline row
+  separator became a reserved hairline border on every side of the row (top padding
+  `spacing.xsmall`, bottom padding `spacing.xsmall` minus the hairline), so the row pitch and editor
+  positions are unchanged and the focus outline does not shift layout. The outline stays inside
+  the row because a ring outside it would overlap neighbouring rows. Rows follow `:focus-visible`:
+  the outline shows while the inspector root owns focus and the last input came from the keyboard.
+  Editors no longer change their border when their row is active; each editor, step button and
+  reset control shows its own focus ring when it has keyboard focus (Tab traversal).
+- **Panel.** The panel is a card: radius `radii.large` and a `borders.hairline` border, as the Tree
+  card. Group headers keep the Disclosure trigger's own fill, label weight, hover, focus, disabled
+  colours and 44px height; the inspector no longer overrides them. A `borders.hairline` divider in
+  the panel border colour separates consecutive groups.
+- **Editors.** Value displays and the text field use the TextField fill, input border,
+  `shadows.small` and `radii.medium`; the enum field uses the Select trigger chrome with a Lucide
+  `chevron-down` vector (6,9 → 12,15 → 18,9) in a `spacing.large` square. Step buttons use the
+  outline Button look with Lucide `minus` (5,12 → 19,12) and `plus` vectors in a `spacing.large`
+  square, 2-unit stroke on a 24-unit grid. The text editing caret is a `borders.hairline` wide bar in
+  `accent`, `typography.body` tall, instead of a text glyph. The boolean editor draws the Switch
+  track and a `spacing.large` thumb; a mixed boolean centres the thumb on the off track so it differs
+  from both concrete values. Values and labels use `typography.body`; the Mixed tag and colour
+  channel readouts use `typography.caption`.
+- **Mixed and reset.** Mixed values keep the "Mixed" text in the editor (in `text_muted`) and gain a
+  filled "Mixed" badge after the label; it is filled rather than outlined so it does not read as
+  another editor. The reset control reads as a ghost button; it shows `text`
+  while the value differs from its default and a dimmed colour while the value already equals the
+  default (activation is already a no-op then). Its accessibility node, name and tab stop are
+  unchanged.
+- **Focus.** The 3px ring is the shadcn/ui ring width, a fixed component value. GPUI paints drop
+  shadows as filled shapes that are not clipped to the element's outside, so every control keeps an
+  opaque fill under its ring (the ghost reset uses the row fill).
+- **Disabled.** GPUI element opacity dims each painted part separately, so it is no longer used:
+  each colour is composited over the card fill and mixed 50% with it, as Checkbox, Switch and Select
+  do. High contrast keeps solid `disabled` colours so text stays legible.
+
+Compact row height and editor minimum widths derive from the small control token; fixed editor
+width ratios are implementation layout choices for maintainer review.
 
 ## WAI-ARIA pattern reference
 
@@ -195,3 +275,5 @@ picker integration remains host-owned.
 - Approve or reject the draft `mkit-registry-disclosure` dependency and the six-binding
   `default_key_bindings()` return type.
 - Verify announced mixed-value semantics and collapsed group state in platform accessibility trees.
+- Confirm the provisional E13.2 density decision (keep the 28px editors and existing row pitch
+  rather than shadcn's 36px controls) and the restyled visual baselines.

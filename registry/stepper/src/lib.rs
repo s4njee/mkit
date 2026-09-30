@@ -2,14 +2,214 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    App, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    PathBuilder, Render, Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
-    theme::Theme,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
 };
 use std::{cell::OnceCell, rc::Rc};
+
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// Resolved step indicator colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    /// Complete and current indicator fill, and the completed connector.
+    primary: Rgba,
+    on_primary: Rgba,
+    /// Current indicator fill after failed validation.
+    error: Rgba,
+    on_error: Rgba,
+    /// Upcoming indicator fill, border and number.
+    upcoming_bg: Rgba,
+    upcoming_border: Rgba,
+    upcoming_fg: Rgba,
+    /// Connector between steps that are not yet complete.
+    rail: Rgba,
+    label: Rgba,
+    upcoming_label: Rgba,
+    caption: Rgba,
+    icon_stroke: IconStroke,
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            primary: c.accent,
+            on_primary: c.accent_text,
+            error: c.danger,
+            on_error: c.accent_text,
+            upcoming_bg: c.background,
+            upcoming_border: c.border,
+            upcoming_fg: c.text,
+            rail: c.border,
+            label: c.text,
+            upcoming_label: c.text_muted,
+            caption: c.text_muted,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn's dark `input` (15% text), composited over the background: the 10% `border` is too
+    // faint for an empty indicator ring.
+    let outline = if dark { mix(c.text, c.background, 0.15) } else { c.border };
+    Look {
+        primary: c.accent,
+        on_primary: c.accent_text,
+        error: c.danger,
+        // Button's destructive text: the theme's near-white.
+        on_error: if dark { c.text } else { c.background },
+        upcoming_bg: c.background,
+        upcoming_border: outline,
+        upcoming_fg: c.text_muted,
+        rail: outline,
+        label: c.text,
+        upcoming_label: c.text_muted,
+        caption: c.text_muted,
+        icon_stroke: IconStroke::Relative,
+    }
+}
+/// Resolved colours for a navigation button, matching Button's outline (Back) and default
+/// (Next/Finish) variants.
+#[derive(Clone, Copy)]
+struct ButtonLook {
+    bg: Rgba,
+    fg: Rgba,
+    border: Rgba,
+    shadow: bool,
+    hover_bg: Option<Rgba>,
+    hover_border: Option<Rgba>,
+    ring: Rgba,
+}
+fn button_look(t: &Theme, primary: bool) -> ButtonLook {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (bg, fg, border, hover_border) = if primary {
+            (c.accent, c.accent_text, c.accent, c.text)
+        } else {
+            (c.background, c.text, c.border, c.accent)
+        };
+        return ButtonLook {
+            bg,
+            fg,
+            border,
+            shadow: false,
+            hover_bg: None,
+            hover_border: Some(hover_border),
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    let (bg, fg, border, hover_bg) = if primary {
+        (c.accent, c.accent_text, c.accent, mix(c.accent, c.background, 0.9))
+    } else {
+        (c.background, c.text, if dark { mix(c.text, c.background, 0.1) } else { c.border }, muted)
+    };
+    ButtonLook {
+        bg,
+        fg,
+        border,
+        shadow: true,
+        hover_bg: Some(hover_bg),
+        hover_border: None,
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused button.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide `check` (20,6 → 9,17 → 4,12) drawn as a vector path on a 24-unit grid.
+fn check_icon(size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let mut path = PathBuilder::stroke(width);
+            for (i, (x, y)) in [(20.0, 6.0), (9.0, 17.0), (4.0, 12.0)].into_iter().enumerate() {
+                let p = bounds.origin + point(unit * x, unit * y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// A navigation button styled like the registry Button at its default size.
+fn nav_button(theme: Theme, primary: bool) -> gpui_pre::Div {
+    let look = button_look(&theme, primary);
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(theme.controls.medium))
+        .px(px(theme.spacing.large))
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(look.border)
+        .bg(look.bg)
+        .when(look.shadow, |el| el.shadow(vec![box_shadow(theme.shadows.small)]))
+        .text_color(look.fg)
+        .text_size(px(theme.typography.body))
+        .font_weight(FontWeight::MEDIUM)
+        .whitespace_nowrap()
+}
+fn nav_button_states<E: InteractiveElement + StatefulInteractiveElement + Styled>(
+    element: E,
+    theme: Theme,
+    primary: bool,
+) -> E {
+    let look = button_look(&theme, primary);
+    element
+        .hover(move |s| {
+            let s = match look.hover_bg {
+                Some(color) => s.bg(color),
+                None => s,
+            };
+            match look.hover_border {
+                Some(color) => s.border_color(color),
+                None => s,
+            }
+        })
+        .focus_visible(move |s| {
+            s.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+        })
+}
 
 pub const KEY_CONTEXT: &str = "Stepper";
 actions!(stepper, [ActivateStep, PreviousStep, NextStep, FinishStep]);
@@ -175,6 +375,10 @@ impl Render for Stepper {
         let error = self.error.clone();
         let is_first = current == 0;
         let is_last = current + 1 >= count;
+        let has_error = error.is_some();
+        let look = look(&theme);
+        // Indicator circle: shadcn's `size-6` step marker.
+        let indicator_size = theme.spacing.xlarge;
         div()
             .id("mkit-stepper")
             .flex()
@@ -196,34 +400,88 @@ impl Render for Stepper {
             .on_action(cx.listener(|this, _: &FinishStep, window, cx| {
                 this.request(StepChangeKind::Finish, window, cx)
             }))
-            .child(div().flex().flex_col().gap(px(theme.spacing.small)).children(
-                steps.iter().enumerate().map(|(index, step)| {
-                    let (state, color) = if index == current {
-                        ("Current", theme.colors.accent)
-                    } else if index < current {
-                        ("Complete", theme.colors.success)
+            .child(div().flex().flex_col().children(steps.iter().enumerate().map(
+                |(index, step)| {
+                    let complete = index < current;
+                    let is_current = index == current;
+                    let failed = is_current && has_error;
+                    let (state, label_color) = if is_current {
+                        ("Current", look.label)
+                    } else if complete {
+                        ("Complete", look.label)
                     } else {
-                        ("Upcoming", theme.colors.text_muted)
+                        ("Upcoming", look.upcoming_label)
                     };
-                    div()
+                    let (bg, border, fg) = if failed {
+                        (look.error, look.error, look.on_error)
+                    } else if complete || is_current {
+                        (look.primary, look.primary, look.on_primary)
+                    } else {
+                        (look.upcoming_bg, look.upcoming_border, look.upcoming_fg)
+                    };
+                    let indicator = div()
+                        .size(px(indicator_size))
+                        .flex_none()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(theme.radii.pill))
+                        .border(px(theme.borders.regular))
+                        .border_color(border)
+                        .bg(bg)
+                        .text_color(fg)
+                        .text_size(px(theme.typography.caption))
+                        .font_weight(FontWeight::MEDIUM)
+                        .map(|el| {
+                            if complete {
+                                el.child(check_icon(theme.spacing.large, look.icon_stroke, fg))
+                            } else {
+                                el.child(format!("{}", index + 1))
+                            }
+                        });
+                    let row = div()
                         .id(format!("mkit-stepper-step-{index}"))
                         .flex()
                         .items_center()
-                        .gap(px(theme.spacing.small))
-                        .text_color(color)
-                        .child(div().text_size(px(theme.typography.body)).child(format!(
-                            "{}. {}",
-                            index + 1,
-                            step.label
-                        )))
+                        .gap(px(theme.spacing.medium))
+                        .child(indicator)
                         .child(
                             div()
-                                .text_size(px(theme.typography.caption))
-                                .text_color(theme.colors.text_muted)
-                                .child(state),
-                        )
-                }),
-            ))
+                                .flex()
+                                .items_center()
+                                .gap(px(theme.spacing.small))
+                                .child(
+                                    div()
+                                        .text_size(px(theme.typography.body))
+                                        .text_color(label_color)
+                                        .when(is_current, |el| el.font_weight(FontWeight::MEDIUM))
+                                        .child(step.label.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(theme.typography.caption))
+                                        .text_color(look.caption)
+                                        .child(if failed { "Needs attention" } else { state }),
+                                ),
+                        );
+                    // Connector to the next step: `accent` once this step is complete.
+                    let connector = (index + 1 < count).then(|| {
+                        div()
+                            .w(px(indicator_size))
+                            .flex()
+                            .justify_center()
+                            .py(px(theme.spacing.xsmall))
+                            .child(
+                                div()
+                                    .w(px(theme.borders.strong))
+                                    .h(px(theme.spacing.medium))
+                                    .rounded(px(theme.radii.pill))
+                                    .bg(if complete { look.primary } else { look.rail }),
+                            )
+                    });
+                    div().flex().flex_col().child(row).children(connector)
+                },
+            )))
             .child(
                 div()
                     .flex()
@@ -231,8 +489,8 @@ impl Render for Stepper {
                     .justify_between()
                     .gap(px(theme.spacing.medium))
                     .when(!is_first, |el| {
-                        el.child(
-                            div()
+                        el.child(nav_button_states(
+                            nav_button(theme, false)
                                 .id("mkit-stepper-back")
                                 .key_context(KEY_CONTEXT)
                                 .track_focus(&back_focus)
@@ -245,18 +503,14 @@ impl Render for Stepper {
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.request(StepChangeKind::Back, window, cx)
                                 }))
-                                .px(px(theme.spacing.medium))
-                                .py(px(theme.spacing.small))
-                                .bg(theme.colors.surface)
-                                .text_color(theme.colors.text)
-                                .border_1()
-                                .border_color(theme.colors.border)
                                 .child("Back"),
-                        )
+                            theme,
+                            false,
+                        ))
                     })
                     .child(div().flex_1())
-                    .child(
-                        div()
+                    .child(nav_button_states(
+                        nav_button(theme, true)
                             .id("mkit-stepper-next")
                             .key_context(KEY_CONTEXT)
                             .track_focus(&next_focus)
@@ -285,12 +539,10 @@ impl Render for Stepper {
                                     cx,
                                 )
                             }))
-                            .px(px(theme.spacing.medium))
-                            .py(px(theme.spacing.small))
-                            .bg(theme.colors.accent)
-                            .text_color(theme.colors.accent_text)
                             .child(if is_last { "Finish" } else { "Next" }),
-                    ),
+                        theme,
+                        true,
+                    )),
             )
             .when_some(error, |el, message| {
                 el.child(
@@ -299,6 +551,7 @@ impl Render for Stepper {
                         .role(gpui_pre::accesskit::Role::Status)
                         .aria_label(message.clone())
                         .a11y_live_region(LiveRegionPriority::Polite)
+                        .text_size(px(theme.typography.body))
                         .text_color(theme.colors.danger)
                         .child(message),
                 )

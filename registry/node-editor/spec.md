@@ -277,7 +277,7 @@ controlled: >-
   Minimap visibility is uncontrolled by default and updates locally before MinimapVisibilityChanged;
   with_controlled_minimap uses request-only toggles until set_minimap_visible applies the owner's value.
 events: [ViewChanged, SelectionChanged, FocusChanged, NodesMoveRequested, ConnectionCreateRequested, ConnectionRemoveRequested, ConnectionFocusChanged, MinimapVisibilityChanged]
-theme_tokens: [background, surface, elevated_surface, text, text_muted, border, accent, accent_text, focus, spacing.small, spacing.medium, spacing.large, radii.small, radii.medium, borders.hairline, borders.strong, controls.small, typography.body, typography.caption]
+theme_tokens: [background, surface, text, text_muted, border, accent, accent_text, focus, spacing.xsmall, spacing.small, spacing.large, radii.small, radii.medium, radii.large, radii.pill, borders.hairline, borders.regular, borders.strong, controls.xsmall, controls.small, controls.large, shadows.small, typography.body, typography.caption]
 open_questions: [Human review of modifier conventions, keyboard box-selection corner model, one-world-unit keyboard step, public event names and timing, node content composition, and accessibility scaling for large graphs.]
 ---
 
@@ -318,6 +318,37 @@ The root is a labeled group. Node cards expose group role, stable name, and sele
 
 Canvas and node surface colors, text, borders, selection, and focus come from `mkit_core::theme::Theme`. Spacing, radii, border widths, and typography use GPUI theme tokens. The 220 logical-pixel node width, 32-pixel title band, 24-pixel port row, 6-pixel port radius, and 2-pixel connection stroke are graph geometry constants justified for N1's compact layout and scale with the view transform.
 
+### Visual design (E13.2 P4)
+
+The look follows the restyled everyday components (Button, Toolbar, Slider, Tree) and is resolved from the installed `Theme` in three variants. `high-contrast` is selected by theme name; every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" is `text` mixed 4% (light) or 12% (dark) into `background`. "Divider" is `border` in light and `text` at 10% alpha in dark.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Frame | `background` canvas, divider border, radius `radii.large` | same | `background`, `border` |
+| Frame keyboard focus | `focus` border plus a 3px ring of `focus` at 50% | same | `focus` border plus a 3px ring of opaque `focus` |
+| Toolbar | `background`, divider underneath; zoom readout `text_muted` caption | same | `background`, `border` |
+| Toolbar buttons | the Button `outline` variant: `background`, `text`, outline border, `shadows.small`; hover muted | same with `text` at 10% over `background` as the outline | `background`, `text`, `border`; hover border `accent` |
+| Toolbar button focus | `focus` border, opaque `background`, 3px ring of `focus` at 50% | same | ring in opaque `focus` |
+| Node card | a bordered rounded card: opaque `surface`, divider border, radius `radii.large`, `shadows.small`; title `typography.body` at medium weight | same | `surface`, `border` |
+| Node hover | border `text` mixed 30% into `background` | same | border `accent` |
+| Keyboard-focused node | `focus` border at `borders.strong` | same | same |
+| Selected node | the 3px focus ring of `focus` at 50% in place of the shadow, and a muted title band | same | opaque `focus` ring and an `accent` title band with `accent_text` |
+| Port | the Slider thumb look at the port size: opaque `background` fill, hairline `accent` border, `shadows.small` | same | same (no shadow) |
+| Keyboard-focused port | `accent` fill, `focus` border, round 3px ring of `focus` at 50% | same | ring in opaque `focus` |
+| Connection wires and arrowheads | `text_muted` (the wire colour role; not re-tokenised); the connection preview stays `accent` | same | same |
+| Box selection | `accent` at 10% alpha with a hairline `accent` border, radius `radii.small` | same | same |
+| Minimap | a bordered rounded card: opaque `surface`, divider border, radius `radii.large`, `shadows.small`; nodes `text_muted`; viewport rectangle `borders.strong` `accent` | same | `surface`, `border` |
+| Minimap focus | `focus` border plus the 3px ring | same | opaque ring |
+| Connection list | `surface` with a divider above | same | `surface`, `border` |
+| Connection rows | the Tree row: radius `radii.small`, `text_muted` caption, reserved hairline border; hover muted | same | hover border `border` |
+| Focused connection row | muted fill, `text`, `focus` hairline outline inside the row | same | `accent` fill, `accent_text`, `focus` outline |
+
+- **Density (maintainer decision, provisional).** Pro components keep their existing dense geometry: node width, title band, port rows, port size, port hit tolerance, wire width, minimap size, list height, and the `controls.xsmall` toolbar buttons (`controls.small` minimum width) are unchanged. Colours, borders, radii, shadows, focus, hover and typography follow the everyday components.
+- **Selection, focus and hover stay distinct.** Selection draws the focus ring outside the card and fills the title band (a non-colour cue); keyboard focus draws a strong `focus` border; hover only darkens the resting border. A focused selected node shows both. Rings and shadows are drawn in screen pixels, so they stay legible at any zoom, while borders and radii scale with the graph like the rest of the card.
+- The card radius scales with the view transform. The selected title band rounds its top corners to match, because GPUI clips children to a rectangle. A box-shadow ring around a 6px port takes the port's clamped corner radius and renders square, so the focused port's ring is a round layer painted behind the port instead; it does not change layout.
+- GPUI paints drop shadows as filled shapes, so cards, ports, buttons and the minimap keep opaque fills under shadows and rings. The 3px focus ring is the shadcn/ui ring width.
+- The node editor has no disabled state. The matrix's keyboard-driven states (`port_navigation`, `connection_preview`, `connection_selected`) and the pointer-driven states (`drag_preview`, `box_preview`, `invalid_connection_target`) focus the editor, so the frame focus ring is covered; no separate focused state is added.
+
 ## WAI-ARIA pattern reference
 
 Arbitrary node graphs have no direct WAI-ARIA pattern. The component uses a labeled group containing named node groups and port text; keyboard focus is a composite path independent from the selected set. It does not claim grid semantics because nodes do not occupy a regular row/column model.
@@ -344,7 +375,7 @@ remain separate checks.
 
 Plain click replaces selection and focuses the hit node. Shift-click adds; platform-command-click toggles. Dragging selected nodes preserves their relative positions; dragging an unselected node first selects it. Empty-canvas drag previews a box. Box selection uses full node-card containment; partial intersections are excluded. Shift adds box results and platform-command toggles them. Hit testing follows reverse paint order. Escape cancels either preview. A release inside the canvas uses the release coordinates even if no final move event arrived; a release outside the canvas cancels node and box previews without a request. On pointer-up a changed valid drag emits one `NodesMoveRequested { positions: Vec<NodePosition> }`, containing stable IDs and finite final world positions; it does not mutate graph data. Owners confirm through `set_graph`. Invalid positions reject the whole request.
 
-Space replaces selection, Shift+Space adds, platform+Space toggles. Shift+Alt+arrow nudges selected nodes by one graph unit. `BeginBoxSelection` starts with a rectangle around the focused node, and Shift+arrow actions move its top-left corner by one graph unit, `CommitBoxSelection` applies the result, and Escape cancels. These named actions are rebindable in `MkitNodeEditor`. The root group describes active previews and node selection count; nodes expose their selected state. Selected cards use the stronger theme border width as well as the accent border color. Preview rectangles use accent/border tokens. Native screen-reader traversal and pointer capture outside the canvas need manual verification where the harness cannot exercise them. Human review is required for the public event/API and keyboard contract.
+Space replaces selection, Shift+Space adds, platform+Space toggles. Shift+Alt+arrow nudges selected nodes by one graph unit. `BeginBoxSelection` starts with a rectangle around the focused node, and Shift+arrow actions move its top-left corner by one graph unit, `CommitBoxSelection` applies the result, and Escape cancels. These named actions are rebindable in `MkitNodeEditor`. The root group describes active previews and node selection count; nodes expose their selected state. Selected cards draw the focus ring and a filled title band, so selection is not conveyed by colour alone. The box preview uses a low-alpha accent fill with an accent border. Native screen-reader traversal and pointer capture outside the canvas need manual verification where the harness cannot exercise them. Human review is required for the public event/API and keyboard contract.
 
 ## N3 connection editing
 
@@ -356,4 +387,4 @@ Connections appear as named buttons in the Graph connections list. `g` and `Shif
 
 The minimap is hidden by default and can be shown with the toolbar button or `m`; hosts may use `set_minimap_visible`. Visibility is uncontrolled by default and updates before `MinimapVisibilityChanged`; `with_controlled_minimap` makes the control request-only until the host calls `set_minimap_visible`. It depicts finite graph bounds, nodes, and the viewport rectangle. Clicking it centers the view at the corresponding graph position using the same uniform scale and centered bounds used to draw nodes. The minimap button has a name and a text description of the visible world-coordinate range. `Alt+Arrow` pans; arrows navigate nodes in reading order and `v` centers the focused node, so every node remains reachable without the minimap. Focus can leave the minimap through normal Tab navigation. View requests follow the editor's existing controlled/uncontrolled transform contract and emit `ViewChanged` only when the transform changes.
 
-The minimap is 168 by 104 logical pixels, justified as a compact overview target with enough inner space to show viewport bounds. Its dimensions, inset, card, viewport border, and text use GPUI theme spacing, surface, border, accent, focus, and typography tokens where available. Mapping accounts for negative graph coordinates and preserves a uniform aspect ratio. Large, extreme-range graph precision and native spoken feedback still need manual checks. Human review is required for the public event/API, key map, accessibility contract, and visual baselines.
+The minimap is 168 by 104 logical pixels, justified as a compact overview target with enough inner space to show viewport bounds. Its inset, card (surface, divider border, `radii.large`, `shadows.small`), viewport border, and focus ring use GPUI theme spacing, surface, border, radius, shadow, accent, and focus tokens. Mapping accounts for negative graph coordinates and preserves a uniform aspect ratio. Large, extreme-range graph precision and native spoken feedback still need manual checks. Human review is required for the public event/API, key map, accessibility contract, and visual baselines.

@@ -17,6 +17,9 @@ states:
   - id: disabled_day
     description: A disabled date is visible but cannot be focused or selected.
     fixture: disabled_day_fixture
+  - id: focused
+    description: A single-date calendar whose active day owns keyboard focus after an arrow key moved it off the selected day.
+    fixture: focused_fixture
 keys:
   - key: ArrowRight
     modifiers: []
@@ -103,13 +106,15 @@ review before the public API is considered stable.
 
 ## Anatomy
 
-Month and year heading; seven localized weekday headings; six rows of date cells. A single active
+A card containing the month and year heading between previous- and next-month chevrons; seven
+localized weekday headings; six rows of date cells. A single active
 cell owns keyboard focus. Cells outside the displayed month remain visible to complete the grid,
 but are visually muted. The selected date or range is visually distinguished with accent tokens.
 
 ## States
 
-Empty, single selected, range start pending, complete range, and disabled-day states. Locale text
+Empty, single selected, range start pending, complete range, disabled-day, and keyboard-focused
+states. Locale text
 is provided by the app. Optional bounds and a disabled-date predicate constrain focus and selection.
 Range selection starts on first activation and completes on the second; a subsequent activation
 starts a new range. Reversed endpoints are normalized chronologically.
@@ -139,7 +144,8 @@ grid keyboard convention.
 
 Clicking an enabled date cell makes it active and selects it. In range mode, the first click starts
 a range and the second completes it; a later click starts another range. Disabled dates ignore
-pointer activation.
+pointer activation. Clicking the previous- or next-month chevron moves the view one month, exactly
+as Page Up or Page Down does.
 
 ## Accessibility role and properties
 
@@ -149,9 +155,64 @@ cell participates in the roving focus stop.
 
 ## Theme tokens used
 
-Read surface, text, border, accent, accent_text, focus, disabled colors and spacing, radii, border,
-control and body typography from `mkit_core::theme::Theme`. No fixed colors. Day cell sizing uses
-the small control token as its minimum square size.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by
+`.e7-calendar*` in `site/src/demos/e7_expansion.css` with the shadcn token mapping in
+`site/src/ui/tokens.ts`), which in turn follows the shadcn/ui Calendar. It is resolved from the
+installed `Theme` in three variants, the same way Button, Select, TextField and Tabs do it.
+`high-contrast` is selected by theme name; every other theme is dark when
+`mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived colours
+use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no mkit-core API or
+tokens are added. "Muted" below is shadcn's `accent`: `text` mixed 4% (light) or 12% (dark) into
+`background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Card fill | `background` | `background` | `background` |
+| Card border | `border` | `text` at 10% over the fill | `border` |
+| Card shadow | `shadows.small` (shadcn `shadow-xs`) | `shadows.small` | none |
+| Month title | `text`, semibold | same | same |
+| Previous/next month chevrons | `text` on a transparent ghost button; hover muted fill | same | `text`; hover border `accent` |
+| Weekday headings | `text_muted` | `text_muted` | `text_muted` |
+| Day in the displayed month | `text` on the card; hover muted fill | same | `text`; hover border `accent` |
+| Day outside the displayed month | `text_muted` | `text_muted` | `disabled` (`text_muted` is near-white in this theme) |
+| Disabled day | `text_muted` mixed 50% over the card (shadcn `opacity-50`) | same | `disabled` |
+| Selected day, range endpoint | `accent` fill (shadcn `primary`), `accent_text` | same | `accent` fill, `accent_text` |
+| Range middle | muted band, `text` (shadcn `range_middle`) | same | `accent` border, `text` |
+| Active day with keyboard focus | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+
+- **Card.** The calendar draws the web preview's card: radius `radii.medium`, a `borders.regular`
+  border (2px in high contrast), and `spacing.small` (8px) padding. Its width is exactly seven day
+  columns plus padding and border, so it does not stretch with a parent's cross-axis alignment. GPUI paints drop shadows as
+  filled shapes that are not clipped to the element's outside, so the card fill is opaque.
+- **Header.** Lucide `chevron-left` (15,18 → 9,12 → 15,6) and `chevron-right` (9,18 → 15,12 → 9,6)
+  on a 24-unit grid with a 2-unit stroke, drawn as vector paths in a `spacing.large` (16px) square
+  (no icon assets), each centred in a `controls.small` (32px, the web preview's
+  `ui-btn--sm ui-btn--icon`) ghost button with radius `radii.medium`. The month and year title sits
+  between them in `typography.body` (14px) at semibold weight, the web preview's `font-weight: 600`.
+  The header is followed by a `spacing.xsmall` (4px) gap, the nearest token to the preview's 6px.
+  The chevrons are pointer affordances for the existing month navigation: a click moves the view
+  exactly as Page Up or Page Down does, with the same bounds handling and `ViewChanged` and
+  `ActiveDateChanged` events. They are not tab stops and add no accessibility nodes, so the keyboard
+  contract and the single grid tab stop are unchanged; see "Open questions".
+- **Grid.** Weekday headings are `typography.caption` (12px, the preview's 12px) in cells
+  `controls.xsmall` (28px, the preview's weekday height) tall. Day cells are `controls.medium`
+  (36px) wide, the preview's column width inside its 280px card, and `controls.small` (32px, the
+  preview's day height) tall, with no horizontal gap so a range forms one band like shadcn's. Rows
+  are separated by `spacing.xsmall` (4px), the nearest non-zero token to the preview's 2px gap. Day
+  numbers use `typography.body` (14px, shadcn `text-sm`; the preview's 13px has no token) and cells
+  have radius `radii.small` (the preview's `--ui-radius-sm`). Range endpoints sit on the muted band
+  on their inner side, as shadcn's `range_start`/`range_end` do, so the band runs continuously
+  behind the endpoint corners; a range with one endpoint shows only the filled day.
+- **Focus.** The focus ring follows `:focus-visible`: it shows while the active day owns keyboard
+  focus and the last input was from the keyboard. The focused day's fill stays opaque under the
+  ring. Days have a transparent `borders.regular` border so the focus border does not shift the
+  number. The 3px focus ring is the shadcn/ui ring width, a fixed component value, and may be
+  overlapped by filled neighbouring days, which paint later.
+- **No "today" marker.** shadcn fills today's date with `accent`. `CivilDate` has no clock and the
+  calendar receives no current date, so no today state is drawn; see "Open questions".
+- **Hover** gives enabled days and the chevron buttons the muted fill in light and dark themes and an
+  `accent` border in high contrast; disabled days have no hover. Pointer hover is suppressed after
+  keyboard input, as GPUI does for every hover style.
 
 ## WAI-ARIA pattern reference
 
@@ -166,5 +227,9 @@ resulting native accessibility tree on supported macOS, Windows, and Linux bridg
 
 Maintainer review: approve `CivilDate` versus an external date type; approve the public locale-label
 and selection API; confirm how AccessKit exposes grid cell selected/current semantics on supported
-platforms. Harness keyboard, a11y and screenshot coverage is pending where the E0 harness cannot
+platforms. The previous/next month chevrons are pointer-only affordances with no accessible name,
+because the builder has no localized "previous month"/"next month" labels; exposing them as named
+buttons (as the APG date picker dialog does) needs new label API and an accessibility-tree change,
+pending maintainer approval. A "today" highlight likewise needs an application-supplied current
+date. Harness keyboard, a11y and screenshot coverage is pending where the E0 harness cannot
 capture them.

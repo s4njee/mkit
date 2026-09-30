@@ -2,12 +2,16 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Bounds, ClickEvent, Context, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, KeyDownEvent, KeyUpEvent, MouseButton, MouseDownEvent, MouseMoveEvent,
-    MouseUpEvent, PinchEvent, Pixels, Point, Render, ScrollDelta, ScrollWheelEvent, TextAlign,
-    Window, actions, canvas, div, fill, point, prelude::*, px, size,
+    App, BorderStyle, Bounds, ClickEvent, Context, EventEmitter, FocusHandle, Focusable,
+    FontWeight, IntoElement, KeyBinding, KeyDownEvent, KeyUpEvent, MouseButton, MouseDownEvent,
+    MouseMoveEvent, MouseUpEvent, PinchEvent, Pixels, Point, Render, Rgba, ScrollDelta,
+    ScrollWheelEvent, TextAlign, Window, actions, canvas, div, fill, point, prelude::*, px, quad,
+    size,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::{cell::Cell, rc::Rc};
 
 pub const KEY_CONTEXT: &str = "MkitViewport";
@@ -109,12 +113,73 @@ pub enum Guide {
 
 type Painter = Rc<dyn Fn(Bounds<Pixels>, ViewTransform, &mut Window)>;
 
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// shadcn "muted": ruler strips and control hover fill.
+    muted: Rgba,
+    /// Frame border, toolbar and ruler dividers, and ruler ticks.
+    divider: Rgba,
+    /// Opaque outline-button border.
+    control_border: Rgba,
+    ring: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            muted: c.background,
+            divider: c.border,
+            control_border: c.border,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        high_contrast: false,
+        muted: mix(c.text, c.background, if dark { 0.12 } else { 0.04 }),
+        divider: if dark { c.text.opacity(0.1) } else { c.border },
+        control_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused element.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+
+/// A small outline button (the restyled Button's `outline` variant) at the dense
+/// `controls.xsmall` toolbar height.
 fn toolbar_button(
     id: &'static str,
     label: &'static str,
     theme: Theme,
     on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> impl IntoElement {
+    let look = look(&theme);
+    let c = theme.colors;
     div()
         .id(id)
         .debug_selector(move || id.into())
@@ -127,13 +192,21 @@ fn toolbar_button(
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(theme.radii.small))
-        .border(px(theme.borders.hairline))
-        .border_color(theme.colors.border)
-        .bg(theme.colors.elevated_surface)
-        .text_color(theme.colors.text)
-        .text_size(px(theme.typography.caption))
-        .focus_visible(|el| el.border_color(theme.colors.focus))
+        .rounded(px(theme.radii.medium))
+        .border(px(theme.borders.regular))
+        .border_color(look.control_border)
+        .bg(c.background)
+        .shadow(vec![box_shadow(theme.shadows.small)])
+        .text_color(c.text)
+        .text_size(px(theme.typography.body))
+        .font_weight(FontWeight::MEDIUM)
+        .whitespace_nowrap()
+        .hover(
+            move |s| if look.high_contrast { s.border_color(c.accent) } else { s.bg(look.muted) },
+        )
+        .focus_visible(move |s| {
+            s.border_color(c.focus).bg(c.background).shadow(vec![focus_ring(look.ring)])
+        })
         .on_click(on_click)
         .child(label)
 }
@@ -344,6 +417,7 @@ impl Render for Viewport {
         let transform = self.transform;
         let show_rulers = self.show_rulers;
         let guides = self.guides.clone();
+        let look = look(&theme);
         let pan_step = theme.spacing.large * 2.0;
         let zoom_in = cx.listener(|this, _: &ZoomIn, _, cx| {
             if let Some(center) = this.center() {
@@ -370,9 +444,11 @@ impl Render for Viewport {
             .overflow_hidden()
             .bg(theme.colors.background)
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .rounded(px(theme.radii.medium))
-            .focus_visible(|el| el.border_color(theme.colors.focus))
+            .border_color(look.divider)
+            .rounded(px(theme.radii.large))
+            .focus_visible(move |el| {
+                el.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .on_action(cx.listener(move |this, _: &PanLeft, _, cx| this.pan(pan_step, 0.0, cx)))
             .on_action(cx.listener(move |this, _: &PanRight, _, cx| this.pan(-pan_step, 0.0, cx)))
             .on_action(cx.listener(move |this, _: &PanUp, _, cx| this.pan(0.0, pan_step, cx)))
@@ -391,9 +467,9 @@ impl Render for Viewport {
                     .gap(px(theme.spacing.xsmall))
                     .h(px(theme.controls.small))
                     .px(px(theme.spacing.small))
-                    .bg(theme.colors.surface)
+                    .bg(theme.colors.background)
                     .border_b(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
+                    .border_color(look.divider)
                     .text_color(theme.colors.text_muted)
                     .text_size(px(theme.typography.caption))
                     .child(format!("{:.0}%", self.transform.scale * 100.0))
@@ -477,30 +553,37 @@ fn paint_overlays(
     window: &mut Window,
     cx: &mut App,
 ) {
+    let look = look(&theme);
+    let hairline = px(theme.borders.hairline);
+    let strip = px(theme.controls.xsmall);
+    // Guide handles sit against the canvas edge of the ruler strips, clear of most tick labels.
+    let handle = px(theme.spacing.medium);
+    let inner_edge = strip - handle / 2.0 - hairline;
+    let mut handles = Vec::new();
     for guide in guides {
         match *guide {
             Guide::Vertical(world_x) if world_x.is_finite() => {
                 let x = bounds.left() + px(transform.world_to_screen(point(world_x, 0.0)).x);
                 if x >= bounds.left() && x <= bounds.right() {
                     window.paint_quad(fill(
-                        Bounds::new(
-                            point(x, bounds.top()),
-                            size(px(theme.borders.hairline), bounds.size.height),
-                        ),
+                        Bounds::new(point(x, bounds.top()), size(hairline, bounds.size.height)),
                         theme.colors.focus,
                     ));
+                    if x >= bounds.left() + strip {
+                        handles.push(point(x + hairline / 2.0, bounds.top() + inner_edge));
+                    }
                 }
             }
             Guide::Horizontal(world_y) if world_y.is_finite() => {
                 let y = bounds.top() + px(transform.world_to_screen(point(0.0, world_y)).y);
                 if y >= bounds.top() && y <= bounds.bottom() {
                     window.paint_quad(fill(
-                        Bounds::new(
-                            point(bounds.left(), y),
-                            size(bounds.size.width, px(theme.borders.hairline)),
-                        ),
+                        Bounds::new(point(bounds.left(), y), size(bounds.size.width, hairline)),
                         theme.colors.focus,
                     ));
+                    if y >= bounds.top() + strip {
+                        handles.push(point(bounds.left() + inner_edge, y + hairline / 2.0));
+                    }
                 }
             }
             _ => {}
@@ -509,74 +592,99 @@ fn paint_overlays(
     if !show_rulers {
         return;
     }
-    let strip = px(theme.controls.xsmall);
+    // Ruler strips: muted fill with a hairline divider along the canvas edge.
+    window.paint_quad(fill(Bounds::new(bounds.origin, size(bounds.size.width, strip)), look.muted));
+    window
+        .paint_quad(fill(Bounds::new(bounds.origin, size(strip, bounds.size.height)), look.muted));
     window.paint_quad(fill(
-        Bounds::new(bounds.origin, size(bounds.size.width, strip)),
-        theme.colors.surface,
+        Bounds::new(
+            point(bounds.left(), bounds.top() + strip - hairline),
+            size(bounds.size.width, hairline),
+        ),
+        look.divider,
     ));
     window.paint_quad(fill(
-        Bounds::new(bounds.origin, size(strip, bounds.size.height)),
-        theme.colors.surface,
+        Bounds::new(
+            point(bounds.left() + strip - hairline, bounds.top()),
+            size(hairline, bounds.size.height),
+        ),
+        look.divider,
     ));
-    let Some(step) = ruler_step(transform.scale) else { return };
-    let width = bounds.size.width.as_f32();
-    let height = bounds.size.height.as_f32();
-    let start_x = (transform.screen_to_world(point(0.0, 0.0)).x / step).floor();
-    let start_y = (transform.screen_to_world(point(0.0, 0.0)).y / step).floor();
-    for index in 0..256 {
-        let world_x = (start_x + index as f32) * step;
-        let screen_x = transform.world_to_screen(point(world_x, 0.0)).x;
-        if screen_x > width {
-            break;
+    if let Some(step) = ruler_step(transform.scale) {
+        let width = bounds.size.width.as_f32();
+        let height = bounds.size.height.as_f32();
+        let start_x = (transform.screen_to_world(point(0.0, 0.0)).x / step).floor();
+        let start_y = (transform.screen_to_world(point(0.0, 0.0)).y / step).floor();
+        for index in 0..256 {
+            let world_x = (start_x + index as f32) * step;
+            let screen_x = transform.world_to_screen(point(world_x, 0.0)).x;
+            if screen_x > width {
+                break;
+            }
+            if screen_x >= strip.as_f32() && screen_x.is_finite() {
+                let x = bounds.left() + px(screen_x);
+                window.paint_quad(fill(
+                    Bounds::new(point(x, bounds.top() + strip * 0.7), size(hairline, strip * 0.3)),
+                    look.divider,
+                ));
+                if screen_x <= width - theme.controls.medium {
+                    paint_ruler_label(
+                        format_ruler_value(world_x, step),
+                        point(x + px(theme.spacing.xsmall), bounds.top()),
+                        window,
+                        cx,
+                    );
+                }
+            }
         }
-        if screen_x >= strip.as_f32() && screen_x.is_finite() {
-            let x = bounds.left() + px(screen_x);
-            window.paint_quad(fill(
-                Bounds::new(
-                    point(x, bounds.top() + strip * 0.7),
-                    size(px(theme.borders.hairline), strip * 0.3),
-                ),
-                theme.colors.border,
-            ));
-            if screen_x <= width - theme.controls.medium {
-                paint_ruler_label(
-                    format_ruler_value(world_x, step),
-                    point(x + px(theme.spacing.xsmall), bounds.top()),
-                    window,
-                    cx,
-                );
+        for index in 0..256 {
+            let world_y = (start_y + index as f32) * step;
+            let screen_y = transform.world_to_screen(point(0.0, world_y)).y;
+            if screen_y > height {
+                break;
+            }
+            if screen_y >= strip.as_f32() && screen_y.is_finite() {
+                let y = bounds.top() + px(screen_y);
+                window.paint_quad(fill(
+                    Bounds::new(point(bounds.left() + strip * 0.7, y), size(strip * 0.3, hairline)),
+                    look.divider,
+                ));
+                if screen_y <= height - theme.controls.medium {
+                    paint_ruler_label(
+                        format_ruler_value(world_y, step),
+                        point(bounds.left() + px(theme.spacing.xsmall), y),
+                        window,
+                        cx,
+                    );
+                }
             }
         }
     }
-    for index in 0..256 {
-        let world_y = (start_y + index as f32) * step;
-        let screen_y = transform.world_to_screen(point(0.0, world_y)).y;
-        if screen_y > height {
-            break;
-        }
-        if screen_y >= strip.as_f32() && screen_y.is_finite() {
-            let y = bounds.top() + px(screen_y);
-            window.paint_quad(fill(
-                Bounds::new(
-                    point(bounds.left() + strip * 0.7, y),
-                    size(strip * 0.3, px(theme.borders.hairline)),
-                ),
-                theme.colors.border,
-            ));
-            if screen_y <= height - theme.controls.medium {
-                paint_ruler_label(
-                    format_ruler_value(world_y, step),
-                    point(bounds.left() + px(theme.spacing.xsmall), y),
-                    window,
-                    cx,
-                );
-            }
-        }
-    }
-    window.paint_quad(fill(
+    // Corner square where the strips meet.
+    window.paint_quad(quad(
         Bounds::new(bounds.origin, size(strip, strip)),
-        theme.colors.elevated_surface,
+        px(0.),
+        look.muted,
+        gpui_pre::Edges { right: hairline, bottom: hairline, ..Default::default() },
+        look.divider,
+        BorderStyle::Solid,
     ));
+    // Guide handles: the restyled Slider thumb look (opaque `background` fill, a hairline border
+    // in the guide colour, and the small shadow) drawn as a `spacing.medium` circle.
+    for centre in handles {
+        let handle_bounds =
+            Bounds::new(centre - point(handle / 2.0, handle / 2.0), size(handle, handle));
+        let radius = gpui_pre::Corners::all(handle / 2.0);
+        window.paint_drop_shadows(handle_bounds, radius, &[box_shadow(theme.shadows.small)]);
+        window.paint_quad(quad(
+            handle_bounds,
+            radius,
+            theme.colors.background,
+            hairline,
+            theme.colors.focus,
+            BorderStyle::Solid,
+        ));
+    }
 }
 
 fn ruler_step(scale: f32) -> Option<f32> {

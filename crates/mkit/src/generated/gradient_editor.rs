@@ -3,10 +3,165 @@ extern crate gpui_pre as gpui;
 
 use gpui_pre::{
     App, Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render, Rgba,
-    Window, actions, canvas, div, linear_color_stop, linear_gradient, prelude::*, px, relative,
+    KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PathBuilder, Pixels,
+    Render, Rgba, Window, actions, canvas, div, linear_color_stop, linear_gradient, point,
+    prelude::*, px, relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved card, handle, field and button colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// Card and preview border (the shadcn "border" role).
+    line: Rgba,
+    muted: Rgba,
+    text: Rgba,
+    label: Rgba,
+    accent: Rgba,
+    handle_fill: Rgba,
+    /// `shadows.small`, halved when disabled; transparent in high contrast.
+    shadow: ShadowToken,
+    ring: Rgba,
+    field_fill: Rgba,
+    field_border: Rgba,
+    button_border: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// Disabled parts render at 50% opacity as one layer, like the web look's `opacity: .5`. GPUI
+/// applies element opacity to each painted part separately, so each colour is composited opaque
+/// over `background` and then mixed 50% with it instead.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. { color } else { mix(composite(color, background), background, 0.5) }
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (text, accent, line) = if disabled {
+            (c.disabled, c.disabled, c.disabled)
+        } else {
+            (c.text, c.accent, c.border)
+        };
+        return Look {
+            high_contrast: true,
+            line,
+            muted: c.background,
+            text,
+            label: if disabled { c.disabled } else { c.text_muted },
+            accent,
+            handle_fill: c.background,
+            shadow: t.shadows.small,
+            ring: c.focus,
+            field_fill: c.background,
+            field_border: line,
+            button_border: line,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let field_fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    let look = Look {
+        high_contrast: false,
+        line: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        muted: mix(c.text, c.background, if dark { 0.12 } else { 0.04 }),
+        text: c.text,
+        label: c.text_muted,
+        accent: c.accent,
+        handle_fill: c.background,
+        shadow: t.shadows.small,
+        // The ring sits over gradient data, so it is composited over `background` to read the
+        // same as the rings on theme surfaces.
+        ring: composite(c.focus.opacity(0.5), c.background),
+        field_fill,
+        field_border: if dark { composite(c.text.opacity(0.15), field_fill) } else { c.border },
+        button_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+    };
+    if !disabled { look } else { look.dimmed(c.background) }
+}
+impl Look {
+    fn dimmed(self, bg: Rgba) -> Self {
+        if self.high_contrast {
+            return self;
+        }
+        Look {
+            line: dim(self.line, bg),
+            muted: dim(self.muted, bg),
+            text: dim(self.text, bg),
+            label: dim(self.label, bg),
+            accent: dim(self.accent, bg),
+            handle_fill: dim(self.handle_fill, bg),
+            shadow: ShadowToken {
+                color: self.shadow.color.opacity(self.shadow.color.a * 0.5),
+                ..self.shadow
+            },
+            field_fill: dim(self.field_fill, bg),
+            field_border: dim(self.field_border, bg),
+            button_border: dim(self.button_border, bg),
+            ..self
+        }
+    }
+    /// A single unavailable control (Remove at an endpoint) in an otherwise enabled editor.
+    fn unavailable(self, t: &Theme) -> Self {
+        if self.high_contrast {
+            let d = t.colors.disabled;
+            Look { text: d, label: d, accent: d, line: d, button_border: d, ..self }
+        } else {
+            self.dimmed(t.colors.background)
+        }
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the preview or a selected handle.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `minus`.
+const MINUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)]];
+/// Lucide `plus`.
+const PLUS: &[&[(f32, f32)]] = &[&[(5., 12.), (19., 12.)], &[(12., 5.), (12., 19.)]];
 
 pub const KEY_CONTEXT: &str = "MkitGradientEditor";
 const MIN_GAP: f64 = 0.01;
@@ -337,19 +492,24 @@ impl Focusable for GradientEditor {
     }
 }
 impl Render for GradientEditor {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_stop(true)).clone();
         let theme = *cx.global::<Theme>();
-        let mut preview = div()
+        let disabled = self.disabled;
+        let look = look(&theme, disabled);
+        let focus_visible =
+            !disabled && focus.is_focused(window) && window.last_input_was_keyboard();
+        let transparent = theme.colors.background.opacity(0.);
+        let mut strip = div()
             .id("mkit-gradient-preview")
             .debug_selector(|| "mkit-gradient-preview".into())
             .relative()
             .flex()
-            .h(px(theme.controls.large * 1.8))
-            .w_full()
+            .size_full()
             .rounded(px(theme.radii.medium))
-            .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
+            .border(px(theme.borders.hairline))
+            .border_color(if focus_visible { theme.colors.focus } else { look.line })
+            .when(focus_visible, |el| el.shadow(vec![focus_ring(look.ring)]))
             .overflow_hidden()
             .role(gpui_pre::accesskit::Role::Group)
             .aria_label("Gradient preview");
@@ -358,17 +518,19 @@ impl Render for GradientEditor {
         for n in 0..SEGMENTS {
             let a = n as f64 / SEGMENTS as f64;
             let b = (n + 1) as f64 / SEGMENTS as f64;
-            preview = preview.child(div().h_full().flex_1().bg(linear_gradient(
+            strip = strip.child(div().h_full().flex_1().bg(linear_gradient(
                 90.0,
                 linear_color_stop(sample_gradient(&self.gradient, a).rgba(), 0.0),
                 linear_color_stop(sample_gradient(&self.gradient, b).rgba(), 1.0),
             )));
         }
         let handle_entity = cx.entity();
+        let stop_count = self.gradient.stops.len();
+        let selected_index = self.selected;
         let handles = self.gradient.stops.iter().enumerate().map(|(i, stop)| {
             let select_entity = handle_entity.clone();
             let label = format!("Stop {} at {:.0}%", i + 1, stop.position * 100.0);
-            let selected = i == self.selected;
+            let selected = i == selected_index;
             let color = stop.colour.rgba();
             div()
                 .id(format!("gradient-stop-{i}"))
@@ -381,16 +543,27 @@ impl Render for GradientEditor {
                 .justify_center()
                 .gap(px(theme.spacing.xsmall))
                 .px(px(theme.spacing.xsmall))
-                .text_color(theme.colors.text)
+                .text_color(look.text)
                 .text_size(px(theme.typography.caption))
-                .bg(theme.colors.elevated_surface)
+                .whitespace_nowrap()
+                .bg(if selected { look.muted } else { theme.colors.background })
                 .border(px(theme.borders.regular))
-                .border_color(if selected { theme.colors.focus } else { theme.colors.border })
-                .rounded(px(theme.radii.small))
+                .border_color(if selected { look.accent } else { look.button_border })
+                .rounded(px(theme.radii.medium))
+                .shadow(vec![box_shadow(look.shadow)])
+                .when(!disabled && !selected, |el| {
+                    el.hover(move |style| {
+                        if look.high_contrast {
+                            style.border_color(look.accent)
+                        } else {
+                            style.bg(look.muted)
+                        }
+                    })
+                })
                 .role(gpui_pre::accesskit::Role::Button)
                 .aria_label(label)
                 .aria_selected(selected)
-                .aria_description(if i == 0 || i + 1 == self.gradient.stops.len() {
+                .aria_description(if i == 0 || i + 1 == stop_count {
                     "Endpoint stop; its position is fixed."
                 } else {
                     "Select this stop, then use left and right arrows to move it."
@@ -400,11 +573,12 @@ impl Render for GradientEditor {
                 })
                 .child(
                     div()
+                        .flex_none()
                         .w(px(theme.controls.xsmall))
                         .h(px(theme.controls.xsmall))
                         .rounded(px(theme.radii.small))
                         .border(px(theme.borders.hairline))
-                        .border_color(theme.colors.border)
+                        .border_color(look.line)
                         .bg(color),
                 )
                 .child(format!("Stop {} · {:.0}%", i + 1, stop.position * 100.0))
@@ -412,42 +586,52 @@ impl Render for GradientEditor {
         let i = self.selected;
         let stop = self.gradient.stops[i];
         let can_delete = i > 0 && i + 1 < self.gradient.stops.len() && !self.disabled;
-        let disabled = self.disabled;
         let add_entity = cx.entity();
         let delete_entity = cx.entity();
-        let add = div()
-            .id("gradient-add-stop")
-            .debug_selector(|| "gradient-add-stop".into())
-            .role(gpui_pre::accesskit::Role::Button)
+        let button = |id: &'static str, label: &'static str, look: Look, enabled: bool| {
+            div()
+                .id(id)
+                .debug_selector(move || id.into())
+                .role(gpui_pre::accesskit::Role::Button)
+                .h(px(theme.controls.small))
+                .px(px(theme.spacing.medium))
+                .flex()
+                .items_center()
+                .justify_center()
+                .rounded(px(theme.radii.medium))
+                .border(px(theme.borders.regular))
+                .border_color(look.button_border)
+                .bg(theme.colors.background)
+                .shadow(vec![box_shadow(look.shadow)])
+                .text_color(look.text)
+                .text_size(px(theme.typography.body))
+                .font_weight(gpui_pre::FontWeight::MEDIUM)
+                .whitespace_nowrap()
+                .when(enabled, |el| {
+                    el.hover(move |style| {
+                        if look.high_contrast {
+                            style.border_color(look.accent)
+                        } else {
+                            style.bg(look.muted)
+                        }
+                    })
+                })
+                .child(label)
+        };
+        let add = button("gradient-add-stop", "Add stop", look, !disabled)
             .aria_label("Add gradient stop")
-            .px(px(theme.spacing.small))
-            .py(px(theme.spacing.xsmall))
-            .rounded(px(theme.radii.small))
-            .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
-            .text_color(theme.colors.text)
-            .when(disabled, |d| d.opacity(0.5))
-            .on_click(move |_, _, cx| add_entity.update(cx, |this, cx| this.add_stop(cx)))
-            .child("Add stop");
-        let remove = div()
-            .id("gradient-remove-stop")
-            .role(gpui_pre::accesskit::Role::Button)
+            .on_click(move |_, _, cx| add_entity.update(cx, |this, cx| this.add_stop(cx)));
+        let remove_look = if can_delete { look } else { look.unavailable(&theme) };
+        let remove = button("gradient-remove-stop", "Remove", remove_look, can_delete)
             .aria_label("Remove selected gradient stop")
             .aria_description(if can_delete {
                 "Removes the selected interior stop."
             } else {
                 "Unavailable for endpoint stops or when editing is disabled."
             })
-            .px(px(theme.spacing.small))
-            .py(px(theme.spacing.xsmall))
-            .rounded(px(theme.radii.small))
-            .border(px(theme.borders.regular))
-            .border_color(theme.colors.border)
-            .text_color(if can_delete { theme.colors.text } else { theme.colors.disabled })
             .on_click(move |_, _, cx| {
                 delete_entity.update(cx, |this, cx| this.delete_stop(this.selected, cx))
-            })
-            .child("Remove");
+            });
         let field = |label: &'static str,
                      value: String,
                      channel: u8,
@@ -458,56 +642,65 @@ impl Render for GradientEditor {
                      cx: &mut Context<Self>| {
             let decrease = cx.entity();
             let increase = cx.entity();
+            let step =
+                |id: &'static str, name: &'static str, glyph: &'static [&'static [(f32, f32)]]| {
+                    div()
+                        .id(id)
+                        .role(gpui_pre::accesskit::Role::Button)
+                        .aria_label(name)
+                        .w(px(theme.controls.small))
+                        .h(px(theme.controls.small))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(theme.radii.medium))
+                        .border(px(theme.borders.hairline))
+                        .border_color(transparent)
+                        .when(!disabled, |el| {
+                            el.hover(move |style| {
+                                if look.high_contrast {
+                                    style.border_color(look.accent)
+                                } else {
+                                    style.bg(look.muted)
+                                }
+                            })
+                        })
+                        .child(icon(theme.spacing.large, glyph, look.text))
+                };
             div()
                 .flex()
                 .items_center()
                 .gap(px(theme.spacing.xsmall))
                 .p(px(theme.spacing.xsmall))
-                .rounded(px(theme.radii.small))
-                .border(px(theme.borders.hairline))
-                .border_color(theme.colors.border)
+                .rounded(px(theme.radii.medium))
+                .border(px(theme.borders.regular))
+                .border_color(look.field_border)
+                .bg(look.field_fill)
+                .shadow(vec![box_shadow(look.shadow)])
                 .child(
                     div()
                         .w(px(theme.controls.large * 1.2))
+                        .whitespace_nowrap()
                         .text_size(px(theme.typography.caption))
-                        .text_color(theme.colors.text_muted)
+                        .text_color(look.label)
                         .child(label),
                 )
+                .child(step(dec_id, dec_label, MINUS).on_click(move |_, _, cx| {
+                    decrease.update(cx, |this, cx| this.adjust_field(channel, -1.0, cx))
+                }))
                 .child(
                     div()
-                        .id(dec_id)
-                        .role(gpui_pre::accesskit::Role::Button)
-                        .aria_label(dec_label)
-                        .w(px(theme.controls.small))
-                        .h(px(theme.controls.small))
+                        .w(px(theme.controls.large))
                         .flex()
-                        .items_center()
                         .justify_center()
-                        .rounded(px(theme.radii.small))
-                        .bg(theme.colors.elevated_surface)
-                        .on_click(move |_, _, cx| {
-                            decrease.update(cx, |this, cx| this.adjust_field(channel, -1.0, cx))
-                        })
-                        .child("−"),
+                        .text_size(px(theme.typography.body))
+                        .text_color(look.text)
+                        .whitespace_nowrap()
+                        .child(value),
                 )
-                .child(div().w(px(theme.controls.large)).child(value))
-                .child(
-                    div()
-                        .id(inc_id)
-                        .role(gpui_pre::accesskit::Role::Button)
-                        .aria_label(inc_label)
-                        .w(px(theme.controls.small))
-                        .h(px(theme.controls.small))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .rounded(px(theme.radii.small))
-                        .bg(theme.colors.elevated_surface)
-                        .on_click(move |_, _, cx| {
-                            increase.update(cx, |this, cx| this.adjust_field(channel, 1.0, cx))
-                        })
-                        .child("+"),
-                )
+                .child(step(inc_id, inc_label, PLUS).on_click(move |_, _, cx| {
+                    increase.update(cx, |this, cx| this.adjust_field(channel, 1.0, cx))
+                }))
         };
         let controls = div()
             .flex()
@@ -554,27 +747,7 @@ impl Render for GradientEditor {
                 cx,
             ));
         let preview_entity = cx.entity();
-        for (index, stop) in self.gradient.stops.iter().enumerate() {
-            preview = preview.child(
-                div()
-                    .absolute()
-                    .left(relative(stop.position as f32))
-                    .ml(px(-theme.borders.strong / 2.0))
-                    .top_0()
-                    .bottom_0()
-                    .w(px(if index == self.selected {
-                        theme.borders.strong
-                    } else {
-                        theme.borders.hairline
-                    }))
-                    .bg(if index == self.selected {
-                        theme.colors.focus
-                    } else {
-                        theme.colors.surface
-                    }),
-            );
-        }
-        preview = preview.child(
+        strip = strip.child(
             canvas(
                 |_bounds, _window, _cx| {},
                 move |bounds, _, window, _cx| {
@@ -604,9 +777,93 @@ impl Render for GradientEditor {
             .absolute()
             .inset_0(),
         );
-        div().id("mkit-gradient-editor").key_context(KEY_CONTEXT).track_focus(&focus).flex().flex_col().gap(px(theme.spacing.small)).p(px(theme.spacing.medium)).rounded(px(theme.radii.medium)).border(px(theme.borders.regular)).border_color(theme.colors.border).bg(theme.colors.surface).text_color(theme.colors.text).role(gpui_pre::accesskit::Role::Group).aria_label(self.label.clone()).aria_description("Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops.")
-            .on_action(cx.listener(Self::on_previous)).on_action(cx.listener(Self::on_next)).on_action(cx.listener(Self::on_left)).on_action(cx.listener(Self::on_right)).on_action(cx.listener(Self::on_fine_left)).on_action(cx.listener(Self::on_fine_right)).on_action(cx.listener(Self::on_first)).on_action(cx.listener(Self::on_last)).on_action(cx.listener(Self::on_delete)).on_action(cx.listener(Self::on_red_up)).on_action(cx.listener(Self::on_red_down)).on_action(cx.listener(Self::on_green_up)).on_action(cx.listener(Self::on_green_down)).on_action(cx.listener(Self::on_blue_up)).on_action(cx.listener(Self::on_blue_down))
-            .child(preview).child(div().id("gradient-stop-list").flex().flex_wrap().gap(px(theme.spacing.xsmall)).children(handles)).child(controls).child(div().flex().gap(px(theme.spacing.small)).child(add).child(remove))
+        // Stop handles sit above the strip so endpoint handles overhang its ends instead of
+        // being clipped. GPUI keeps an element's corner radius when spreading a ring shadow,
+        // so the selected ring is its own circle behind the handle.
+        let handle_size = theme.spacing.large;
+        let ring_size = handle_size + FOCUS_RING_WIDTH * 2.0;
+        let preview_height = theme.controls.large * 1.8;
+        let mut preview = div().relative().w_full().h(px(preview_height)).child(strip);
+        for (index, stop) in self.gradient.stops.iter().enumerate() {
+            let ringed = index == self.selected && !disabled;
+            preview = preview
+                .child(
+                    div()
+                        .absolute()
+                        .left(relative(stop.position as f32))
+                        .ml(px(-theme.borders.hairline / 2.0))
+                        .top(px(theme.borders.hairline))
+                        .bottom(px(theme.borders.hairline))
+                        .w(px(theme.borders.hairline))
+                        .bg(look.accent),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .left(relative(stop.position as f32))
+                        .ml(px(-ring_size / 2.0))
+                        .top(px((preview_height - ring_size) / 2.0))
+                        .size(px(ring_size))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(theme.radii.pill))
+                        .when(ringed, |el| el.bg(look.ring))
+                        .child(
+                            div()
+                                .flex_none()
+                                .size(px(handle_size))
+                                .rounded(px(theme.radii.pill))
+                                .bg(look.handle_fill)
+                                .border(px(theme.borders.hairline))
+                                .border_color(look.accent)
+                                .when(!ringed, |el| el.shadow(vec![box_shadow(look.shadow)])),
+                        ),
+                );
+        }
+        div()
+            .id("mkit-gradient-editor")
+            .key_context(KEY_CONTEXT)
+            .track_focus(&focus)
+            .flex()
+            .flex_col()
+            .gap(px(theme.spacing.small))
+            .p(px(theme.spacing.medium))
+            .rounded(px(theme.radii.large))
+            .border(px(theme.borders.hairline))
+            .border_color(look.line)
+            .bg(theme.colors.background)
+            .shadow(vec![box_shadow(look.shadow)])
+            .text_color(look.text)
+            .role(gpui_pre::accesskit::Role::Group)
+            .aria_label(self.label.clone())
+            .aria_description("Gradient preview with editable color stops. Select a stop, adjust its position and color, add or remove stops.")
+            .on_action(cx.listener(Self::on_previous))
+            .on_action(cx.listener(Self::on_next))
+            .on_action(cx.listener(Self::on_left))
+            .on_action(cx.listener(Self::on_right))
+            .on_action(cx.listener(Self::on_fine_left))
+            .on_action(cx.listener(Self::on_fine_right))
+            .on_action(cx.listener(Self::on_first))
+            .on_action(cx.listener(Self::on_last))
+            .on_action(cx.listener(Self::on_delete))
+            .on_action(cx.listener(Self::on_red_up))
+            .on_action(cx.listener(Self::on_red_down))
+            .on_action(cx.listener(Self::on_green_up))
+            .on_action(cx.listener(Self::on_green_down))
+            .on_action(cx.listener(Self::on_blue_up))
+            .on_action(cx.listener(Self::on_blue_down))
+            .child(preview)
+            .child(
+                div()
+                    .id("gradient-stop-list")
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(theme.spacing.xsmall))
+                    .children(handles),
+            )
+            .child(controls)
+            .child(div().flex().gap(px(theme.spacing.small)).child(add).child(remove))
     }
 }
 

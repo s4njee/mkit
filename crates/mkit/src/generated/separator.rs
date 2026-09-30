@@ -1,11 +1,22 @@
 //! Themed visual or semantic separator.
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{App, IntoElement, RenderOnce, Window, div, prelude::*, px};
-use mkit_core::theme::Theme;
+use gpui_pre::{App, IntoElement, RenderOnce, Rgba, Window, div, prelude::*, px};
+use mkit_core::{contrast::relative_luminance, theme::Theme};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
+
+/// Line colour: shadcn's `--border`. Dark themes use `text` at 10% alpha, the docs-site mapping,
+/// so the rule reads the same over any surface; light themes and high contrast use `border`.
+fn line_color(t: &Theme) -> Rgba {
+    let c = t.colors;
+    if t.name != "high-contrast" && relative_luminance(c.background) < 0.5 {
+        c.text.opacity(0.1)
+    } else {
+        c.border
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Orientation {
@@ -70,8 +81,9 @@ impl RenderOnce for Separator {
                     })
                     .when_some(self.label, |el, label| el.aria_label(label))
             })
+            .flex_none()
             .when(horizontal, |el| el.w_full().h(px(theme.borders.hairline)))
             .when(!horizontal, |el| el.h_full().w(px(theme.borders.hairline)))
-            .bg(theme.colors.border)
+            .bg(line_color(&theme))
     }
 }

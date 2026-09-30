@@ -4,40 +4,180 @@ extern crate gpui_pre as gpui;
 #[cfg(feature = "mkit-mirror")]
 use crate::text_field::{InputChanged as TextInputChanged, TextField};
 use gpui_pre::{
-    Context, Entity, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, KeyDownEvent,
-    Render, Window, actions, div, prelude::*, px,
+    Context, Entity, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    KeyDownEvent, PathBuilder, Render, Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
-    theme::Theme,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
 };
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_text_field::{InputChanged as TextInputChanged, TextField};
 use std::rc::Rc;
 
-fn active_suggestion_colors(theme: Theme) -> (gpui_pre::Rgba, gpui_pre::Rgba) {
-    // Match DropdownMenu's muted active treatment for shadcn themes. Themes
-    // designed for stronger contrast continue to use their semantic accent.
-    let weight = match theme.name {
-        "shadcn-light" => 0.04,
-        "shadcn-dark" => 0.12,
-        _ => return (theme.colors.accent, theme.colors.accent_text),
-    };
-    let text = theme.colors.text;
-    // The option popup sits on elevated_surface, so derive from that token to
-    // preserve visible contrast against the actual row surface in dark mode.
-    let background = theme.colors.elevated_surface;
-    let mix = |foreground: f32, base: f32| foreground * weight + base * (1.0 - weight);
-    (
-        gpui_pre::Rgba {
-            r: mix(text.r, background.r),
-            g: mix(text.g, background.g),
-            b: mix(text.b, background.b),
-            a: 1.0,
-        },
-        text,
-    )
+/// Resolved container, chip, and suggestion colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// Container fill; the same colour TextField fills the embedded editor with.
+    fill: Rgba,
+    border: Rgba,
+    /// `shadows.small` with its colour adjusted for the state; transparent in high contrast.
+    shadow: ShadowToken,
+    focus: Rgba,
+    ring: Rgba,
+    invalid_border: Rgba,
+    /// Ring drawn around an invalid container whether or not it is focused; `None` in high
+    /// contrast, where invalid is shown by the border and focus keeps its own ring.
+    invalid_ring: Option<Rgba>,
+    chip_bg: Rgba,
+    chip_border: Rgba,
+    chip_text: Rgba,
+    selected_bg: Rgba,
+    selected_text: Rgba,
+    danger: Rgba,
+    popup_bg: Rgba,
+    popup_border: Rgba,
+    text: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    /// Pointer-hover fill for enabled suggestion rows; high contrast keeps rows unchanged.
+    hover_bg: Option<Rgba>,
+    disabled_option: Rgba,
 }
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+/// GPUI element opacity dims each painted part separately, so it is not used.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    let transparent = c.background.opacity(0.);
+    if t.name == "high-contrast" {
+        let (border, chip_text, danger) = if disabled {
+            (c.disabled, c.disabled, c.disabled)
+        } else {
+            (c.border, c.text, c.danger)
+        };
+        return Look {
+            high_contrast: true,
+            fill: c.background,
+            border,
+            shadow: t.shadows.none,
+            focus: c.focus,
+            ring: c.focus,
+            invalid_border: danger,
+            invalid_ring: None,
+            chip_bg: c.background,
+            chip_border: border,
+            chip_text,
+            selected_bg: c.accent,
+            selected_text: c.accent_text,
+            danger,
+            popup_bg: c.background,
+            popup_border: c.border,
+            text: c.text,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            hover_bg: None,
+            disabled_option: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "input": the light border, or text at 15% in dark themes.
+    let input = if dark { c.text.opacity(0.15) } else { c.border };
+    // TextField's fill (shadcn `dark:bg-input/30`), so the embedded editor blends in.
+    let fill = if dark { mix(c.text, c.background, 0.15 * 0.3) } else { c.background };
+    // shadcn "secondary"/"accent"/"muted": text mixed into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    let look = Look {
+        high_contrast: false,
+        fill,
+        border: composite(input, fill),
+        shadow: t.shadows.small,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+        invalid_border: c.danger,
+        invalid_ring: Some(c.danger.opacity(if dark { 0.4 } else { 0.2 })),
+        chip_bg: muted,
+        chip_border: transparent,
+        chip_text: c.text,
+        selected_bg: c.accent,
+        selected_text: c.accent_text,
+        danger: c.danger,
+        popup_bg: c.surface,
+        popup_border: if dark { c.text.opacity(0.1) } else { c.border },
+        text: c.text,
+        active_bg: muted,
+        active_text: c.text,
+        hover_bg: Some(muted),
+        disabled_option: dim(c.text, c.surface),
+    };
+    if !disabled {
+        return look;
+    }
+    let bg = c.background;
+    Look {
+        fill: dim(look.fill, bg),
+        border: dim(look.border, bg),
+        shadow: ShadowToken { color: look.shadow.color.opacity(0.5), ..look.shadow },
+        chip_bg: dim(look.chip_bg, bg),
+        chip_text: dim(look.chip_text, bg),
+        danger: dim(look.danger, bg),
+        invalid_border: dim(look.invalid_border, bg),
+        ..look
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the container.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `x`.
+const X: &[&[(f32, f32)]] = &[&[(18., 6.), (6., 18.)], &[(6., 6.), (18., 18.)]];
 
 pub const KEY_CONTEXT: &str = "TagInput";
 actions!(
@@ -354,7 +494,7 @@ impl Focusable for TagInput {
 }
 
 impl Render for TagInput {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
         if self.input.is_none() {
             let label = self.label.clone();
@@ -382,6 +522,9 @@ impl Render for TagInput {
         let disabled = self.disabled;
         let invalid = self.tags.iter().any(|tag| tag.validation_message.is_some())
             || self.rejected_message.is_some();
+        let look = look(&theme, disabled);
+        // `:focus-within`: the container shows the ring while the embedded editor owns focus.
+        let focused = !disabled && input.read(cx).focus_handle(cx).is_focused(window);
         let mut root = div()
             .id(("tag-input", entity.entity_id()))
             .debug_selector(|| "tag-input".into())
@@ -433,7 +576,7 @@ impl Render for TagInput {
             .w_full()
             .flex()
             .flex_col()
-            .gap(px(theme.spacing.xsmall));
+            .gap(px(theme.spacing.small));
         let chips = self
             .tags
             .iter()
@@ -441,33 +584,35 @@ impl Render for TagInput {
             .map(|(index, tag)| {
                 let value = tag.value.clone();
                 let remove = entity.clone();
+                let is_selected = selected == Some(index);
+                let (chip_bg, chip_text) = if is_selected {
+                    (look.selected_bg, look.selected_text)
+                } else {
+                    (look.chip_bg, look.chip_text)
+                };
                 let mut chip = div()
                     .id(("tag-chip", index))
                     .role(gpui_pre::accesskit::Role::ListItem)
                     .aria_label(value.clone())
-                    .aria_selected(selected == Some(index))
+                    .aria_selected(is_selected)
+                    .h(px(theme.spacing.xlarge))
                     .px(px(theme.spacing.small))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
+                    .rounded(px(theme.radii.medium))
                     .border(px(theme.borders.regular))
                     .border_color(if tag.validation_message.is_some() {
-                        theme.colors.danger
-                    } else if selected == Some(index) {
-                        theme.colors.focus
+                        look.invalid_border
+                    } else if is_selected && look.high_contrast {
+                        look.selected_bg
                     } else {
-                        theme.colors.border
+                        look.chip_border
                     })
-                    .bg(if selected == Some(index) {
-                        theme.colors.accent
-                    } else {
-                        theme.colors.surface
-                    })
-                    .text_color(if selected == Some(index) {
-                        theme.colors.accent_text
-                    } else {
-                        theme.colors.text
-                    })
+                    .bg(chip_bg)
+                    .text_color(chip_text)
+                    .text_size(px(theme.typography.caption))
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
                     .flex()
+                    .flex_none()
                     .items_center()
                     .gap(px(theme.spacing.xsmall))
                     .child(tag.value.clone());
@@ -493,8 +638,9 @@ impl Render for TagInput {
                             .role(gpui_pre::accesskit::Role::Button)
                             .aria_label(format!("Remove {value}"))
                             .tab_stop(true)
-                            .text_color(theme.colors.text_muted)
-                            .child("×")
+                            .flex()
+                            .items_center()
+                            .child(icon(theme.typography.caption, X, chip_text))
                             .on_click(move |_, window, cx| {
                                 cx.stop_propagation();
                                 remove.update(cx, |this, cx| {
@@ -508,29 +654,70 @@ impl Render for TagInput {
                 if let Some(message) = &tag.validation_message {
                     chip = chip.child(
                         div()
-                            .text_color(theme.colors.danger)
-                            .text_size(px(theme.typography.caption))
+                            .text_color(look.danger)
+                            .font_weight(FontWeight::NORMAL)
                             .child(message.clone()),
                     );
                 }
                 chip
             })
             .collect::<Vec<_>>();
+        // The ring replaces the resting shadow, as in CSS; see the spec's "Theme tokens used".
+        let ring = match look.invalid_ring {
+            Some(ring) if invalid => Some(ring),
+            _ => focused.then_some(look.ring),
+        };
+        let shadows = match ring {
+            Some(color) => vec![focus_ring(color)],
+            None if look.shadow.color.a > 0. => vec![box_shadow(look.shadow)],
+            None => Vec::new(),
+        };
+        // The editor is TextField clipped to its inner band: `radii.medium` is cut from every
+        // side, which hides the field's own border, corners, shadow, and ring so the container
+        // draws them instead; see the spec's geometry notes.
+        let clip = theme.radii.medium;
+        let editor = div()
+            .relative()
+            .flex_1()
+            .min_w(px(theme.controls.large))
+            .h(px(theme.controls.medium - 2. * clip))
+            .overflow_hidden()
+            .child(div().absolute().top(px(-clip)).left(px(-clip)).right(px(-clip)).child(input));
         root = root.child(
             div()
-                .id("tag-list")
-                .role(gpui_pre::accesskit::Role::List)
+                .w_full()
+                .min_h(px(theme.controls.medium))
+                .p(px(theme.spacing.xsmall))
                 .flex()
                 .flex_wrap()
                 .items_center()
                 .gap(px(theme.spacing.xsmall))
-                .children(chips),
+                .border(px(theme.borders.regular))
+                .border_color(if invalid {
+                    look.invalid_border
+                } else if focused {
+                    look.focus
+                } else {
+                    look.border
+                })
+                .rounded(px(theme.radii.medium))
+                .bg(look.fill)
+                .shadow(shadows)
+                .child(
+                    div()
+                        .id("tag-list")
+                        .role(gpui_pre::accesskit::Role::List)
+                        .flex()
+                        .flex_wrap()
+                        .items_center()
+                        .gap(px(theme.spacing.xsmall))
+                        .children(chips),
+                )
+                .child(editor),
         );
-        root = root.child(div().w_full().child(input).when(disabled, |el| el.opacity(0.6)));
         let suggestions = self.filtered_suggestions();
         if !suggestions.is_empty() && !disabled {
             let active = self.active_suggestion;
-            let (active_bg, active_fg) = active_suggestion_colors(theme);
             let rows = suggestions
                 .into_iter()
                 .enumerate()
@@ -538,27 +725,29 @@ impl Render for TagInput {
                     let ent = entity.clone();
                     let value = suggestion.value.clone();
                     let suggestion_disabled = suggestion.disabled;
+                    let is_active = active == Some(index);
+                    let hover_bg = look.hover_bg.filter(|_| !suggestion_disabled && !is_active);
                     let mut option = div()
                         .id(("tag-suggestion", index))
                         .debug_selector(move || format!("tag-suggestion-{index}"))
                         .role(gpui_pre::accesskit::Role::ListBoxOption)
                         .aria_label(value.clone())
-                        .aria_selected(active == Some(index))
-                        .when(active == Some(index), |el| el.aria_active_descendant())
-                        .h(px(theme.controls.medium))
+                        .aria_selected(is_active)
+                        .when(is_active, |el| el.aria_active_descendant())
+                        .h(px(theme.controls.small))
+                        .w_full()
                         .px(px(theme.spacing.small))
+                        .flex()
+                        .items_center()
                         .rounded(px(theme.radii.small))
-                        .bg(if active == Some(index) {
-                            active_bg
-                        } else {
-                            theme.colors.elevated_surface
-                        })
+                        .when(is_active, |el| el.bg(look.active_bg))
+                        .when_some(hover_bg, |el, bg| el.hover(move |s| s.bg(bg)))
                         .text_color(if suggestion.disabled {
-                            theme.colors.disabled
-                        } else if active == Some(index) {
-                            active_fg
+                            look.disabled_option
+                        } else if is_active {
+                            look.active_text
                         } else {
-                            theme.colors.text
+                            look.text
                         })
                         .child(value.clone());
                     if suggestion_disabled {
@@ -583,12 +772,17 @@ impl Render for TagInput {
                     .id("tag-suggestions")
                     .role(gpui_pre::accesskit::Role::ListBox)
                     .aria_label(format!("{} suggestions", self.label))
+                    .flex()
+                    .flex_col()
                     .p(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
+                    .rounded(px(theme.radii.medium))
                     .border(px(theme.borders.regular))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
-                    .gap(px(theme.spacing.xsmall))
+                    .border_color(look.popup_border)
+                    .bg(look.popup_bg)
+                    .when(!look.high_contrast, |el| {
+                        el.shadow(vec![box_shadow(theme.shadows.medium)])
+                    })
+                    .text_size(px(theme.typography.body))
                     .children(rows),
             );
         }

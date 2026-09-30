@@ -36,7 +36,9 @@ The root has the `group` role and an optional accessible name from `label`. Call
 
 ## Theme
 
-`Theme.spacing.xsmall/small/medium/large/xxlarge`, `Theme.typography.body/caption`, and `Theme.colors.text/text_muted/danger`. No component colors or fixed sizes are hard-coded.
+`Theme.spacing.xsmall/small/medium/large/xlarge/xxlarge`, `Theme.controls.medium`, `Theme.typography.body/caption`, and `Theme.colors.text/text_muted/danger`. No component colors or fixed sizes are hard-coded.
+
+Labels are 14px medium weight and line up with the centre of a default 36px control. Fields sit 24px apart (16px when compact), labels are 16px from their controls (12px compact), and descriptions and errors sit 8px below the control (4px compact) in `caption` text. The spec records the exact token mapping.
 
 ## Verification and limits
 

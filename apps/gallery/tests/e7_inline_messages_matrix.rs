@@ -1,4 +1,7 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, FontWeight, IntoElement, PathBuilder, Render, Window, canvas, div, point,
+    prelude::*, px, size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -10,6 +13,105 @@ use serde_json::Value;
 use std::{fs, path::PathBuf};
 
 const SIZE: (f32, f32) = (500.0, 280.0);
+
+/// One step of a Lucide icon path on a 24-unit grid.
+#[derive(Clone, Copy)]
+enum Seg {
+    Move(f32, f32),
+    Line(f32, f32),
+    /// SVG arc with a circular radius, large-arc and sweep flags, ending at the point.
+    Arc(f32, bool, bool, f32, f32),
+}
+
+/// Lucide `info`.
+const INFO: &[Seg] = &[
+    Seg::Move(22., 12.),
+    Seg::Arc(10., false, true, 2., 12.),
+    Seg::Arc(10., false, true, 22., 12.),
+    Seg::Move(12., 17.),
+    Seg::Line(12., 11.),
+    Seg::Move(12., 9.),
+    Seg::Line(12., 7.),
+];
+/// Lucide `circle-check`.
+const CIRCLE_CHECK: &[Seg] = &[
+    Seg::Move(22., 12.),
+    Seg::Arc(10., false, true, 2., 12.),
+    Seg::Arc(10., false, true, 22., 12.),
+    Seg::Move(9., 12.),
+    Seg::Line(11., 14.),
+    Seg::Line(15., 10.),
+];
+/// Lucide `triangle-alert`.
+const TRIANGLE_ALERT: &[Seg] = &[
+    Seg::Move(21.73, 18.),
+    Seg::Line(13.73, 4.),
+    Seg::Arc(2., false, false, 10.25, 4.),
+    Seg::Line(2.25, 18.),
+    Seg::Arc(2., false, false, 4., 21.),
+    Seg::Line(20., 21.),
+    Seg::Arc(2., false, false, 21.73, 18.),
+    Seg::Move(12., 8.),
+    Seg::Line(12., 14.),
+    Seg::Move(12., 16.),
+    Seg::Line(12., 18.),
+];
+/// Lucide `circle-alert`.
+const CIRCLE_ALERT: &[Seg] = &[
+    Seg::Move(22., 12.),
+    Seg::Arc(10., false, true, 2., 12.),
+    Seg::Arc(10., false, true, 22., 12.),
+    Seg::Move(12., 7.),
+    Seg::Line(12., 13.),
+    Seg::Move(12., 15.),
+    Seg::Line(12., 17.),
+];
+/// Lucide `folder`.
+const FOLDER: &[Seg] = &[
+    Seg::Move(20., 20.),
+    Seg::Arc(2., false, false, 22., 18.),
+    Seg::Line(22., 8.),
+    Seg::Arc(2., false, false, 20., 6.),
+    Seg::Line(12.1, 6.),
+    Seg::Arc(2., false, true, 10.41, 5.1),
+    Seg::Line(9.6, 3.9),
+    Seg::Arc(2., false, false, 7.93, 3.),
+    Seg::Line(4., 3.),
+    Seg::Arc(2., false, false, 2., 5.),
+    Seg::Line(2., 18.),
+    Seg::Arc(2., false, false, 4., 20.),
+    Seg::Line(20., 20.),
+];
+
+/// App-supplied Lucide icon drawn as a vector stroke. GPUI strokes have butt caps, so the short
+/// strokes and dots above are lengthened by one unit at each open end to match Lucide's round caps.
+/// The icon is drawn as a vector stroke in the inherited text colour, so the
+/// component's icon slot decides its colour.
+fn icon(size: f32, segs: &'static [Seg]) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let color = window.text_style().color;
+            let unit = bounds.size.width / 24.0;
+            let at = |x: f32, y: f32| bounds.origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for seg in segs {
+                match *seg {
+                    Seg::Move(x, y) => path.move_to(at(x, y)),
+                    Seg::Line(x, y) => path.line_to(at(x, y)),
+                    Seg::Arc(r, large, sweep, x, y) => {
+                        path.arc_to(point(unit * r, unit * r), px(0.), large, sweep, at(x, y))
+                    }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
 
 struct InlineMessagesFixture {
     component: &'static str,
@@ -27,14 +129,16 @@ impl Render for InlineMessagesFixture {
                     .get_or_insert_with(|| {
                         cx.new(|_| {
                             let severity = match state {
-                                "info" | "dismissed" => Severity::Info,
+                                "info" | "dismissed" | "focused" => Severity::Info,
                                 "success" => Severity::Success,
                                 "warning" => Severity::Warning,
                                 "error" => Severity::Error,
                                 other => panic!("unmapped InlineAlert state: {other}"),
                             };
                             let message = match state {
-                                "info" => "Review the import settings before continuing.",
+                                "info" | "focused" => {
+                                    "Review the import settings before continuing."
+                                }
                                 "success" => "Your changes are saved.",
                                 "warning" => "Review the pending changes before publishing.",
                                 "error" => "We could not save your changes. Try again.",
@@ -46,13 +150,23 @@ impl Render for InlineMessagesFixture {
                             } else {
                                 InlineAlert::new(severity, message)
                                     .title(match state {
-                                        "info" => "Information",
+                                        "info" | "focused" => "Information",
                                         "success" => "Saved",
                                         "warning" => "Review required",
                                         "error" => "Could not save",
                                         _ => unreachable!(),
                                     })
-                                    .icon(|| div().child("●"))
+                                    .icon(move || {
+                                        icon(
+                                            16.0,
+                                            match severity {
+                                                Severity::Info => INFO,
+                                                Severity::Success => CIRCLE_CHECK,
+                                                Severity::Warning => TRIANGLE_ALERT,
+                                                Severity::Error => CIRCLE_ALERT,
+                                            },
+                                        )
+                                    })
                                     .action("View details")
                                     .dismissible(true)
                             }
@@ -67,10 +181,10 @@ impl Render for InlineMessagesFixture {
                         .description("Projects you create will appear here."),
                     "illustrated" => EmptyState::new("No projects")
                         .description("Projects you create will appear here.")
-                        .icon(div().text_size(px(32.0)).child("◇")),
+                        .icon(icon(theme.spacing.xlarge, FOLDER)),
                     "actionable" => EmptyState::new("No projects")
                         .description("Create a project to get started.")
-                        .icon(div().text_size(px(32.0)).child("◇"))
+                        .icon(icon(theme.spacing.xlarge, FOLDER))
                         .action(
                             div()
                                 .id("empty-state-create-action")
@@ -80,9 +194,11 @@ impl Render for InlineMessagesFixture {
                                 .px(px(theme.spacing.medium))
                                 .flex()
                                 .items_center()
-                                .rounded(px(theme.radii.small))
+                                .rounded(px(theme.radii.medium))
                                 .bg(theme.colors.accent)
                                 .text_color(theme.colors.accent_text)
+                                .text_size(px(theme.typography.body))
+                                .font_weight(FontWeight::MEDIUM)
                                 .child("Create project"),
                         ),
                     other => panic!("unmapped EmptyState state: {other}"),
@@ -127,6 +243,14 @@ fn capture(
             cx.bind_keys(inline_alert::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        // A keyboard Tab (so focus is keyboard-visible) moves focus to the first tab stop, the
+        // action button, the same way the Link focused fixture does it.
+        session.update(|_, window, cx| {
+            window.dispatch_keystroke(gpui_pre::Keystroke::parse("tab").expect("Tab key"), cx);
+            window.focus_next(cx);
+        })?;
+    }
     session.capture()
 }
 
@@ -163,7 +287,7 @@ fn run_component(component: &str, manifest: &Value) -> Result<(), ScreenshotErro
     };
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
     let states: &[&str] = if component == "inline-alert" {
-        &["info", "success", "warning", "error", "dismissed"]
+        &["info", "success", "warning", "error", "dismissed", "focused"]
     } else {
         &["basic", "illustrated", "actionable"]
     };
@@ -177,6 +301,7 @@ fn run_component(component: &str, manifest: &Value) -> Result<(), ScreenshotErro
             "warning" => "warning",
             "error" => "error",
             "dismissed" => "dismissed",
+            "focused" => "focused",
             "basic" => "basic",
             "illustrated" => "illustrated",
             "actionable" => "actionable",

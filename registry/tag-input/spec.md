@@ -26,6 +26,9 @@ states:
   - id: disabled
     description: Tags and validation are readable but the editor and removal controls are disabled.
     fixture: disabled_fixture
+  - id: focused
+    description: Tags are present and the empty editor owns keyboard focus; the container shows the focus border and ring.
+    fixture: focused_fixture
 keys:
   - key: Enter
     modifiers: []
@@ -129,7 +132,7 @@ accessibility:
       when: suggestions
 controlled: Uncontrolled mode applies accepted tag additions/removals immediately. Controlled mode emits a complete proposed tag list in TagsChanged and keeps owner-provided tags until set_tags supplies the accepted or corrected list. Programmatic updates do not emit events. TagRejected reports an empty, duplicate, or over-limit candidate without changing the list. The validator attaches per-tag validation text to accepted tags, including invalid values. TagQueryChanged reports editor text changes. Existing TextField supplies native editing, selection, clipboard, and IME behavior; this is a documented draft dependency exception pending maintainer approval. Suggestions follow Combobox's filtered listbox and enabled active-option conventions, keeping disabled options visible but skipping them during keyboard navigation and pointer activation. The single-value Combobox is not embedded because it owns a single editable query and committing its option replaces that value, while TagInput must append to a collection and preserve one shared native editor; direct composition would create nested editors and conflicting keyboard ownership.
 events: [TagsChanged, TagRejected, TagQueryChanged]
-theme_tokens: [background, surface, elevated_surface, text, text_muted, border, accent, accent_text, focus, danger, disabled, spacing.xsmall, spacing.small, spacing.medium, spacing.large, radii.small, radii.medium, borders.hairline, borders.regular, borders.strong, typography.body, typography.caption, controls.small, controls.medium]
+theme_tokens: [background, surface, text, text_muted, border, accent, accent_text, focus, danger, disabled, shadows.none, shadows.small, shadows.medium, spacing.xsmall, spacing.small, spacing.xlarge, radii.small, radii.medium, borders.regular, typography.body, typography.caption, controls.small, controls.medium, controls.large]
 open_questions: [Review public API and child dependency exception; validate selected-tag and per-tag error semantics with platform accessibility snapshots; confirm whether suggestions require an explicit popup-dismissal action beyond Escape and Tab.]
 ---
 
@@ -141,11 +144,11 @@ Collect a set of short labels, recipients, or filters through a text editor that
 
 ## Anatomy
 
-A named group contains a wrapping list of tag chips above a labelled TextField editor. Each tag can include an optional validation message and a remove control. An optional filtered suggestion listbox appears for non-empty queries. A maximum count is optional. The editor retains the shared TextField border and sizing; tag chips wrap independently above it.
+A named group contains one bordered input container holding a wrapping list of tag chips followed by a labelled TextField editor on the same line, which wraps to a new line when fewer than `controls.large` (40px, the web preview's `min-width: 40px`) remain. Each tag can include an optional validation message and a remove control. An optional filtered suggestion listbox appears below the container for non-empty queries. A maximum count is optional.
 
 ## States
 
-`empty`, `tags`, `query`, `selected_tag`, `validation_error`, `max_reached`, `suggestions`, and `disabled`. Validation is per tag and may also report a rejected draft candidate through a polite status message. Max reached keeps existing tags removable but rejects further additions. Disabled state prevents editing, selection, and removals while retaining readable tags and validation.
+`empty`, `tags`, `query`, `selected_tag`, `validation_error`, `max_reached`, `suggestions`, `disabled`, and `focused` (the editor owns keyboard focus). Validation is per tag and may also report a rejected draft candidate through a polite status message. Max reached keeps existing tags removable but rejects further additions. Disabled state prevents editing, selection, and removals while retaining readable tags and validation.
 
 ## Props and events
 
@@ -167,7 +170,67 @@ The root is a named group containing a list of named tag list items, a labelled 
 
 ## Theme tokens used
 
-Read colors, spacing, borders, radii, typography, and control sizes from mkit-core Global `Theme`. Tag chips use surface/elevated surface, semantic text, border, and accent selection tokens. The active suggestion uses a muted text/elevated-surface-derived hover fill for shadcn light/dark and the theme's semantic accent in high-contrast themes; its row is inset and rounded within the elevated-surface popup. Validation uses danger tokens. No component colors are hard-coded; the shared TextField controls editor sizing and focus rendering.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts` key `tag-input`,
+styled by `.e7-tags` in `site/src/demos/e7_expansion.css` and `.ui-badge--secondary`,
+`.ui-popover`, and `.ui-menu*` in `site/src/ui/ui.css`, with the shadcn token mapping in
+`site/src/ui/tokens.ts`). It is resolved from the installed `Theme` in three variants, the same way
+Button, Select, and TextField do it. `high-contrast` is selected by theme name; every other theme is
+dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light.
+Derived colours use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no
+mkit-core API or tokens are added. "Muted" below is shadcn's `secondary`/`accent`/`muted`: `text`
+mixed 4% (light) or 12% (dark) into `background`. "Input" is shadcn's `--input`: `border` in light
+themes and `text` at 15% in dark themes.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Container fill | `background` | `text` at 4.5% over `background` (TextField's fill) | `background` |
+| Container border | input (`border`) | input (`text` at 15%) | `border` |
+| Container shadow | `shadows.small` (shadcn `shadow-xs`) | `shadows.small` | none |
+| Editor focused (`:focus-within`) | container border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Invalid (a tag has a validation message, or a candidate was rejected) | container border `danger` plus a 3px ring of `danger` at 20% | same with the ring at 40% | border `danger`; focus still adds the opaque `focus` ring |
+| Tag chip (secondary badge) | muted fill, `text`, transparent border | same | `background` fill, `text`, `border` border |
+| Selected chip (default badge) | `accent` fill, `accent_text` | same | `accent` fill and border, `accent_text` |
+| Invalid chip | border `danger`; message `danger` | same | same |
+| Chip remove icon | the chip's text colour (`currentColor`) | same | same |
+| Suggestion popup ("popover") | `surface` fill, `border` border, `shadows.medium` | `surface` fill, `text` at 10% border, `shadows.medium` | `background` fill, `border` border, no shadow |
+| Active suggestion | muted fill, `text` | same | `accent` fill, `accent_text` |
+| Disabled suggestion | `text` 50% over the popup fill | same | `disabled` |
+| Disabled control | container fill, border, chip fill, chip text, and danger colours mixed 50% over `background`; shadow alpha halved | same | `background` fill, `disabled` border, chip text, chip border, and messages |
+
+- **Container** matches `.e7-tags`: radius `radii.medium`, a `borders.regular` border, and
+  `spacing.xsmall` (4px) padding and gaps, the nearest token to the web preview's 4–6px padding
+  and 5px gap. Its minimum height is `controls.medium` (36px, the field height shared with
+  TextField and Select) rather than the web preview's 38px. The ring replaces the resting shadow,
+  as in CSS; GPUI fills the inside of drop shadows, so the container fill is always opaque. The 3px
+  focus ring is the shadcn/ui ring width, a fixed component value.
+- **Editor.** TextField always draws its own border, shadow, and focus ring, and its look is shared
+  with other components, so TagInput does not change it. Instead the editor slot is
+  `controls.medium - 2 × radii.medium` tall (24px in the shadcn themes, the web preview's inline
+  input height) and clips a TextField that is offset by `radii.medium` on the top, left, and right.
+  That cuts the field's border, rounded corners, shadow, and ring away, so only its fill, text,
+  caret, and selection show inside the container; the container fill equals TextField's fill in
+  every state so the two read as one surface. Text, pointer hit testing, and IME bounds still use
+  TextField's own geometry. The visible text starts `spacing.medium - radii.medium` (6px) inside
+  the slot. The slot is `flex_1` with a `controls.large` (40px) minimum width.
+- **Chips** match `.ui-badge.ui-badge--secondary` inside `.e7-tags`: `spacing.xlarge` (24px) tall,
+  `spacing.small` (8px, `px-2`) horizontal padding, radius `radii.medium`, a `borders.regular`
+  border that is transparent unless the chip is invalid (or selected in high contrast),
+  `typography.caption` (12px) medium-weight text, and a `spacing.xsmall` (4px) gap. The remove
+  control is Lucide `x` (18,6 → 6,18 and 6,6 → 18,18 on a 24-unit grid, 2-unit stroke) drawn as a
+  vector path in a `typography.caption` (12px, the badge's `svg` size) square, with butt caps
+  because GPUI's path builder does not expose cap styles. The web preview has no selected-chip
+  state; the selected chip uses the default (primary) badge colours so the virtual selection is
+  unambiguous. The web preview's destructive hover on the remove icon is not drawn, because the
+  icon colour is fixed when the vector path is built.
+- **Suggestions** match `.ui-popover.ui-menu` and Select's popup: radius `radii.medium`, a
+  `borders.regular` border, `spacing.xsmall` (4px, `p-1`) padding, and rows `controls.small`
+  (32px) tall with `spacing.small` (8px) horizontal padding and radius `radii.small`, text
+  `typography.body`. Pointer hover gives enabled rows the muted fill (not in high contrast). The
+  popup sits `spacing.small` (8px, the web preview's column gap) below the container; the rejected
+  and maximum status messages use the same gap.
+- **Disabled** matches the web preview's `opacity: .5` as one layer, the way TextField does it:
+  each colour is composited over `background` and mixed 50% with it; GPUI element opacity is not
+  used because it dims each painted part separately. High contrast keeps solid colours.
 
 ## WAI-ARIA pattern reference
 

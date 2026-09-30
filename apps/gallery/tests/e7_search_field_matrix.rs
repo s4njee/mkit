@@ -1,4 +1,6 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Render, Window, div, prelude::*, px, size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -33,6 +35,7 @@ impl Render for SearchFieldFixture {
                     .placeholder("Search files…")
                     .default_query("archived")
                     .disabled(true),
+                "focused" => SearchField::new("Search files").placeholder("Search files…"),
                 other => panic!("unmapped SearchField state: {other}"),
             })
         });
@@ -67,6 +70,14 @@ fn capture(
             cx.bind_keys(search_field::default_key_bindings());
         },
     )?;
+    if state == "focused" {
+        session.update(|root, window, cx| {
+            let search = root.read(cx).search.as_ref().expect("SearchField initialized").clone();
+            let focus = search.read(cx).focus_handle(cx);
+            focus.focus(window, cx);
+            assert!(focus.is_focused(window), "the focused screenshot must focus the input");
+        })?;
+    }
     session.capture()
 }
 
@@ -97,7 +108,7 @@ fn run() -> Result<(), ScreenshotError> {
         serde_json::from_str(include_str!("../../../registry/search-field/tests/conformance.json"))
             .expect("SearchField manifest");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    let states = ["empty", "query", "results", "disabled"];
+    let states = ["empty", "query", "results", "disabled", "focused"];
     assert_eq!(cases.len(), states.len() * 3 * 2, "state/theme/scale matrix is complete");
     for case in cases {
         let state = case["state"].as_str().expect("state");
@@ -107,6 +118,7 @@ fn run() -> Result<(), ScreenshotError> {
             "query" => "query",
             "results" => "results",
             "disabled" => "disabled",
+            "focused" => "focused",
             other => panic!("unmapped state: {other}"),
         };
         let theme_value = match case["theme"].as_str().expect("theme") {

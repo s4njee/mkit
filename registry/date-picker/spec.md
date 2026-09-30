@@ -98,8 +98,8 @@ applications supply parse/format behavior so the component does not impose a loc
 
 ## Anatomy
 
-Single picker: labeled text field, calendar disclosure button, inline validation message, and an
-anchored calendar surface. Range picker: two labeled text fields and the same disclosure/calendar
+Single picker: labeled text field with the calendar disclosure button inside its right end, inline
+validation message, and an anchored calendar surface. Range picker: two labeled text fields and the same disclosure/calendar
 surface. In range mode, activating a field selects whether the next calendar choice edits the start
 or end endpoint.
 
@@ -164,9 +164,54 @@ semantics. Closing returns focus to the input; Tab dismissal preserves normal tr
 
 ## Theme tokens used
 
-Field tokens come from TextField. The disclosure and calendar surface use `Theme` surface,
-elevated_surface, text, muted text, border, accent, focus, disabled, danger, spacing, radii, border,
-control, and body typography tokens. No component color is hard-coded.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by
+`.ui-input-wrap`, `.e7-date-trigger` and `.e7-date-pop` in `site/src/demos/e7_expansion.css` and
+`.ui-popover` in `site/src/ui/ui.css`, with the shadcn token mapping in `site/src/ui/tokens.ts`). The
+date inputs are TextFields and keep TextField's look, including its focus ring, invalid ring and
+validation message; the calendar grid is the Calendar component with its own card. The picker adds
+the disclosure button and the popover surface, resolved from the installed `Theme` in three
+variants, the same way Button, Select, TextField and Tabs do it. `high-contrast` is selected by theme
+name; every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) <
+0.5`, otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" below is shadcn's
+`accent`: `text` mixed 4% (light) or 12% (dark) into `background`.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Disclosure fill | the TextField fill (`background`) | the TextField fill (`text` at 4.5% over `background`) | `background` |
+| Disclosure calendar icon | `text_muted` | `text_muted` | `text` |
+| Disclosure hover | muted fill, `text` icon | same | border `accent` |
+| Disclosure keyboard focus | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Disabled disclosure | icon and fill mixed 50% over `background` | same | `disabled` icon |
+| Popover fill ("popover") | `surface` | `surface` | `background` |
+| Popover border | `border` | `text` at 10% over the fill | `border` |
+| Popover shadow | `shadows.medium` (shadcn `shadow-md`) | `shadows.medium` | none |
+| Empty-calendar message | `text_muted` | `text_muted` | `text` |
+
+- **Disclosure.** As in the preview, the disclosure sits inside the right end of the last date
+  input: a `controls.xsmall` (28px, the preview's 28px) square ghost button with radius
+  `radii.small`, inset by half the difference between `controls.medium` and `controls.xsmall` (4px,
+  the preview's `right: 4px`) so it is centred in the 36px input. Its fill is the input fill, so a
+  long value that reaches the button is covered instead of drawn under the icon; it blocks pointer
+  input to the field beneath it. The icon is Lucide `calendar` (a rounded 18×18 rectangle at 3,4
+  with radius 2, a rule at y=10, and two 4-unit pins at x=8 and x=16 on a 24-unit grid, 2-unit
+  stroke) drawn as vector paths in a `spacing.large` (16px) square; there are no icon assets.
+- **Field width.** TextField has no trailing inset, so the input row has a minimum width equal to
+  the Calendar card (seven `controls.medium` columns plus `spacing.small` padding and
+  `borders.regular` border on each side, 270px). The preview uses a 240px column; the calendar width
+  keeps the popover aligned with the inputs and leaves room for typical formatted dates before the
+  disclosure. In range mode the two inputs share the row equally.
+- **Popover.** The calendar surface has radius `radii.medium`, a `borders.regular` border, and
+  `spacing.xsmall` (4px) padding, the nearest token to the preview's 6px, around the Calendar card.
+  It opens `spacing.small` (8px) below the inputs. GPUI paints drop shadows as filled shapes, so the
+  popover fill is opaque. The no-dates message uses `typography.body` with `spacing.medium` (12px)
+  padding.
+- **Focus.** The disclosure's ring follows `:focus-visible`: it shows while the disclosure owns focus
+  and the last input was from the keyboard. The ring width is the shadcn/ui 3px ring, a fixed
+  component value. The keyboard-focused active day in the open calendar is drawn by Calendar.
+- **Disabled.** TextField dims the inputs. The disclosure mixes its colours 50% over `background`
+  instead of GPUI element opacity, which dims each painted part separately; high contrast keeps
+  solid colours.
 
 ## WAI-ARIA pattern reference
 
@@ -185,4 +230,8 @@ native accessibility tree on supported platforms before release.
 Maintainer review is required for the public parser/formatter callback types, range change event
 names, endpoint editing policy, and the direct registry dependencies. GPUI interaction tests and the
 macOS screenshot matrix are implemented; native platform accessibility tree snapshots remain
-pending.
+pending. The disclosure overlays the last input because TextField has no trailing inset; a
+formatted value wider than about 226px reaches the disclosure and is covered by it. A TextField
+trailing-inset builder would remove the minimum width and the overlap but is new public API pending
+maintainer approval. The screenshot matrix has no state for the disclosure's own keyboard focus
+ring; the open states show the Calendar's keyboard-focused active day.

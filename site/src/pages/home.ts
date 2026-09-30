@@ -1,20 +1,41 @@
 import { allCards, everydayCards, kindLabel, proCards, registryCount, statusClass, statusLabel } from '../catalog'
 import { icon } from '../icons'
 import { planUrl, repoUrl, siteHref } from '../links'
+import { demos } from '../demos'
 import { miniPreview } from '../previews'
+import { isLightMode } from '../theme'
+import { installUiTokens } from '../ui/tokens'
 import type { CatalogCard, ComponentKind } from '../types'
 
 const base = import.meta.env.BASE_URL || '/'
 
 let activeFilter: 'all' | ComponentKind = 'all'
 let query = ''
+let demoCleanups: (() => void)[] = []
+
+// The card shows the same live preview as the component page, drawn at half
+// scale and inert. Cards without a demo keep their hand-drawn sketch.
+function cardPreview(card: CatalogCard) {
+  const demo = demos[card.featured]
+  if (!demo) return miniPreview(card.preview)
+  return `<div class="ui card-stage card-stage--${demo.align ?? 'center'}" data-ui-theme="${isLightMode() ? 'light' : 'dark'}" data-demo="${card.featured}">${demo.html}</div>`
+}
+
+function mountCardPreviews(grid: HTMLElement) {
+  demoCleanups.forEach((cleanup) => cleanup())
+  demoCleanups = []
+  grid.querySelectorAll<HTMLElement>('.card-stage').forEach((stage) => {
+    const cleanup = demos[stage.dataset.demo ?? '']?.mount?.(stage)
+    if (cleanup) demoCleanups.push(cleanup)
+  })
+}
 
 function componentCard(card: CatalogCard) {
   const count = card.components.length
   const eyebrow = `${kindLabel(card.kind)}${count > 1 ? ` · ${count} components` : ''}`
   return `<article class="component-card accent-${card.accent}" data-kind="${card.kind}" id="${card.slug}">
     <div class="card-topline"><span class="eyebrow">${eyebrow}</span><span class="status ${statusClass(card.status)}"><i aria-hidden="true"></i>${statusLabel(card.status)}</span></div>
-    <div class="preview-shell" aria-hidden="true" inert>${miniPreview(card.preview)}</div>
+    <div class="preview-shell" aria-hidden="true" inert>${cardPreview(card)}</div>
     <div class="card-copy"><div><h3><a class="card-hit" href="${base}components/${card.slug}">${card.name}</a></h3><p>${card.description}</p></div></div>
     <div class="tag-list" aria-label="Tags">${card.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>
     <div class="card-foot" aria-hidden="true"><span>Read the guide</span>${icon('arrow', 14)}</div>
@@ -34,6 +55,7 @@ function renderCards() {
   grid.innerHTML = visible.length
     ? visible.map(componentCard).join('')
     : `<div class="empty-state"><span>${icon('search', 20)}</span><h3>No components found</h3><p>Try a different component, tag, or category.</p></div>`
+  mountCardPreviews(grid)
   const count = document.querySelector('#result-count')
   if (count) count.textContent = `${visible.length} ${visible.length === 1 ? 'guide' : 'guides'}`
 }
@@ -96,6 +118,7 @@ export function renderHome() {
 }
 
 export function mountHome() {
+  installUiTokens()
   renderCards()
 
   document.querySelectorAll<HTMLButtonElement>('.filter-tab').forEach((button) =>
@@ -136,5 +159,9 @@ export function mountHome() {
     }
   }
   document.addEventListener('keydown', onKeydown)
-  return () => document.removeEventListener('keydown', onKeydown)
+  return () => {
+    document.removeEventListener('keydown', onKeydown)
+    demoCleanups.forEach((cleanup) => cleanup())
+    demoCleanups = []
+  }
 }

@@ -178,10 +178,56 @@ contract.
 
 ## Theme tokens used
 
-Read tokens from `mkit_core::theme::Theme`: surface, text, border, accent, accent text, focus and
-disabled colors; small spacing; medium radii and regular/hairline borders; medium control size; and
-body typography. The toolbar uses the medium control token for action minimum height and item
-spacing. Separators use the hairline border token. No colors or fixed pixel dimensions are allowed.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by
+`.e7-toolbar` in `site/src/demos/e7_expansion.css` and `.ui-btn*` in `site/src/ui/ui.css`, with the
+shadcn token mapping in `site/src/ui/tokens.ts`): a bordered shadcn menubar-style container holding
+small outline buttons, with pressed toggles in the primary fill. The overflow menu reuses
+DropdownMenu's look. Colours are resolved from the installed `Theme` in three variants.
+`high-contrast` is selected by theme name (the convention other registry components use); every
+other theme is treated as dark when `mkit_core::contrast::relative_luminance(colors.background) <
+0.5`, otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" is shadcn's
+`accent`/`muted`: `text` mixed 4% (light) or 12% (dark) into `background`. "Outline" is `border` in
+light and `text` at 10% over `background`, composited opaque, in dark.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Container | `background` fill, outline border, `shadows.small` (shadcn `shadow-xs`) | `background`, `border` |
+| Separator | outline colour | `border` |
+| Button, unpressed toggle | `background`, `text`, outline border, `shadows.small`; hover muted fill | `background`, `text`, `border`; hover border `accent` |
+| Pressed toggle or group choice | `accent` fill and border, `accent_text`, `shadows.small`; hover `accent` 90% over `background` | `accent`, `accent_text`, `accent`; hover border `text` |
+| Overflow trigger while open | muted fill (shadcn `data-[state=open]:bg-accent`), `text`, outline border | `background`, `text`, `accent` border |
+| Disabled control | every resting colour mixed 50% over `background`, no shadow or hover | `background`, `disabled`, `disabled` border (pressed: `disabled` fill, `accent_text`) |
+| Focus (`focus_visible`) | border `focus` plus a 3px ring of `focus` at 50% | border `focus` plus a 3px ring of opaque `focus` |
+| Overflow menu pane | DropdownMenu's pane: `surface`, border `border` (dark: `text` 10% over `surface`), `shadows.medium` | `background`, `border` |
+| Overflow row | `text`; active row muted fill; disabled `text` 50% over the pane | `text`; active `accent`/`accent_text`; disabled `disabled` |
+| Overflow check mark | `text_muted` Lucide `check` vector | `text_muted` (active: `accent_text`), 2px stroke |
+
+- **Container.** Padding `spacing.xsmall` (shadcn `p-1`), radius `radii.medium`, a
+  `borders.regular` border and an opaque `background` fill (GPUI fills the inside of drop shadows).
+  The toolbar hugs its controls, as in the preview, instead of stretching to the parent width.
+  Controls are separated by `spacing.xsmall`; the preview uses 6px and there is no 6px token, so
+  shadcn menubar's `gap-1` (4px) is used. A vertical toolbar stacks its controls and stretches them
+  to the widest one.
+- **Controls.** The preview's `ui-btn--sm`: height `controls.small` (32px), horizontal padding
+  `spacing.medium` (12px), radius `radii.medium`, a `borders.regular` border, `typography.body`
+  (14px) labels at medium weight (500); there is no font-weight token yet. Toggle-group choices use
+  the same control with the same gap.
+- **Separators.** A `borders.hairline` rule `spacing.xlarge` (24px) tall in a horizontal toolbar,
+  or full-width and hairline-thick in a vertical one; decorative, no accessibility node.
+- **Disabled.** The preview uses `opacity: .5`. GPUI applies element opacity to each painted part
+  separately, so each colour is mixed 50% over `background` instead and the shadow is dropped.
+  High contrast keeps solid `disabled` colours.
+- **Focus.** GPUI paints drop shadows as filled shapes that are not clipped to the element's
+  outside, so every control keeps an opaque fill under the ring. The ring replaces the resting
+  shadow, its corners use the control radius, and the 3px width is the shadcn/ui ring width, a
+  fixed component value.
+- **Overflow menu.** DropdownMenu's pane and rows: padding `spacing.xsmall`, radius `radii.medium`,
+  minimum width 4 × `spacing.xxlarge` (128px), rows `controls.small` tall with `spacing.small`
+  padding and gap and `radii.small` corners. Moved toggles reserve a leading `spacing.large` slot
+  and draw a Lucide `check` (20,6 → 9,17 → 4,12) as a vector path when pressed. The menu opens
+  `spacing.xsmall` below the toolbar (shadcn `sideOffset={4}`), aligned to its trailing edge when
+  horizontal and its leading edge when vertical.
 
 ## WAI-ARIA pattern reference
 

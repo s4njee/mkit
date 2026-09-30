@@ -1,4 +1,7 @@
-use gpui_pre::{App, Context, Entity, IntoElement, Render, Window, div, prelude::*, px, size};
+use gpui_pre::{
+    App, Context, Entity, Focusable, IntoElement, Keystroke, Render, Window, div, prelude::*, px,
+    size,
+};
 use image::RgbaImage;
 use mkit::{
     core::theme::{self, HIGH_CONTRAST, SHADCN_DARK, SHADCN_LIGHT, Theme},
@@ -46,6 +49,7 @@ impl Render for GradientFixture {
                 "disabled" => {
                     GradientEditor::new("Fill gradient", Gradient::default()).disabled(true)
                 }
+                "focused" => GradientEditor::new("Fill gradient", three_stops()),
                 other => panic!("unmapped GradientEditor state: {other}"),
             })
         });
@@ -81,6 +85,17 @@ fn capture(
             let editor = root.read(cx).editor.as_ref().expect("editor initialized").clone();
             editor.update(cx, |editor, cx| editor.select_stop(1, cx));
             assert_eq!(editor.read(cx).selected_stop(), 1);
+        })?;
+    }
+    if state == "focused" {
+        // The editor is the fixture's only tab stop. An unbound Tab keystroke records keyboard
+        // input, then focus moves to the editor so its focus-visible look is captured.
+        session.update(|root, window, cx| {
+            let editor = root.read(cx).editor.as_ref().expect("editor initialized").clone();
+            window.dispatch_keystroke(Keystroke::parse("tab").expect("Tab key"), cx);
+            window.focus_next(cx);
+            assert!(editor.read(cx).focus_handle(cx).is_focused(window), "Tab focuses the editor");
+            assert!(window.last_input_was_keyboard());
         })?;
     }
     session.capture()
@@ -130,7 +145,7 @@ fn run() -> Result<(), ScreenshotError> {
     ))
     .expect("GradientEditor manifest JSON");
     let cases = manifest["screenshot_cases"].as_array().expect("screenshot cases");
-    assert_eq!(cases.len(), 30, "five states × three themes × two scales");
+    assert_eq!(cases.len(), 36, "six states × three themes × two scales");
     for case in cases {
         let (state, fixture) = match case["state"].as_str().expect("state") {
             "default" => ("default", "default_fixture"),
@@ -138,6 +153,7 @@ fn run() -> Result<(), ScreenshotError> {
             "many-stops" => ("many-stops", "many_stops_fixture"),
             "controlled" => ("controlled", "controlled_fixture"),
             "disabled" => ("disabled", "disabled_fixture"),
+            "focused" => ("focused", "focused_fixture"),
             other => panic!("unmapped GradientEditor state: {other}"),
         };
         assert_eq!(case["load_fixture"].as_str(), Some(fixture));

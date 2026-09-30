@@ -1,6 +1,6 @@
 use gpui_pre::{
-    App, Context, Entity, Focusable, IntoElement, Render, Window, actions, div, prelude::*, px,
-    size,
+    App, Context, Entity, Focusable, IntoElement, Keystroke, Render, Window, actions, div,
+    prelude::*, px, size,
 };
 use image::RgbaImage;
 use mkit::{
@@ -83,8 +83,21 @@ fn capture(
         Fixture { state, bar: None },
         size(px(SIZE.0), px(SIZE.1)),
         scale as f32,
-        |cx: &mut App| theme::set_theme(cx, theme_value),
+        |cx: &mut App| {
+            theme::set_theme(cx, theme_value);
+            cx.bind_keys(mkit::menu_bar::default_key_bindings());
+        },
     )?;
+    if state == "focused" {
+        // A key press switches GPUI to keyboard modality, as for a user who reached the bar
+        // with the keyboard; Escape with no popup open changes nothing else.
+        session.update(|root, window, cx| {
+            let bar = root.read(cx).bar.clone().expect("menu bar rendered");
+            window.dispatch_keystroke(Keystroke::parse("escape").expect("Escape key"), cx);
+            assert!(bar.read(cx).focus_handle(cx).is_focused(window), "bar keeps focus");
+            assert!(!bar.read(cx).is_open(), "focused fixture stays closed");
+        })?;
+    }
     session.capture()
 }
 fn compare_or_update(actual: &RgbaImage, baseline: &str) {

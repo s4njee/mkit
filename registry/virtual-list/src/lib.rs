@@ -2,11 +2,69 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, ScrollStrategy,
-    UniformListScrollHandle, Window, actions, div, prelude::*, px, uniform_list,
+    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Rgba,
+    ScrollStrategy, UniformListScrollHandle, Window, actions, div, point, prelude::*, px,
+    uniform_list,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
 use std::sync::Arc;
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    border: Rgba,
+    selected_bg: Rgba,
+    selected_text: Rgba,
+    /// Pointer-hover fill for unselected rows (shadcn); `None` outlines the row instead.
+    hover_bg: Option<Rgba>,
+    hover_border: Rgba,
+    focus: Rgba,
+    ring: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            border: c.border,
+            selected_bg: c.accent,
+            selected_text: c.accent_text,
+            hover_bg: None,
+            hover_border: c.border,
+            focus: c.focus,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "accent": text mixed 4% (light) or 12% (dark) into the background.
+    let accent = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        border: if dark { c.text.opacity(0.1) } else { c.border },
+        selected_bg: accent,
+        selected_text: c.text,
+        hover_bg: Some(accent),
+        hover_border: c.border,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+    }
+}
+/// shadcn/ui focus ring width, drawn outside an empty focused list.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "MkitVirtualList";
 actions!(virtual_list, [Next, Previous, ToggleSelection, First, Last]);
@@ -168,14 +226,20 @@ impl Focusable for VirtualList {
 }
 
 impl Render for VirtualList {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let focus = self.focus.get_or_insert_with(|| cx.focus_handle()).clone();
+        // `:focus-visible`: the active row outline shows for keyboard focus only.
+        let focused = focus.is_focused(window) && window.last_input_was_keyboard();
         let items = self.items.clone();
         let entity = cx.entity();
         let selected = self.selected.clone();
         let active = self.active;
         let count = items.len();
         let row_height = self.row_height;
+        let hairline = px(theme.borders.hairline);
+        let transparent = theme.colors.background.opacity(0.);
         let list = uniform_list(
             ("mkit-virtual-list-items", cx.entity().entity_id()),
             count,
@@ -197,19 +261,28 @@ impl Render for VirtualList {
                             .on_click(move |_, _, cx| {
                                 entity.update(cx, |list, cx| list.click_row(i, cx));
                             })
+                            .w_full()
                             .h(px(row_height))
-                            .px(px(theme.spacing.medium))
+                            .px(px(theme.spacing.small))
                             .flex()
                             .items_center()
-                            .bg(if is_active || is_selected {
-                                theme.colors.accent
+                            .rounded(px(theme.radii.small))
+                            .border(hairline)
+                            .border_color(if focused && is_active {
+                                look.focus
                             } else {
-                                theme.colors.surface
+                                transparent
                             })
-                            .text_color(if is_active || is_selected {
-                                theme.colors.accent_text
-                            } else {
-                                theme.colors.text
+                            .text_size(px(theme.typography.body))
+                            .when(is_selected, |row| {
+                                row.bg(look.selected_bg).text_color(look.selected_text)
+                            })
+                            .when(!is_selected, |row| row.text_color(theme.colors.text))
+                            .when(!is_selected && !(focused && is_active), |row| {
+                                row.hover(move |style| match look.hover_bg {
+                                    Some(fill) => style.bg(fill),
+                                    None => style.border_color(look.hover_border),
+                                })
                             })
                             .child(item.label.clone())
                     })
@@ -218,18 +291,25 @@ impl Render for VirtualList {
         )
         .track_scroll(&self.list_scroll)
         .w_full()
-        .h(px(self.viewport_height));
+        .h(px(self.viewport_height))
+        .p(px(theme.spacing.xsmall));
 
         div()
             .id(self.label.clone())
             .key_context(KEY_CONTEXT)
-            .track_focus(self.focus.get_or_insert_with(|| cx.focus_handle()))
+            .track_focus(&focus)
             .tab_index(0)
             .role(gpui_pre::accesskit::Role::ListBox)
             .aria_label(self.label.clone())
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
+            .border(hairline)
+            .border_color(look.border)
+            .rounded(px(theme.radii.large))
+            .overflow_hidden()
             .bg(theme.colors.surface)
+            // With no rows there is no active-row outline, so the list itself shows focus.
+            .when(focused && count == 0, |list| {
+                list.border_color(look.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .on_action(cx.listener(|this, _: &Next, _, cx| this.move_active(1, cx)))
             .on_action(cx.listener(|this, _: &Previous, _, cx| this.move_active(-1, cx)))
             .on_action(cx.listener(|this, _: &ToggleSelection, _, cx| this.request_toggle(cx)))

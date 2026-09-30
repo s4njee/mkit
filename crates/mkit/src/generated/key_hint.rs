@@ -5,8 +5,11 @@
 //! [`KeyChord::parse`], [`KeyChord::label`], and [`shortcut_label`].
 extern crate gpui_pre as gpui;
 
-use gpui_pre::{App, IntoElement, RenderOnce, Window, div, prelude::*, px};
-use mkit_core::theme::Theme;
+use gpui_pre::{App, FontWeight, IntoElement, RenderOnce, Rgba, Window, div, prelude::*, px};
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
@@ -251,6 +254,18 @@ fn display_key(key: &str) -> String {
     }
 }
 
+/// Keycap colours (fill, border, text); see the spec's "Theme tokens used" table.
+fn keycap_colors(t: &Theme) -> (Rgba, Option<Rgba>, Rgba) {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return (c.background, Some(c.border), c.text);
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn's `muted`: `text` mixed into `background`, like CSS `color-mix(in srgb, ...)`.
+    let muted = composite(Rgba { a: if dark { 0.12 } else { 0.04 }, ..c.text }, c.background);
+    (muted, None, c.text_muted)
+}
+
 #[derive(IntoElement)]
 pub struct KeyHint {
     id: usize,
@@ -293,6 +308,8 @@ impl RenderOnce for KeyHint {
                 .child(self.chord.label());
         }
         let theme = *cx.global::<Theme>();
+        let (fill, border, text) = keycap_colors(&theme);
+        let cap = theme.spacing.large + theme.spacing.xsmall;
         let mut visible = self.chord.visible_parts();
         visible.push(self.chord.key.clone());
         let mut row = div()
@@ -306,14 +323,22 @@ impl RenderOnce for KeyHint {
             row = row.child(
                 div()
                     .id(index)
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .h(px(cap))
+                    .min_w(px(cap))
                     .px(px(theme.spacing.xsmall))
-                    .py(px(theme.spacing.xsmall))
                     .rounded(px(theme.radii.small))
-                    .border(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
-                    .text_color(theme.colors.text_muted)
+                    .when_some(border, |el, color| {
+                        el.border(px(theme.borders.hairline)).border_color(color)
+                    })
+                    .bg(fill)
+                    .text_color(text)
                     .text_size(px(theme.typography.caption))
+                    .font_weight(FontWeight::MEDIUM)
+                    .whitespace_nowrap()
                     .child(part.clone()),
             );
         }

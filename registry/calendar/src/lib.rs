@@ -1,11 +1,170 @@
 //! Theme-driven accessible month calendar.
 extern crate gpui_pre as gpui;
 use gpui_pre::{
-    Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, Render, Window,
-    actions, div, prelude::*, px,
+    Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    PathBuilder, Render, Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::{CivilDate, theme::Theme};
+use mkit_core::{
+    CivilDate,
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::sync::Arc;
+
+/// Resolved calendar colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    card_fill: Rgba,
+    card_border: Rgba,
+    /// `shadows.small`; `None` in high contrast.
+    card_shadow: Option<ShadowToken>,
+    text: Rgba,
+    muted_text: Rgba,
+    /// Days outside the displayed month.
+    outside_text: Rgba,
+    disabled_text: Rgba,
+    /// Pointer-hover fill for enabled days and chevrons; `None` in high contrast.
+    hover_bg: Option<Rgba>,
+    /// Pointer-hover border in high contrast.
+    hover_border: Option<Rgba>,
+    selected_bg: Rgba,
+    selected_text: Rgba,
+    /// Range-middle band fill; transparent in high contrast.
+    band_bg: Rgba,
+    /// Range-middle border in high contrast.
+    band_border: Option<Rgba>,
+    focus: Rgba,
+    ring: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    let transparent = c.background.opacity(0.);
+    if t.name == "high-contrast" {
+        return Look {
+            card_fill: c.background,
+            card_border: c.border,
+            card_shadow: None,
+            text: c.text,
+            muted_text: c.text_muted,
+            // `text_muted` is near-white here, so outside days use the lighter-weight `disabled`.
+            outside_text: c.disabled,
+            disabled_text: c.disabled,
+            hover_bg: None,
+            hover_border: Some(c.accent),
+            selected_bg: c.accent,
+            selected_text: c.accent_text,
+            band_bg: transparent,
+            band_border: Some(c.accent),
+            focus: c.focus,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "accent": text mixed into the background.
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    let card_fill = c.background;
+    Look {
+        card_fill,
+        card_border: if dark { mix(c.text, card_fill, 0.1) } else { c.border },
+        card_shadow: Some(t.shadows.small),
+        text: c.text,
+        muted_text: c.text_muted,
+        outside_text: c.text_muted,
+        // shadcn `text-muted-foreground opacity-50`, as one opaque colour over the card.
+        disabled_text: mix(c.text_muted, card_fill, 0.5),
+        hover_bg: Some(muted),
+        hover_border: None,
+        selected_bg: c.accent,
+        selected_text: c.accent_text,
+        band_bg: muted,
+        band_border: None,
+        focus: c.focus,
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused day.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as a vector stroke so it stays crisp at every scale. Each
+/// polyline is a list of points on a 24-unit grid; the stroke is 2 units, Lucide's default.
+fn icon(size: f32, lines: &'static [&'static [(f32, f32)]], color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for line in lines {
+                for (i, (x, y)) in line.iter().enumerate() {
+                    let at = origin + point(unit * *x, unit * *y);
+                    if i == 0 { path.move_to(at) } else { path.line_to(at) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `chevron-left`.
+const CHEVRON_LEFT: &[&[(f32, f32)]] = &[&[(15., 18.), (9., 12.), (15., 6.)]];
+/// Lucide `chevron-right`.
+const CHEVRON_RIGHT: &[&[(f32, f32)]] = &[&[(9., 18.), (15., 12.), (9., 6.)]];
+/// Where a day sits in the selected range, which decides its fill and band.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RangePart {
+    None,
+    /// A single selected date, or a range with one endpoint so far.
+    Selected,
+    Start,
+    End,
+    Middle,
+}
+fn range_part(selection: Selection, date: CivilDate) -> RangePart {
+    match selection {
+        Selection::Single(Some(d)) | Selection::Range(Some(d), None) if d == date => {
+            RangePart::Selected
+        }
+        Selection::Range(Some(a), Some(b)) => {
+            let (start, end) = if a <= b { (a, b) } else { (b, a) };
+            if date == start && date == end {
+                RangePart::Selected
+            } else if date == start {
+                RangePart::Start
+            } else if date == end {
+                RangePart::End
+            } else if date > start && date < end {
+                RangePart::Middle
+            } else {
+                RangePart::None
+            }
+        }
+        _ => RangePart::None,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "Calendar";
 actions!(
@@ -267,6 +426,7 @@ impl Render for Calendar {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
         let active = self.active;
         let selection = self.selection;
         let first_weekday = self.first_weekday;
@@ -292,25 +452,79 @@ impl Render for Calendar {
             .aria_label(self.label.clone())
             .flex()
             .flex_col()
+            .flex_none()
+            // Seven day columns plus padding and border, so the card never stretches with its parent.
+            .w(px(7. * theme.controls.medium
+                + 2. * theme.spacing.small
+                + 2. * theme.borders.regular))
             .gap(px(theme.spacing.xsmall))
-            .text_color(theme.colors.text);
-        root = root.child(div().flex().justify_between().child(format!(
-            "{} {}",
-            self.months[active.month() as usize - 1],
-            active.year()
-        )));
-        let mut header = div().flex().justify_between();
+            .p(px(theme.spacing.small))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(look.card_border)
+            .bg(look.card_fill)
+            .when_some(look.card_shadow, |root, shadow| root.shadow(vec![box_shadow(shadow)]))
+            .text_color(look.text);
+        let nav_button =
+            |id: &'static str, lines: &'static [&'static [(f32, f32)]], months: i32| {
+                div()
+                    .id(id)
+                    .size(px(theme.controls.small))
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .rounded(px(theme.radii.medium))
+                    .border(px(theme.borders.regular))
+                    .border_color(look.card_fill.opacity(0.))
+                    .hover(move |style| {
+                        let style = match look.hover_bg {
+                            Some(color) => style.bg(color),
+                            None => style,
+                        };
+                        match look.hover_border {
+                            Some(color) => style.border_color(color),
+                            None => style,
+                        }
+                    })
+                    .on_click(cx.listener(move |this, _, _, cx| this.move_months(months, cx)))
+                    .child(icon(theme.spacing.large, lines, look.text))
+            };
+        root = root.child(
+            div()
+                .flex()
+                .items_center()
+                .justify_between()
+                .child(nav_button("calendar-previous-month", CHEVRON_LEFT, -1))
+                .child(
+                    div()
+                        .text_size(px(theme.typography.body))
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .child(format!(
+                            "{} {}",
+                            self.months[active.month() as usize - 1],
+                            active.year()
+                        )),
+                )
+                .child(nav_button("calendar-next-month", CHEVRON_RIGHT, 1)),
+        );
+        let mut header = div().flex();
         for col in 0..7 {
             header = header.child(
                 div()
-                    .w(px(theme.controls.small))
+                    .w(px(theme.controls.medium))
+                    .h(px(theme.controls.xsmall))
+                    .flex()
+                    .items_center()
+                    .justify_center()
                     .text_size(px(theme.typography.caption))
+                    .text_color(look.muted_text)
                     .child(self.weekdays[(first_weekday as usize + col) % 7].clone()),
             );
         }
         root = root.child(header);
         for row in 0..6 {
-            let mut week = div().flex().justify_between();
+            let mut week = div().flex();
             for col in 0..7 {
                 let date = grid_start.add_days(row * 7 + col).unwrap_or(start);
                 let disabled = self.is_disabled(date);
@@ -320,17 +534,37 @@ impl Render for Calendar {
                     Selection::Range(Some(a), None) => a == date,
                     _ => false,
                 };
+                let part = range_part(selection, date);
+                let filled =
+                    matches!(part, RangePart::Selected | RangePart::Start | RangePart::End);
                 let active_day = date == active;
                 let in_month = date.month() == active.month();
                 let day = date.day().to_string();
-                let bg = if selected { theme.colors.accent } else { theme.colors.surface };
-                let fg = if selected {
-                    theme.colors.accent_text
-                } else if disabled || !in_month {
-                    theme.colors.disabled
+                let fg = if filled {
+                    look.selected_text
+                } else if disabled {
+                    look.disabled_text
+                } else if !in_month {
+                    look.outside_text
                 } else {
-                    theme.colors.text
+                    look.text
                 };
+                let band = part == RangePart::Middle;
+                let transparent = look.card_fill.opacity(0.);
+                let bg = if filled { look.selected_bg } else { transparent };
+                let border = match look.band_border {
+                    Some(color) if band => color,
+                    _ => transparent,
+                };
+                // The fill under the focus ring is opaque; see the spec's "Focus" note.
+                let focus_bg = if filled {
+                    look.selected_bg
+                } else if band && look.band_bg.a > 0. {
+                    look.band_bg
+                } else {
+                    look.card_fill
+                };
+                let hoverable = !disabled && !filled;
                 let mut cell = div()
                     .id(format!("day-{}-{}-{}", date.year(), date.month(), date.day()))
                     .role(gpui_pre::accesskit::Role::GridCell)
@@ -344,15 +578,34 @@ impl Render for Calendar {
                     .when(disabled, |d| {
                         d.a11y_synthetic_children(|b| b.parent_node().set_disabled())
                     })
-                    .w(px(theme.controls.small))
-                    .h(px(theme.controls.small))
+                    .size_full()
                     .flex()
                     .items_center()
                     .justify_center()
                     .rounded(px(theme.radii.small))
+                    .border(px(theme.borders.regular))
+                    .border_color(border)
                     .text_size(px(theme.typography.body))
                     .text_color(fg)
                     .bg(bg)
+                    .when(hoverable, |cell| {
+                        cell.hover(move |style| {
+                            let style = match look.hover_bg {
+                                Some(color) => style.bg(color),
+                                None => style,
+                            };
+                            match look.hover_border {
+                                Some(color) => style.border_color(color),
+                                None => style,
+                            }
+                        })
+                    })
+                    .focus_visible(move |style| {
+                        style
+                            .border_color(look.focus)
+                            .bg(focus_bg)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
                     .child(day);
                 if active_day {
                     cell = cell.track_focus(&focus);
@@ -363,7 +616,21 @@ impl Render for Calendar {
                         this.select_date(date, cx);
                     }));
                 }
-                week = week.child(cell);
+                // The slot carries the range band: the whole slot for middle days and the inner
+                // side of each endpoint, so the band runs behind the endpoint's rounded corners.
+                let radius = px(theme.radii.small);
+                let slot = div()
+                    .w(px(theme.controls.medium))
+                    .h(px(theme.controls.small))
+                    .flex_none()
+                    .map(|slot| match part {
+                        RangePart::Middle => slot.bg(look.band_bg),
+                        RangePart::Start => slot.bg(look.band_bg).rounded_l(radius),
+                        RangePart::End => slot.bg(look.band_bg).rounded_r(radius),
+                        _ => slot,
+                    })
+                    .child(cell);
+                week = week.child(slot);
             }
             root = root.child(week);
         }

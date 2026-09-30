@@ -17,6 +17,6 @@ uncontrolled mode owns its selected value.
 
 See `registry/calendar/spec.md` for the state, event, accessibility, and theme contract. The
 component is a draft pending maintainer review of the public date type and API. The macOS Metal
-screenshot matrix covers five selection states across light, dark, and high-contrast themes at 1×
-and 2×. GPUI interaction tests cover keyboard selection; platform accessibility tree snapshots are
+screenshot matrix covers five selection states and a keyboard-focused active day across light,
+dark, and high-contrast themes at 1× and 2×. GPUI interaction tests cover keyboard selection; platform accessibility tree snapshots are
 not yet available.

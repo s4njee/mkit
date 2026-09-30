@@ -103,10 +103,41 @@ properties, but announcement timing needs native assistive-technology review.
 
 ## Theme tokens used
 
-Use `Theme.colors.surface`, `text`, `text_muted`, `border`, `accent`, and `disabled`; spacing tokens
-for item gaps and horizontal padding; `Theme.typography.body` for text and width estimation; and
-`Theme.controls.small`/`large` for bar/control geometry. Do not hard-code color values or use color
-alone to convey status.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by
+`.e7-status-bar` in `site/src/demos/e7_expansion.css`, with the shadcn token mapping in
+`site/src/ui/tokens.ts`): a compact strip on the window background with a top border and muted,
+small text. Colours are resolved from the installed `Theme` in three variants. `high-contrast` is
+selected by theme name (the convention other registry components use); every other theme is
+treated as dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise
+light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. Colour is never the only
+status cue: status is text and progress has a labelled role.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Bar fill | `background` | `background` | `background` |
+| Top border | `border` | `text` at 10% over `background`, composited opaque | `border` |
+| Status text | `text_muted` | `text_muted` | `text` |
+| Progress track | `accent` at 20% over `background` (Progress's `bg-primary/20`) | same | `background` with a `borders.hairline` `border` |
+| Progress fill | `accent` | `accent` | `accent` |
+
+- **Geometry.** The bar is `controls.medium` (36px, the preview's `min-height`) tall with a
+  `borders.hairline` top border. Horizontal padding stays `spacing.medium`, items within a region
+  are separated by `spacing.small`, and the regions by at least `spacing.medium`, because the
+  collapse calculation uses exactly these tokens; the preview's 8px padding and 14px gaps are not
+  used so that the documented collapse behaviour is unchanged.
+- **Text.** Status text uses `typography.caption` (12px, the nearest token to the preview's 11px)
+  and does not wrap. Width estimates for text items still use `typography.body`, so estimates are
+  slightly generous and collapse decisions are unchanged.
+- **Progress.** Progress's pill (`radii.pill`) track, `spacing.small` (8px) thick, in a
+  `controls.small` slot. It keeps Progress's thickness so the high-contrast track border (2px on
+  each side) still leaves the fill visible.
+- **Buttons.** Buttons are caller-supplied and keep their own look, disabled treatment and focus
+  ring. The preview's buttons are small outline buttons, so the screenshot fixture passes
+  `Button` with `Variant::Outline` and `Size::Small` (`controls.small`, 32px), which fits inside the
+  36px bar. The bar reserves no height for larger controls; callers should use small controls.
+- **Focus.** The bar itself is not focusable. Keyboard focus belongs to the supplied buttons, whose
+  own screenshot matrix covers the focus ring, so this matrix has no separate focused state.
 
 ## WAI-ARIA pattern reference
 

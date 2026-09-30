@@ -3,10 +3,86 @@ extern crate gpui_pre as gpui;
 
 use gpui_pre::{
     App, Bounds, Context, DispatchPhase, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render,
-    Subscription, Window, actions, canvas, div, prelude::*, px, relative,
+    KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PathBuilder, Pixels,
+    Render, Rgba, Subscription, Window, actions, canvas, div, point, prelude::*, px, relative,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
+
+/// Resolved colours; see the spec's "Theme tokens used" table. The track, fill and thumb are the
+/// restyled Slider's.
+#[derive(Clone, Copy)]
+struct Look {
+    track: Rgba,
+    track_border: Option<Rgba>,
+    ring: Rgba,
+    tooltip_fill: Rgba,
+    tooltip_text: Rgba,
+    tooltip_border: Option<Rgba>,
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            track: c.background,
+            track_border: Some(c.border),
+            ring: c.focus,
+            tooltip_fill: c.background,
+            tooltip_text: c.text,
+            tooltip_border: Some(c.border),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        track: composite(c.text.opacity(if dark { 0.12 } else { 0.04 }), c.background),
+        track_border: None,
+        ring: c.focus.opacity(0.5),
+        tooltip_fill: c.accent,
+        tooltip_text: c.accent_text,
+        tooltip_border: None,
+    }
+}
+/// Disabled controls render at 50% opacity as one layer. GPUI applies element opacity to each
+/// painted part separately, so overlapping parts would show through each other; instead each
+/// colour is composited opaque over `background` first.
+fn dim(color: Rgba, background: Rgba) -> Rgba {
+    if color.a == 0. {
+        color
+    } else {
+        composite(composite(color, background).opacity(0.5), background)
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// Decorative reset marker: a filled triangle, apex up, drawn as a vector path.
+fn reset_marker(width: f32, height: f32, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let origin = bounds.origin;
+            let (w, h) = (bounds.size.width, bounds.size.height);
+            let mut path = PathBuilder::fill();
+            path.move_to(origin + point(w / 2.0, px(0.)));
+            path.line_to(origin + point(w, h));
+            path.line_to(origin + point(px(0.), h));
+            path.close();
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .w(px(width))
+    .h(px(height))
+}
 
 pub const KEY_CONTEXT: &str = "PrecisionSlider";
 actions!(
@@ -216,8 +292,23 @@ impl Render for PrecisionSlider {
         let zero = if self.bipolar { fraction(0.0) } else { 0.0 };
         let fill_left = if self.bipolar { pos.min(zero) } else { 0.0 };
         let fill_width = if self.bipolar { (pos - zero).abs() } else { pos };
-        let thumb_size = theme.controls.xsmall * 0.65;
-        let active = !self.disabled;
+        let disabled = self.disabled;
+        let look = look(&theme);
+        let paint =
+            |color: Rgba| if disabled { dim(color, theme.colors.background) } else { color };
+        let mut shadow = theme.shadows.small;
+        if disabled {
+            shadow.color = shadow.color.opacity(0.5);
+        }
+        let row = theme.controls.small;
+        let track_height = theme.spacing.xsmall + theme.borders.strong;
+        let thumb_size = theme.spacing.large;
+        let keyboard_focus =
+            !disabled && window.last_input_was_keyboard() && focus.is_focused(window);
+        // In bipolar mode a reset value at zero is already shown by the centre mark.
+        let reset_at_centre = self.bipolar && self.reset_value.abs() <= f64::EPSILON;
+        let show_reset = (self.value - self.reset_value).abs() > f64::EPSILON && !reset_at_centre;
+        let mark = paint(theme.colors.text_muted);
         let show_tooltip = self.dragging;
         let display_value = format_value(self.value);
         let entity = cx.entity();
@@ -226,22 +317,25 @@ impl Render for PrecisionSlider {
             .debug_selector(|| "mkit-precision-slider-track".into())
             .relative()
             .w_full()
-            .h(px(theme.controls.small))
+            .h(px(row))
             .flex()
             .items_center()
             .child(
                 div()
                     .w_full()
-                    .h(px(theme.borders.strong))
+                    .h(px(track_height))
                     .rounded(px(theme.radii.pill))
-                    .bg(theme.colors.border)
+                    .bg(paint(look.track))
+                    .when_some(look.track_border, |el, color| {
+                        el.border(px(theme.borders.hairline)).border_color(paint(color))
+                    })
                     .child(
                         div()
                             .h_full()
                             .ml(relative(fill_left))
                             .w(relative(fill_width))
                             .rounded(px(theme.radii.pill))
-                            .bg(if active { theme.colors.accent } else { theme.colors.disabled }),
+                            .bg(paint(theme.colors.accent)),
                     ),
             )
             .key_context(KEY_CONTEXT)
@@ -255,7 +349,6 @@ impl Render for PrecisionSlider {
                 el.aria_description("Unavailable")
                     .a11y_synthetic_children(|b| b.parent_node().set_disabled())
             })
-            .when(!self.disabled, |el| el.focus_visible(|el| el.bg(theme.colors.focus)))
             .on_action(cx.listener(Self::inc))
             .on_action(cx.listener(Self::dec))
             .on_action(cx.listener(Self::fine_inc))
@@ -263,40 +356,89 @@ impl Render for PrecisionSlider {
             .on_action(cx.listener(Self::min_value))
             .on_action(cx.listener(Self::max_value))
             .on_action(cx.listener(Self::reset));
+        if self.bipolar {
+            // Centre mark: taller than the thumb, drawn beneath it, so both ends stay visible.
+            let width = theme.borders.regular;
+            let height = thumb_size + 2.0 * theme.spacing.xsmall;
+            track = track.child(
+                div()
+                    .absolute()
+                    .left(relative(zero))
+                    .ml(px(-width / 2.0))
+                    .top(px((row - height) / 2.0))
+                    .w(px(width))
+                    .h(px(height))
+                    .bg(mark),
+            );
+        }
+        if show_reset {
+            let width = theme.spacing.small;
+            track = track.child(
+                div()
+                    .absolute()
+                    .left(relative(fraction(self.reset_value)))
+                    .ml(px(-width / 2.0))
+                    .top(px((row + thumb_size) / 2.0 + theme.borders.strong))
+                    .child(reset_marker(width, theme.spacing.xsmall, mark)),
+            );
+        }
+        if keyboard_focus {
+            // GPUI rounds a spread shadow with the element's own radius, which would square the
+            // ring's corners, so the ring is a separate circle behind the opaque thumb.
+            let ring = thumb_size + 2.0 * theme.spacing.xsmall;
+            track = track.child(
+                div()
+                    .absolute()
+                    .left(relative(pos))
+                    .ml(px(-ring / 2.0))
+                    .top(px((row - ring) / 2.0))
+                    .size(px(ring))
+                    .rounded(px(theme.radii.pill))
+                    .bg(look.ring),
+            );
+        }
         track = track.child(
             div()
                 .id("precision-slider-thumb")
                 .absolute()
                 .left(relative(pos))
                 .ml(px(-thumb_size / 2.0))
-                .top(px((theme.controls.small - thumb_size) / 2.0))
+                .top(px((row - thumb_size) / 2.0))
                 .size(px(thumb_size))
                 .rounded(px(theme.radii.pill))
-                .border(px(theme.borders.regular))
-                .border_color(if self.disabled {
-                    theme.colors.disabled
-                } else {
-                    theme.colors.border
-                })
-                .bg(theme.colors.surface),
+                .border(px(theme.borders.hairline))
+                .border_color(paint(theme.colors.accent))
+                .bg(theme.colors.background)
+                .when(!keyboard_focus && shadow.color.a > 0., |el| {
+                    el.shadow(vec![box_shadow(shadow)])
+                }),
         );
         if show_tooltip {
+            // A zero-width anchor at the thumb centres the unwrapped label above it.
             track = track.child(
                 div()
-                    .id("precision-slider-tooltip")
                     .absolute()
                     .left(relative(pos))
-                    .ml(px(-theme.controls.small * 0.75))
-                    .bottom(px(theme.controls.small))
-                    .px(px(theme.spacing.xsmall))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
-                    .border(px(theme.borders.hairline))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.surface)
-                    .text_color(theme.colors.text)
-                    .text_size(px(theme.typography.caption))
-                    .child(display_value),
+                    .bottom(px(row))
+                    .w(px(0.))
+                    .flex()
+                    .justify_center()
+                    .child(
+                        div()
+                            .id("precision-slider-tooltip")
+                            .flex_none()
+                            .whitespace_nowrap()
+                            .px(px(theme.spacing.medium))
+                            .py(px((theme.spacing.xsmall + theme.spacing.small) / 2.0))
+                            .rounded(px(theme.radii.medium))
+                            .when_some(look.tooltip_border, |el, color| {
+                                el.border(px(theme.borders.hairline)).border_color(color)
+                            })
+                            .bg(look.tooltip_fill)
+                            .text_color(look.tooltip_text)
+                            .text_size(px(theme.typography.caption))
+                            .child(display_value),
+                    ),
             );
         }
         let entity2 = entity.clone();

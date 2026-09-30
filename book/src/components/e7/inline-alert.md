@@ -19,6 +19,6 @@ API is draft and needs maintainer review. The component specs are maintained at
 
 ![Actionable empty state in the dark theme at 2× scale](../../images/e7/empty-state.png)
 
-The gallery matrix passed for all eight declared states across light, dark, and high-contrast themes
+The gallery matrix passed for all nine declared states across light, dark, and high-contrast themes
 at 1× and 2× scales. These are visual checks; live-region announcement timing and active-platform
 accessibility snapshots still need native assistive-technology validation.

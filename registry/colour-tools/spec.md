@@ -11,6 +11,9 @@ states:
   - id: grading
     description: Shadows, midtones, and highlights have independent grading offsets.
     fixture: grading_fixture
+  - id: focused
+    description: The hue-saturation wheel has keyboard focus; its handle shows the focus ring.
+    fixture: focused_fixture
 keys:
   - key: ArrowRight
     modifiers: []
@@ -65,7 +68,7 @@ Select a working colour and adjust the shadows, midtones, and highlights of an i
 
 ## Anatomy
 
-A compact, labelled panel contains a hue/saturation wheel and editable lightness field; numeric spinbuttons for sRGB, HSL, and OKLCH; three smaller grading wheels; and an eyedropper-unavailable status. Each grading wheel shows a neutral centre, colour by hue around its edge, and a marker for its current offset. Hue zero is at the top and increases clockwise in every wheel so the painted colour matches pointer input and marker position. The panel follows shadcn's restrained field and panel styling while drawing all chrome from the active mkit theme and wheel colours from edited data.
+A compact, labelled card contains a hue/saturation wheel with a round handle and editable lightness field; numeric spinbuttons for sRGB, HSL, and OKLCH; three smaller grading wheels; and an eyedropper-unavailable status. Each grading wheel shows a neutral centre, colour by hue around its edge, and a round handle for its current offset. Hue zero is at the top and increases clockwise in every wheel so the painted colour matches pointer input and marker position. The panel follows shadcn's restrained field and panel styling while drawing all chrome from the active mkit theme and wheel colours from edited data.
 
 ## States
 
@@ -78,8 +81,10 @@ contrast at 1× and 2×. The selected fixture uses a blue sRGB working colour. T
 fixture uses a warm working colour to show that numeric and wheel controls remain usable while
 the status is present; this build shows the unavailable status in every state because no native
 sampler exists. The grading fixture applies distinct nonzero offsets to all three tonal wheels
-through the public setter before capture. Every fixture uses the same panel width and window
-size. Accessibility cases still require an active platform tree.
+through the public setter before capture. The focused fixture uses the selected fixture's colour,
+dispatches an unbound Tab keystroke so the last input is the keyboard, focuses the main wheel through
+the public `Focusable` handle, and asserts focus before capture. Every fixture uses the same panel
+width and window size. Accessibility cases still require an active platform tree.
 
 ## Props and events
 
@@ -99,7 +104,54 @@ The panel requests group role with a caller-provided label and description. The 
 
 ## Theme tokens used
 
-Panel, fields, borders, text, focus, and disabled styling use the GPUI Global `Theme` surface, elevated surface, border, text, text-muted, focus, accent, and disabled colors. Padding and control geometry use spacing, controls, radii, and border-width tokens. The primary wheel diameter is 4.5 times `controls.large`; grading wheels are 1.6 times `controls.large`, keeping their relative scale across themes. Wheel hues represent edited color data and are the only colors not sourced from the theme; all wheel geometry and selection outlines use theme tokens.
+The look follows the everyday components restyled in E7 and E13.1 (Card, Slider and Text field) and
+is resolved from the installed `Theme` in three variants. `high-contrast` is selected by theme name;
+every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`,
+otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Muted" is `text` mixed 4%
+(light) or 12% (dark) into `background`; "input" is shadcn's `--input`: `border` in light themes and
+`text` at 15% in dark themes.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Card fill | `background` | `background` | `background` |
+| Card border and wheel outlines (the "border" role) | `border` | `text` at 10% over `background` | `border` |
+| Card shadow | `shadows.small` | `shadows.small` | none (`shadows.small` is transparent) |
+| Title and section heading | `text`, semibold | same | same |
+| Hex value, "Numeric entry" and wheel names | `text_muted`, `typography.caption` | same | same |
+| Wheel hues (colour data) | edited colour data | same | same |
+| Wheel handle | `background` fill, `accent` border, `shadows.small` | same | `background` fill, `accent` border |
+| Wheel with keyboard focus | its handle plus a 3px ring of `focus` at 50% over `background`, composited opaque so it reads over any hue | same | the same ring in opaque `focus` |
+| Numeric field | Text field: fill `background`, input border, `shadows.small`; label `text_muted`, value `text` | fill `text` at 4.5% over `background`, input border | `background` fill, `border` border |
+| Numeric field focused or editing | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Eyedropper status | muted fill, border role; message `text`, status `text_muted` | same | `background` fill, `border` border |
+
+- **Handles.** The main wheel handle uses the restyled Slider thumb: a `spacing.large` (16px)
+  circle with an opaque `background` fill, a `borders.hairline` `accent` border and `shadows.small`.
+  Grading wheel handles are the same at `spacing.medium` (12px) to suit the smaller wheels. Each
+  wheel is one focus target with one handle, so keyboard focus is shown on that handle: a 3px ring
+  drawn as its own circle, because GPUI keeps an element's corner radius when spreading a ring
+  shadow. The ring appears only while the wheel has focus from keyboard input
+  (`Window::last_input_was_keyboard`), matching `:focus-visible`. Hue zero stays at the top and
+  handles sit exactly where pointer input places them.
+- **Wheel outlines.** Each wheel is outlined by a circle in the border role, `borders.hairline` for
+  the main wheel and `borders.regular` for the grading wheels, so the wheel edge reads on the card
+  in every theme. Wheel hues are edited colour data and are the only colours not sourced from the
+  theme.
+- **Numeric fields.** Each spinbutton adopts the restyled Text field chrome: radius `radii.medium`,
+  a `borders.regular` border, `shadows.small`, a `typography.caption` label and a
+  `typography.body` value. Editing and keyboard focus show the Text field focus look; a field that
+  was clicked into for editing shows it too, as an input does. Fills under shadows and rings are
+  opaque because GPUI paints them as filled shapes that are not clipped to the element's outside.
+- **Card.** Radius `radii.large`, a `borders.hairline` border (2px in high contrast) and the existing
+  `spacing.medium` padding, following the web preview's `.ui-card`. The eyedropper status row has
+  radius `radii.medium` and stays a status description, not a button.
+- **Density (provisional maintainer decision).** Pro components keep their existing control heights,
+  plot sizes and hit targets; only colours, borders, radii, shadows, focus, hover and typography
+  follow the everyday look. The primary wheel diameter stays 4.5 times `controls.large` and grading
+  wheels stay 1.6 times `controls.large`; the whole wheel remains the pointer target. Numeric fields
+  keep their `spacing.xsmall` padding and gap.
+- The panel has no disabled state.
 
 ## WAI-ARIA pattern reference
 
@@ -115,3 +167,6 @@ GPUI 0.3.5 in this workspace has no supported cross-platform eyedropper API. Thi
 - Maintainer review is required for the current channel-clipping policy for out-of-sRGB OKLCH inputs.
 - Which OS permission and cancellation flow should the eyedropper follow?
 - Public type names, keyboard steps, accessibility value format, API behavior, and visuals require maintainer review.
+- The density decision above (keep today's heights and hit targets) is provisional; confirm it, or
+  adopt shadcn's 36px control heights across the pro components.
+- Should wheel handles share one size token with the other pro components (new theme API)?

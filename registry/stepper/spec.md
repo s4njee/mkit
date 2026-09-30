@@ -73,7 +73,57 @@ The component exposes a named Group. The header provides ordered step labels and
 
 ## Theme tokens used
 
-Use `Theme.colors.text`, `text_muted`, `surface`, `border`, `accent`, `success`, `danger`, and `disabled`; spacing, radii, borders, typography, and control-size tokens. Completed/current/error states use text or shape cues in addition to color.
+The docs-site web preview (`site/src/demos/e7_expansion.ts`, `.e7-stepper*` in
+`site/src/demos/e7_expansion.css`) lists the steps with muted labels and state captions above Back
+and Next buttons. GPUI keeps that structure and adds shadcn-style step indicators: a numbered circle
+per step, filled with the primary colour when current or complete, a vector check once complete,
+and connector lines between steps. The navigation buttons reproduce Button's outline (Back) and
+default (Next/Finish) variants; the component depends only on mkit-core, so it does not use the
+Button crate. Colours are resolved from the installed `Theme` in three variants. `high-contrast`
+is selected by theme name (the convention other registry components use); every other theme is
+treated as dark when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise
+light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Outline" is `border` in
+light and shadcn's dark `input`, `text` at 15% over `background` composited opaque, in dark (the 10%
+dark `border` is too faint for an empty indicator ring). The Back button keeps Button's 10% outline.
+
+| Part | Light / dark | High contrast |
+|---|---|---|
+| Complete indicator | `accent` fill and border, `accent_text` Lucide check | `accent`, `accent_text` |
+| Current indicator | `accent` fill and border, `accent_text` number | `accent`, `accent_text` |
+| Current indicator after failed validation | `danger` fill, the theme's near-white number (Button's destructive text) | `danger`, `accent_text` |
+| Upcoming indicator | `background` fill, outline border, `text_muted` number | `background`, `border`, `text` |
+| Connector after a complete step | `accent` | `accent` |
+| Other connectors | outline | `border` |
+| Step label | `text` (current at medium weight); upcoming `text_muted` | `text`; upcoming `text_muted` |
+| State caption | `text_muted` | `text_muted` |
+| Back button | Button outline: `background`, `text`, outline border, `shadows.small`; hover muted fill | `background`, `text`, `border`; hover border `accent` |
+| Next / Finish button | Button default: `accent`, `accent_text`, `shadows.small`; hover `accent` 90% over `background` | `accent`, `accent_text`, `accent`; hover border `text` |
+| Button focus (`focus_visible`) | border `focus` plus a 3px ring of `focus` at 50% | border `focus` plus a 3px ring of opaque `focus` |
+| Validation message | `danger` | `danger` |
+
+"Muted" is shadcn's `accent`: `text` mixed 4% (light) or 12% (dark) into `background`.
+
+- **Indicators.** `spacing.xlarge` (24px, shadcn `size-6`) circles (`radii.pill`) with a
+  `borders.regular` border and a `typography.caption` number at medium weight. Complete steps draw a
+  `spacing.large` Lucide `check` (20,6 → 9,17 → 4,12) as a vector path instead of the number,
+  stroked at 2/24 of its size (`borders.regular` in high contrast); it is decorative. After failed
+  validation the current indicator turns `danger` and its caption reads "Needs attention", so the
+  error is not conveyed by colour alone.
+- **Connectors.** A `borders.strong` wide, `spacing.medium` tall rounded rule centred under each
+  indicator, with `spacing.xsmall` above and below.
+- **Labels.** Each row places the indicator, the step label (`typography.body`) and its state
+  caption ("Complete", "Current", "Upcoming"; `typography.caption`) in a line separated by
+  `spacing.medium` and `spacing.small`. The number moves into the indicator, so labels no longer
+  repeat it. The preview colours complete labels with `success`; GPUI uses the check and the primary
+  fill instead and keeps labels neutral, as shadcn steppers do.
+- **Buttons.** Button's default size: `controls.medium` (36px) tall, `spacing.large` horizontal
+  padding, radius `radii.medium`, a `borders.regular` border and `typography.body` at medium weight
+  (500; there is no font-weight token yet). Back sits at the start and Next/Finish at the end of the
+  row. GPUI paints drop shadows as filled shapes, so both buttons have opaque fills under the ring;
+  the 3px ring is the shadcn/ui ring width, a fixed component value.
+- **Focus state.** The `validation-error` screenshot presses Enter on the focused Next button, so
+  it also records the keyboard focus ring.
 
 ## WAI-ARIA pattern reference
 

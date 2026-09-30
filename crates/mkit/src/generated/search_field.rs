@@ -5,15 +5,121 @@ extern crate gpui_pre as gpui;
 use crate::text_field::{InputChanged as TextInputChanged, TextField};
 use gpui_pre::{
     Context, Entity, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, KeyDownEvent,
-    Render, Window, actions, div, prelude::*, px,
+    PathBuilder, Render, Rgba, Window, actions, canvas, div, point, prelude::*, px,
 };
 use mkit_core::{
     a11y::{AccessibilityExt, LiveRegionPriority},
+    contrast::{composite, relative_luminance},
     theme::Theme,
 };
 #[cfg(not(feature = "mkit-mirror"))]
 use mkit_registry_text_field::{InputChanged as TextInputChanged, TextField};
 use std::time::Duration;
+
+/// Resolved icon and clear-button colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    icon: Rgba,
+    clear_icon: Rgba,
+    /// Pointer-hover fill for the clear button; high contrast uses `hover_border` instead.
+    hover_bg: Option<Rgba>,
+    hover_border: Option<Rgba>,
+    focus: Rgba,
+    /// Opaque fill used while the focus ring is drawn.
+    focus_bg: Rgba,
+    ring: Rgba,
+    disabled: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            icon: c.text_muted,
+            clear_icon: c.text,
+            hover_bg: None,
+            hover_border: Some(c.accent),
+            focus: c.focus,
+            focus_bg: c.background,
+            ring: c.focus,
+            disabled: c.disabled,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    Look {
+        high_contrast: false,
+        icon: c.text_muted,
+        clear_icon: c.text_muted,
+        // shadcn ghost-button hover ("accent"): `text` mixed 4% (light) or 12% (dark).
+        hover_bg: Some(mix(c.text, c.background, if dark { 0.12 } else { 0.04 })),
+        hover_border: None,
+        focus: c.focus,
+        focus_bg: c.background,
+        ring: c.focus.opacity(0.5),
+        disabled: c.disabled,
+    }
+}
+/// The web preview's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+/// shadcn/ui focus ring width, drawn outside the clear button.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+/// Decorative Lucide icon drawn as vector strokes so it stays crisp at every scale. Polylines are
+/// point lists and circles are `(cx, cy, r)` on a 24-unit grid; the stroke is 2 units, Lucide's
+/// default.
+fn icon(
+    size: f32,
+    lines: &'static [&'static [(f32, f32)]],
+    circles: &'static [(f32, f32, f32)],
+    color: Rgba,
+) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let origin = bounds.origin;
+            let at = |x: f32, y: f32| origin + point(unit * x, unit * y);
+            let mut path = PathBuilder::stroke(unit * 2.0);
+            for &(cx, cy, r) in circles {
+                let radii = point(unit * r, unit * r);
+                path.move_to(at(cx - r, cy));
+                path.arc_to(radii, px(0.), false, true, at(cx + r, cy));
+                path.arc_to(radii, px(0.), false, true, at(cx - r, cy));
+                path.close();
+            }
+            for line in lines {
+                for (i, &(x, y)) in line.iter().enumerate() {
+                    if i == 0 { path.move_to(at(x, y)) } else { path.line_to(at(x, y)) }
+                }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
+        },
+    )
+    .size(px(size))
+    .flex_none()
+}
+/// Lucide `search`: a radius-8 lens and a handle.
+const SEARCH_LINES: &[&[(f32, f32)]] = &[&[(21., 21.), (16.7, 16.7)]];
+const SEARCH_CIRCLES: &[(f32, f32, f32)] = &[(11., 11., 8.)];
+/// Lucide `x`.
+const X_LINES: &[&[(f32, f32)]] = &[&[(18., 6.), (6., 18.)], &[(6., 6.), (18., 18.)]];
 
 pub const KEY_CONTEXT: &str = "SearchField";
 actions!(search_field, [FocusSearch, ClearSearch, ActivateClear]);
@@ -234,7 +340,8 @@ impl Render for SearchField {
             let placeholder = self.placeholder.clone();
             let draft = self.draft.clone();
             let disabled = self.disabled;
-            let leading_inset = theme.spacing.medium;
+            // Room for the 16px icon plus an 8px gap; see the spec's geometry notes.
+            let leading_inset = theme.spacing.large + theme.spacing.small;
             let input = cx.new(move |cx| {
                 let mut field = TextField::new(cx)
                     .with_label(label)
@@ -268,48 +375,27 @@ impl Render for SearchField {
             .flex()
             .items_center()
             .gap(px(theme.spacing.small));
-        let icon_color = theme.colors.text_muted;
-        let icon_size = theme.typography.body_emphasis;
-        let lens_size = icon_size * 0.76;
-        let stroke = theme.borders.strong;
+        let look = look(&theme);
+        let icon_color = if !self.disabled {
+            look.icon
+        } else if look.high_contrast {
+            look.disabled
+        } else {
+            dim(look.icon, theme.colors.background)
+        };
         root = root.child(
             div().relative().flex_1().child(input).child(
                 div()
                     .id("search-field-icon")
                     .debug_selector(|| "search-field-icon".into())
                     .absolute()
-                    .left(px(theme.borders.regular))
+                    .left(px(theme.spacing.medium))
                     .top(px(theme.spacing.none))
-                    .w(px(icon_size))
                     .h(px(theme.controls.medium))
                     .flex()
                     .items_center()
                     .a11y_synthetic_children(|builder| builder.parent_node().set_hidden())
-                    .child(
-                        div()
-                            .relative()
-                            .size(px(icon_size))
-                            .child(
-                                div()
-                                    .absolute()
-                                    .left(px(theme.spacing.none))
-                                    .top(px(theme.spacing.none))
-                                    .size(px(lens_size))
-                                    .rounded(px(lens_size))
-                                    .border(px(stroke))
-                                    .border_color(icon_color),
-                            )
-                            .child(
-                                div()
-                                    .absolute()
-                                    .left(px(lens_size * 0.74))
-                                    .top(px(lens_size * 0.74))
-                                    .w(px(icon_size * 0.32))
-                                    .h(px(stroke))
-                                    .rounded(px(stroke))
-                                    .bg(icon_color),
-                            ),
-                    ),
+                    .child(icon(theme.spacing.large, SEARCH_LINES, SEARCH_CIRCLES, icon_color)),
             ),
         );
         if let Some(count) = self.result_count {
@@ -339,16 +425,26 @@ impl Render for SearchField {
                     .aria_label("Clear search")
                     .tab_stop(true)
                     .tab_index(0)
-                    .h(px(theme.controls.small))
-                    .px(px(theme.spacing.small))
+                    .size(px(theme.controls.small))
+                    .flex_none()
                     .flex()
                     .items_center()
                     .justify_center()
                     .rounded(px(theme.radii.medium))
-                    .text_color(theme.colors.text_muted)
+                    .border(px(theme.borders.regular))
+                    .border_color(theme.colors.background.opacity(0.))
+                    .when_some(look.hover_bg, |e, bg| e.hover(move |s| s.bg(bg)))
+                    .when_some(look.hover_border, |e, border| {
+                        e.hover(move |s| s.border_color(border))
+                    })
+                    .focus_visible(move |s| {
+                        s.border_color(look.focus)
+                            .bg(look.focus_bg)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
                     .on_click(cx.listener(|this, _, window, cx| this.clear(window, cx)))
                     .on_action(cx.listener(Self::on_activate_clear))
-                    .child("Clear"),
+                    .child(icon(theme.spacing.large, X_LINES, &[], look.clear_icon)),
             );
         }
         root

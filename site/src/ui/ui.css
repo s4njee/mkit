@@ -42,8 +42,8 @@
 .ui-btn--outline { background: var(--ui-background); color: var(--ui-foreground); border-color: var(--ui-border); }
 .ui-btn--outline:hover, .ui-btn--ghost:hover { background: var(--ui-accent); }
 .ui-btn--ghost { background: transparent; color: var(--ui-foreground); box-shadow: none; }
-.ui-btn--destructive { background: var(--ui-destructive); color: #fff; }
-.ui-btn--destructive:hover { background: color-mix(in srgb, var(--ui-destructive) 90%, #000); }
+.ui-btn--destructive { background: var(--ui-destructive); color: var(--ui-destructive-foreground); }
+.ui-btn--destructive:hover { background: color-mix(in srgb, var(--ui-destructive) 90%, var(--ui-foreground)); }
 .ui-btn--link { background: none; color: var(--ui-foreground); box-shadow: none; text-underline-offset: 4px; }
 .ui-btn--link:hover { background: none; text-decoration: underline; }
 .ui-btn--sm { height: 32px; padding: 0 12px; gap: 6px; }
@@ -148,7 +148,7 @@
 .ui-badge svg { width: 12px; height: 12px; }
 .ui-badge--secondary { background: var(--ui-secondary); color: var(--ui-foreground); }
 .ui-badge--outline { background: transparent; color: var(--ui-foreground); border-color: var(--ui-border); }
-.ui-badge--destructive { background: var(--ui-destructive); color: #fff; }
+.ui-badge--destructive { background: var(--ui-destructive); color: var(--ui-destructive-foreground); }
 .ui-kbd { display: inline-flex; align-items: center; gap: 2px; height: 20px; min-width: 20px; padding: 0 5px; border-radius: var(--ui-radius-sm); background: var(--ui-muted); color: var(--ui-muted-foreground); font-family: 'Geist', system-ui, sans-serif; font-size: 11px; font-weight: 500; justify-content: center; }
 .ui-skeleton { background: var(--ui-muted); border-radius: var(--ui-radius-md); }
 
@@ -183,7 +183,7 @@
 .ui-float { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; }
 .ui-float--end { left: auto; right: 0; }
 .ui-float--up { top: auto; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); }
-.ui-overlay { position: absolute; inset: 0; z-index: 10; background: rgba(0, 0, 0, .5); border-radius: inherit; display: grid; place-items: center; }
+.ui-overlay { position: absolute; inset: 0; z-index: 10; background: var(--ui-overlay); border-radius: inherit; display: grid; place-items: center; }
 
 /* Tables */
 .ui-table { width: 100%; border-collapse: collapse; font-size: 14px; }

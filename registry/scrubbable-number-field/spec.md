@@ -194,6 +194,9 @@ controls.
   value text when useful and is not used as the control's name.
 - A drag gesture on the field scrubs the value; there are no separate increment/decrement buttons
   in this pilot.
+- A decorative trailing scrub affordance (a left/right chevron pair drawn as a vector path) marks the
+  field as draggable. It is presentation only: it adds no hit target, focus stop, or accessibility
+  node, and the whole field remains the scrub and caret target.
 
 ## States
 
@@ -282,20 +285,60 @@ accessibility builder. Live native output remains unverified.
 
 ## Theme tokens used
 
-Read all values from the GPUI `Global` theme token set:
+The field chrome is the restyled TextField's (see `registry/text-field/spec.md`, "Theme tokens
+used"), resolved from the installed `Theme` in three variants. `high-contrast` is selected by theme
+name; every other theme is dark when `mkit_core::contrast::relative_luminance(colors.background) <
+0.5`, otherwise light. Derived colours use a crate-local `color-mix` helper built on
+`mkit_core::contrast::composite`; no mkit-core API or tokens are added. "Input" is shadcn's
+`--input`: `border` in light themes and `text` at 15% in dark themes.
 
-- field surface, text, and border tokens for default, hover, focused, disabled, and invalid draft
-  presentation;
-- focus-ring token for keyboard focus;
-- accent/selection token for selected text and scrub affordance;
-- spacing and control-height tokens for field geometry;
-- typography token for numeric text.
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Field fill | `background` (opaque) | `text` at 4.5% over `background` | `background` |
+| Border | input (`border`) | input (`text` at 15%) | `border` |
+| Value text | `text` | `text` | `text` |
+| Unit suffix and scrub affordance | `text_muted` | `text_muted` | `text_muted` |
+| Resting shadow | `shadows.small` | `shadows.small` | none (`shadows.small` is transparent) |
+| Keyboard focus or IME composition | border `focus` plus a 3px ring of `focus` at 50% | same | border `focus` plus a 3px ring of opaque `focus` |
+| Invalid draft (`invalid_edit`) | border `danger` plus a 3px ring of `danger` at 20% | same with the ring at 40% | border `danger`; focus still adds the opaque `focus` ring |
+| Scrubbing | border `focus`; scrub affordance `accent` | same | same |
+| Selection | `accent` fill, `accent_text` text | same | same |
+| Caret and IME underline | `accent` | `accent` | `accent` |
+| Disabled | fill, border, value, suffix and affordance at 50% over `background`; shadow alpha halved | same | `background` fill; `disabled` border, value, suffix and affordance |
 
-This implementation maps these roles to the Global Theme's surface/text/border/focus/disabled/text-muted
-colors, `spacing.small`/`spacing.xsmall`, `radii.small`, `borders.hairline`, `typography.body`, and
-`controls.small`. Scrub scale is 4 logical pixels per step with a 3 pixel activation threshold.
-The fixed pointer threshold and modifier multipliers remain subject to maintainer review; the
-rendered field uses only the shared theme tokens for its visible geometry and color.
+- **Rings and shadows.** A ring replaces the resting shadow, as in CSS. The field fill is always
+  opaque because GPUI paints drop shadows as filled shapes inside the element. Ring corners use the
+  field radius. The 3px ring is the shadcn/ui ring width, a fixed component value shared with
+  TextField.
+- **Invalid draft.** The danger border and ring are visual only: they show while an uncommitted,
+  non-composing draft does not parse (including an empty draft). The accessibility tree is
+  unchanged, so the committed numeric value remains the announced value, as described under
+  States. Enter, Escape and focus loss behave as before.
+- **Scrubbing.** A pointer scrub is drag feedback, not keyboard focus: the border takes `focus` and
+  the scrub affordance turns `accent`, but no ring is drawn unless the field also has keyboard
+  focus. Over an enabled field the pointer shows the platform left/right resize cursor as the scrub
+  hint; while the field owns keyboard focus and is not scrubbing it shows the text I-beam instead.
+- **Selection and caret.** The caret, selection highlight and IME underline render only while the
+  enabled field owns focus (or is composing), matching platform text fields that hide an inactive
+  selection. The rendered range is clamped to the draft so a scrub that shortens the text never
+  indexes past it.
+- **Disabled.** Each colour is composited opaque over `background` and mixed 50% with it instead of
+  using GPUI element opacity, which would dim each painted part separately. High contrast keeps
+  solid `disabled` colours so the value stays legible.
+- **Geometry (maintainer density decision, provisional).** Pro-app controls keep today's denser
+  size under the E9.1 dense, dark-first principle (see `docs/E13.2_SPLIT.md`): the field stays
+  `controls.small` (32px) tall with a `spacing.small` (8px) text inset on both sides, so pointer,
+  caret and IME geometry and hit targets are unchanged. Colours, border, radius, shadow, focus and
+  typography follow TextField: a `borders.regular` border (1px; 2px in high contrast), radius
+  `radii.medium` (shadcn `rounded-md`), and `typography.body` (14px) text. The text size is applied
+  explicitly and the same size shapes text for pointer hit testing and IME candidate bounds, so
+  geometry does not depend on the inherited text style where a platform callback runs.
+- **Marks.** The caret is a `borders.hairline` wide bar `typography.heading` (20px) tall; the IME
+  underline is `borders.strong` thick. The unit suffix sits `spacing.xsmall` after the value. The
+  scrub affordance is Lucide's `chevrons-left-right` (24-unit grid, 2-unit stroke) drawn as a
+  vector path in a `spacing.large` (16px) box at the trailing edge.
+- Scrub scale is 4 logical pixels per step with a 3 pixel activation threshold; the pointer
+  threshold and modifier multipliers remain subject to maintainer review.
 
 ## WAI-ARIA pattern reference
 
@@ -322,3 +365,5 @@ be checked on macOS, Windows, and Linux when their harness adapters are availabl
 - Define locale-aware parser/formatter defaults and behavior for NaN/infinity before implementation.
 - Confirm concrete E9 token names and availability of AccessKit spinbutton value/min/max mappings.
 - Confirm pointer cancellation representation and whether focus should be acquired on mouse-down.
+- Confirm the provisional E13.2 density decision (keep the 32px height and 8px text inset while
+  adopting TextField's chrome) and the always-visible trailing scrub affordance.

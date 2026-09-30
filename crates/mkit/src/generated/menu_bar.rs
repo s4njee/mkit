@@ -2,10 +2,14 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    Action, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, KeyDownEvent,
-    MouseDownEvent, Render, Window, actions, div, prelude::*, px,
+    Action, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement, KeyBinding,
+    KeyDownEvent, MouseDownEvent, PathBuilder, Render, Rgba, Window, actions, canvas, div, point,
+    prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CommandInvoked(pub String);
@@ -163,24 +167,157 @@ pub fn default_key_bindings() -> [KeyBinding; 9] {
     ]
 }
 
-fn active_row_colors(theme: Theme) -> (gpui_pre::Rgba, gpui_pre::Rgba) {
-    let weight = match theme.name {
-        "shadcn-light" => 0.04,
-        "shadcn-dark" => 0.12,
-        _ => return (theme.colors.accent, theme.colors.accent_text),
-    };
-    let foreground = theme.colors.text;
-    let background = theme.colors.elevated_surface;
-    let mix = |front: f32, base: f32| front * weight + base * (1.0 - weight);
-    (
-        gpui_pre::Rgba {
-            r: mix(foreground.r, background.r),
-            g: mix(foreground.g, background.g),
-            b: mix(foreground.b, background.b),
-            a: 1.0,
+/// Resolved bar and popup colours; see the spec's "Theme tokens used" table. The popup reuses
+/// DropdownMenu's look.
+#[derive(Clone, Copy)]
+struct Look {
+    bar_bg: Rgba,
+    bar_border: Rgba,
+    header_text: Rgba,
+    mnemonic: Rgba,
+    /// Open, focused or hovered header fill (shadcn `accent`).
+    header_active_bg: Rgba,
+    header_active_text: Rgba,
+    header_active_mnemonic: Rgba,
+    /// Whether pointer hover fills the header (light/dark) or underlines it (high contrast).
+    fill_hover: bool,
+    disabled_text: Rgba,
+    disabled_mnemonic: Rgba,
+    disabled_border: Rgba,
+    pane: Rgba,
+    pane_border: Rgba,
+    row_text: Rgba,
+    row_muted: Rgba,
+    active_bg: Rgba,
+    active_text: Rgba,
+    active_muted: Rgba,
+    row_disabled_text: Rgba,
+    row_disabled_muted: Rgba,
+    ring: Rgba,
+    icon_stroke: IconStroke,
+}
+#[derive(Clone, Copy)]
+enum IconStroke {
+    /// Lucide's 2-unit stroke on its 24-unit grid, scaled with the icon.
+    Relative,
+    Pixels(f32),
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            bar_bg: c.background,
+            bar_border: c.border,
+            header_text: c.text,
+            mnemonic: c.text_muted,
+            header_active_bg: c.accent,
+            header_active_text: c.accent_text,
+            header_active_mnemonic: c.accent_text,
+            fill_hover: false,
+            disabled_text: c.disabled,
+            disabled_mnemonic: c.disabled,
+            disabled_border: c.disabled,
+            pane: c.background,
+            pane_border: c.border,
+            row_text: c.text,
+            row_muted: c.text_muted,
+            active_bg: c.accent,
+            active_text: c.accent_text,
+            active_muted: c.accent_text,
+            row_disabled_text: c.disabled,
+            row_disabled_muted: c.disabled,
+            ring: c.focus,
+            icon_stroke: IconStroke::Pixels(t.borders.regular),
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    // shadcn "accent": text mixed into the background, as DropdownMenu, Tabs and Sidebar use.
+    let accent = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    // The web's translucent dark border (10% text), composited over the opaque fill beneath.
+    let bar_border = if dark { mix(c.text, c.background, 0.1) } else { c.border };
+    let pane = c.surface;
+    Look {
+        bar_bg: c.background,
+        bar_border,
+        header_text: c.text,
+        mnemonic: c.text_muted,
+        header_active_bg: accent,
+        header_active_text: c.text,
+        header_active_mnemonic: c.text_muted,
+        fill_hover: true,
+        // shadcn's disabled `opacity: .5`, flattened over the bar fill part by part.
+        disabled_text: mix(c.text, c.background, 0.5),
+        disabled_mnemonic: mix(c.text_muted, c.background, 0.5),
+        disabled_border: mix(bar_border, c.background, 0.5),
+        pane,
+        pane_border: if dark { mix(c.text, pane, 0.1) } else { c.border },
+        row_text: c.text,
+        row_muted: c.text_muted,
+        active_bg: accent,
+        active_text: c.text,
+        active_muted: c.text_muted,
+        row_disabled_text: mix(c.text, pane, 0.5),
+        row_disabled_muted: mix(c.text_muted, pane, 0.5),
+        ring: c.focus.opacity(0.5),
+        icon_stroke: IconStroke::Relative,
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused header.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
+#[derive(Clone, Copy)]
+enum Icon {
+    Check,
+    ChevronRight,
+}
+/// Decorative Lucide `check` (20,6 → 9,17 → 4,12) or `chevron-right` (9,6 → 15,12 → 9,18)
+/// drawn as a vector path on a 24-unit grid, matching DropdownMenu.
+fn icon(icon: Icon, size: f32, stroke: IconStroke, color: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| (),
+        move |bounds, (), window, _| {
+            let unit = bounds.size.width / 24.0;
+            let width = match stroke {
+                IconStroke::Relative => unit * 2.0,
+                IconStroke::Pixels(width) => px(width),
+            };
+            let points: &[(f32, f32)] = match icon {
+                Icon::Check => &[(20.0, 6.0), (9.0, 17.0), (4.0, 12.0)],
+                Icon::ChevronRight => &[(9.0, 6.0), (15.0, 12.0), (9.0, 18.0)],
+            };
+            let mut path = PathBuilder::stroke(width);
+            for (i, (x, y)) in points.iter().enumerate() {
+                let p = bounds.origin + point(unit * *x, unit * *y);
+                if i == 0 { path.move_to(p) } else { path.line_to(p) }
+            }
+            if let Ok(path) = path.build() {
+                window.paint_path(path, color);
+            }
         },
-        foreground,
     )
+    .size(px(size))
+    .flex_none()
 }
 
 /// A keyboard navigable, in-window rendering of the application's menu model.
@@ -456,10 +593,13 @@ impl Focusable for MenuBar {
 impl Render for MenuBar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
-        let (active_bg, active_fg) = active_row_colors(theme);
+        let look = look(&theme);
         let bar_focused = self.focus.is_focused(window);
+        let keyboard = window.last_input_was_keyboard();
         let focus = self.focus.clone();
         let disabled = self.disabled;
+        let stacked = self.model.menus.iter().any(|menu| menu.mnemonic.is_some());
+        let icon_size = theme.spacing.large;
         let mut root = div()
             .id("menu-bar")
             .debug_selector(|| "menu-bar".to_owned())
@@ -480,19 +620,21 @@ impl Render for MenuBar {
             .flex_col()
             .items_start()
             .gap(px(theme.spacing.xsmall))
-            .when(disabled, |el| el.opacity(0.6))
             .when(self.open_menu.is_some(), |el| {
                 el.on_mouse_down_out(cx.listener(Self::outside_down))
             });
         let mut headers_row = div()
             .id("menu-bar-headers")
+            .w_full()
             .flex()
             .items_center()
             .gap(px(theme.spacing.xsmall))
-            .px(px(theme.spacing.small))
-            .py(px(theme.spacing.xsmall))
-            .bg(theme.colors.surface)
-            .text_color(theme.colors.text);
+            .p(px(theme.spacing.xsmall))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(if disabled { look.disabled_border } else { look.bar_border })
+            .bg(look.bar_bg)
+            .when(!disabled, |el| el.shadow(vec![box_shadow(theme.shadows.small)]));
         let headers = self
             .model
             .menus
@@ -502,30 +644,54 @@ impl Render for MenuBar {
                 let open = self.open_menu == Some(index);
                 let selected =
                     (bar_focused || self.open_menu.is_some()) && self.focused_menu == index;
+                let unavailable = menu.disabled || disabled;
+                // Keyboard focus on a closed bar draws the focus ring on the active header.
+                let ring = selected && bar_focused && keyboard && self.open_menu.is_none();
+                let (text, mnemonic, bg) = if unavailable {
+                    (look.disabled_text, look.disabled_mnemonic, look.bar_bg)
+                } else if selected || open {
+                    (look.header_active_text, look.header_active_mnemonic, look.header_active_bg)
+                } else {
+                    (look.header_text, look.mnemonic, look.bar_bg)
+                };
                 let mut item = div()
                     .id(format!("menu-header-{}", menu.id))
                     .debug_selector(move || format!("menu-header-{index}"))
                     .role(gpui_pre::accesskit::Role::MenuItem)
                     .aria_label(menu.label.clone())
                     .aria_expanded(open)
-                    .when(menu.disabled || disabled, |e| {
+                    .when(unavailable, |e| {
                         e.a11y_synthetic_children(|b| {
                             b.parent_node().set_disabled();
                         })
                     })
-                    .px(px(theme.spacing.small))
-                    .py(px(theme.spacing.xsmall))
-                    .rounded(px(theme.radii.small))
-                    .text_size(px(theme.typography.body))
-                    .text_color(if menu.disabled {
-                        theme.colors.disabled
-                    } else {
-                        theme.colors.text
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .when(stacked, |e| {
+                        e.h(px(theme.controls.large + theme.spacing.small))
+                            .min_w(px(theme.controls.large))
                     })
-                    .when(selected, |e| {
-                        e.aria_active_descendant().bg(active_bg).text_color(active_fg)
+                    .when(!stacked, |e| e.h(px(theme.controls.xsmall)))
+                    .px(px(theme.spacing.small))
+                    .rounded(px(theme.radii.small))
+                    .border(px(theme.borders.regular))
+                    .border_color(if ring { theme.colors.focus } else { bg.opacity(0.) })
+                    .bg(bg)
+                    .when(ring, |e| e.shadow(vec![focus_ring(look.ring)]))
+                    .text_size(px(theme.typography.body))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(text)
+                    .when(selected, |e| e.aria_active_descendant());
+                if !unavailable {
+                    item = item.hover(move |s| {
+                        if look.fill_hover {
+                            s.bg(look.header_active_bg).text_color(look.header_active_text)
+                        } else {
+                            s.underline()
+                        }
                     });
-                if !menu.disabled && !disabled {
                     let ent = cx.entity().clone();
                     item = item.on_click(move |_, window, cx| {
                         ent.update(cx, |this, cx| {
@@ -547,9 +713,13 @@ impl Render for MenuBar {
                         });
                     });
                 }
-                if let Some(mnemonic) = menu.mnemonic {
+                if let Some(value) = menu.mnemonic {
                     item = item.child(
-                        div().text_color(theme.colors.text_muted).child(format!("({mnemonic})")),
+                        div()
+                            .text_size(px(theme.typography.caption))
+                            .font_weight(FontWeight::NORMAL)
+                            .text_color(mnemonic)
+                            .child(format!("({value})")),
                     );
                     item = item.child(div().child(menu.label.clone()));
                 } else {
@@ -566,11 +736,13 @@ impl Render for MenuBar {
                 .iter()
                 .enumerate()
                 .map(|(index, entry)| match entry {
+                    // shadcn `-mx-1 my-1 h-px`: the rule spans the pane's padding.
                     MenuEntry::Separator => div()
                         .id(format!("menu-separator-{index}"))
                         .h(px(theme.borders.hairline))
+                        .mx(px(-theme.spacing.xsmall))
                         .my(px(theme.spacing.xsmall))
-                        .bg(theme.colors.border),
+                        .bg(look.pane_border),
                     MenuEntry::Command {
                         id,
                         label,
@@ -583,7 +755,13 @@ impl Render for MenuBar {
                         let command_id = id.clone();
                         let action = action.boxed_clone();
                         let active = index == self.active_item;
-                        let muted = theme.colors.text_muted;
+                        let (fg, muted) = if *unavailable {
+                            (look.row_disabled_text, look.row_disabled_muted)
+                        } else if active {
+                            (look.active_text, look.active_muted)
+                        } else {
+                            (look.row_text, look.row_muted)
+                        };
                         let mut row = div()
                             .id(format!("menu-command-{id}"))
                             .debug_selector(move || format!("menu-command-{command_id}"))
@@ -599,31 +777,39 @@ impl Render for MenuBar {
                                     b.parent_node().set_disabled();
                                 })
                             })
-                            .when(active, |e| {
-                                e.aria_active_descendant().bg(active_bg).text_color(active_fg)
-                            })
-                            .h(px(theme.controls.medium))
+                            .when(active, |e| e.aria_active_descendant().bg(look.active_bg))
+                            .h(px(theme.controls.small))
                             .px(px(theme.spacing.small))
                             .rounded(px(theme.radii.small))
                             .flex()
                             .items_center()
-                            .justify_between()
-                            .gap(px(theme.spacing.large))
-                            .text_color(if *unavailable {
-                                theme.colors.disabled
-                            } else {
-                                theme.colors.text
+                            .gap(px(theme.spacing.small))
+                            .text_size(px(theme.typography.body))
+                            .text_color(fg)
+                            .when_some(*checked, |e, checked| {
+                                e.child(div().size(px(icon_size)).flex_none().when(
+                                    checked,
+                                    |slot| {
+                                        slot.child(icon(
+                                            Icon::Check,
+                                            icon_size,
+                                            look.icon_stroke,
+                                            muted,
+                                        ))
+                                    },
+                                ))
                             })
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .gap(px(theme.spacing.xsmall))
-                                    .child(if checked.unwrap_or(false) { "✓" } else { "" })
-                                    .child(label.clone()),
-                            );
+                            .child(div().flex_grow(1.0).whitespace_nowrap().child(label.clone()));
                         if let Some(shortcut) = shortcut {
-                            row = row.child(div().text_color(muted).child(shortcut.clone()));
+                            row = row.child(
+                                div()
+                                    .ml_auto()
+                                    .flex_none()
+                                    .whitespace_nowrap()
+                                    .text_size(px(theme.typography.caption))
+                                    .text_color(muted)
+                                    .child(shortcut.clone()),
+                            );
                         }
                         if !*unavailable {
                             let ent = cx.entity().clone();
@@ -650,6 +836,13 @@ impl Render for MenuBar {
                     }
                     MenuEntry::Submenu { id, label, disabled: unavailable, .. } => {
                         let active = index == self.active_item;
+                        let (fg, muted) = if *unavailable {
+                            (look.row_disabled_text, look.row_disabled_muted)
+                        } else if active {
+                            (look.active_text, look.active_muted)
+                        } else {
+                            (look.row_text, look.row_muted)
+                        };
                         let mut row = div()
                             .id(format!("menu-submenu-{id}"))
                             .role(gpui_pre::accesskit::Role::MenuItem)
@@ -660,22 +853,22 @@ impl Render for MenuBar {
                                     b.parent_node().set_disabled();
                                 })
                             })
-                            .when(active, |e| {
-                                e.aria_active_descendant().bg(active_bg).text_color(active_fg)
-                            })
-                            .h(px(theme.controls.medium))
+                            .when(active, |e| e.aria_active_descendant().bg(look.active_bg))
+                            .h(px(theme.controls.small))
                             .px(px(theme.spacing.small))
                             .rounded(px(theme.radii.small))
                             .flex()
                             .items_center()
-                            .justify_between()
-                            .text_color(if *unavailable {
-                                theme.colors.disabled
-                            } else {
-                                theme.colors.text
-                            })
-                            .child(label.clone())
-                            .child("›");
+                            .gap(px(theme.spacing.small))
+                            .text_size(px(theme.typography.body))
+                            .text_color(fg)
+                            .child(div().flex_grow(1.0).whitespace_nowrap().child(label.clone()))
+                            .child(div().ml_auto().flex_none().child(icon(
+                                Icon::ChevronRight,
+                                icon_size,
+                                look.icon_stroke,
+                                muted,
+                            )));
                         if !*unavailable {
                             let ent = cx.entity().clone();
                             row = row
@@ -711,8 +904,9 @@ impl Render for MenuBar {
                     .min_w(px(theme.controls.large * 5.0))
                     .rounded(px(theme.radii.medium))
                     .border(px(theme.borders.regular))
-                    .border_color(theme.colors.border)
-                    .bg(theme.colors.elevated_surface)
+                    .border_color(look.pane_border)
+                    .bg(look.pane)
+                    .shadow(vec![box_shadow(theme.shadows.medium)])
                     .flex()
                     .flex_col()
                     .children(rows),

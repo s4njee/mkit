@@ -153,10 +153,63 @@ not individual row elements.
 
 ## Theme tokens used
 
-The in-window surface reads background, surface, elevated-surface, text, muted text, disabled,
-border, focus, and accent colors plus spacing, typography, radii, borders, and control dimensions
-from mkit-core Global `Theme`. High-contrast theme active rows use its semantic accent tokens.
-Shortcuts and mnemonics use muted text unless focused. No component colors are hard-coded.
+The look follows the docs-site web preview (`site/src/demos/e7_expansion.ts`, styled by
+`.e7-menubar*` in `site/src/demos/e7_expansion.css` and `.ui-popover`/`.ui-menu*` in
+`site/src/ui/ui.css`, with the shadcn token mapping in `site/src/ui/tokens.ts`), which is shadcn/ui's
+Menubar with each header's mnemonic stacked above its label. The popup reuses DropdownMenu's look.
+Colours are resolved from the installed `Theme` in three variants. `high-contrast` is selected by
+theme name (the convention other registry components use); every other theme is treated as dark
+when `mkit_core::contrast::relative_luminance(colors.background) < 0.5`, otherwise light. Derived
+colours use a crate-local `color-mix` helper built on `mkit_core::contrast::composite`; no
+mkit-core API or tokens are added. "Accent" is shadcn's `accent`: `text` mixed 4% (light) or 12%
+(dark) into `background`, the mix Button, DropdownMenu, Tabs and Sidebar use.
+
+| Part | Light | Dark | High contrast |
+|---|---|---|---|
+| Bar fill, border | `background`, `border` | `background`, `text` at 10% over `background` composited | `background`, `border` |
+| Bar shadow | `shadows.small` (shadcn `shadow-xs`) | same | `shadows.small` (transparent in this theme) |
+| Header label, mnemonic | `text` (medium weight), `text_muted` | same | `text`, `text_muted` |
+| Open, focused or hovered header | accent fill, `text` | same | `accent` fill, `accent_text` label and mnemonic; hover underlines |
+| Keyboard-focused header on a closed bar | accent fill, border `focus`, 3px ring of `focus` at 50% | same | `accent` fill, border `focus`, 3px ring of opaque `focus` |
+| Disabled bar or header | label, mnemonic and bar border mixed 50% over `background`; no shadow | same | solid `disabled` |
+| Popup pane | `surface`, `border`, `shadows.medium` | `surface`, `text` at 10% over `surface` composited, `shadows.medium` | `background`, `border` |
+| Popup row | `text`; shortcut, check and chevron `text_muted` | same | `text`, `text_muted` |
+| Active popup row | accent fill | accent fill | `accent` fill, `accent_text` for every part |
+| Disabled popup row | `text` and `text_muted` at 50% over the pane | same | solid `disabled` |
+| Separator | the pane border colour | same | `border` |
+
+- **Bar.** Full width, padding `spacing.xsmall`, radius `radii.medium`, a `borders.regular` border
+  and an opaque `background` fill (GPUI fills the inside of drop shadows). Headers are separated by
+  `spacing.xsmall`; the preview uses 3px padding and a 2px gap, and there are no such tokens, so
+  shadcn menubar's `p-1` and `gap-1` (4px) are used. The preview draws no bar shadow; shadcn's
+  Menubar draws `shadow-xs`, which is kept.
+- **Headers.** When any menu has a mnemonic, headers stack the mnemonic (`typography.caption`,
+  12px, for the preview's 11px) above the label (`typography.body` at medium weight), are
+  `controls.large + spacing.small` tall (48px, the preview's height) and at least `controls.large`
+  wide (the preview's 44px has no token). Without mnemonics, headers are single-line and
+  `controls.xsmall` (28px) tall, shadcn's trigger inside an `h-9` bar. Horizontal padding is
+  `spacing.small` (`px-2`), the radius `radii.small`, and a transparent `borders.regular` border is
+  reserved for the focus ring. Font weight uses GPUI's medium (500) and normal weights; there is no
+  font-weight token yet.
+- **Focus.** Keyboard focus stays on the bar and the active header is exposed as the active
+  descendant. The preview shows it with the accent fill (`:focus-visible`); GPUI adds the shared
+  focus treatment, border `focus` and a 3px ring, on that header while the bar has keyboard focus
+  and no popup is open, because a 4% fill alone is too faint for a focus indicator. Pointer focus
+  shows the fill only. The header fill under the ring is opaque, since GPUI paints drop shadows as
+  filled shapes. The 3px ring is the shadcn/ui ring width, a fixed component value.
+- **Disabled.** The preview dims unavailable rows with opacity. GPUI applies element opacity to
+  each painted part separately, so colours are mixed 50% over the opaque fill beneath instead.
+  High contrast keeps solid `disabled` colours so unavailable items stay legible.
+- **Popup.** DropdownMenu's pane: padding `spacing.xsmall`, radius `radii.medium`, a
+  `borders.regular` border, `shadows.medium`, and a minimum width of 5 × `controls.large` (200px,
+  the preview's width), placed `spacing.small` below the bar. Rows are `controls.small` tall with
+  `spacing.small` padding and gap, `radii.small` corners and `typography.body` labels. Shortcuts are
+  right-aligned `typography.caption` text shown as supplied (the component depends only on
+  mkit-core, so it does not format them through KeyHint). Checkable rows reserve a leading
+  `spacing.large` slot and draw a Lucide `check` (20,6 → 9,17 → 4,12) when checked; submenu rows end
+  with a Lucide `chevron-right` (9,6 → 15,12 → 9,18). Both are vector paths stroked at 2/24 of the
+  icon size (`borders.regular` in high contrast) and are decorative. Separators are a
+  `borders.hairline` rule spanning the pane padding (shadcn `-mx-1 my-1`).
 
 ## WAI-ARIA pattern reference
 

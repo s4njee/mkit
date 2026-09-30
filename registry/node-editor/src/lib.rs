@@ -2,12 +2,15 @@
 extern crate gpui_pre as gpui;
 
 use gpui_pre::{
-    App, Bounds, Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding,
-    KeyDownEvent, KeyUpEvent, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
-    PinchEvent, Pixels, Point, Render, ScrollDelta, ScrollWheelEvent, Window, actions, canvas, div,
-    point, prelude::*, px,
+    App, Bounds, Context, EventEmitter, FocusHandle, Focusable, FontWeight, IntoElement,
+    KeyBinding, KeyDownEvent, KeyUpEvent, MouseButton, MouseDownEvent, MouseMoveEvent,
+    MouseUpEvent, PinchEvent, Pixels, Point, Render, Rgba, ScrollDelta, ScrollWheelEvent, Window,
+    actions, canvas, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::{ShadowToken, Theme},
+};
 use std::{cell::Cell, rc::Rc};
 
 pub const KEY_CONTEXT: &str = "MkitNodeEditor";
@@ -98,6 +101,76 @@ const PORT_RADIUS: f32 = 6.0;
 const EDGE_WIDTH: f32 = 2.0;
 const MIN_SCALE: f32 = 0.00001;
 const MAX_SCALE: f32 = 16.0;
+
+/// Colours derived from theme tokens; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    high_contrast: bool,
+    /// shadcn "muted": control and row hover fill.
+    muted: Rgba,
+    /// Frame, card, toolbar, and list dividers.
+    divider: Rgba,
+    /// Opaque outline-button border.
+    control_border: Rgba,
+    /// Node card border under the pointer.
+    hover_border: Rgba,
+    /// Selected node title band and focused connection row.
+    selected_bg: Rgba,
+    selected_text: Rgba,
+    ring: Rgba,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+fn look(t: &Theme) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        return Look {
+            high_contrast: true,
+            muted: c.background,
+            divider: c.border,
+            control_border: c.border,
+            hover_border: c.accent,
+            selected_bg: c.accent,
+            selected_text: c.accent_text,
+            ring: c.focus,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    Look {
+        high_contrast: false,
+        muted,
+        divider: if dark { c.text.opacity(0.1) } else { c.border },
+        control_border: if dark { mix(c.text, c.background, 0.1) } else { c.border },
+        hover_border: mix(c.text, c.background, 0.3),
+        selected_bg: muted,
+        selected_text: c.text,
+        ring: c.focus.opacity(0.5),
+    }
+}
+fn box_shadow(shadow: ShadowToken) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: shadow.color.into(),
+        offset: point(px(shadow.x), px(shadow.y)),
+        blur_radius: px(shadow.blur),
+        spread_radius: px(shadow.spread),
+        inset: false,
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused or selected element in screen pixels
+/// so it stays legible at every zoom.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GraphTransform {
@@ -1303,12 +1376,16 @@ impl NodeEditor {
             self.space_held = false;
         }
     }
+    /// A small outline button (the restyled Button's `outline` variant) at the dense
+    /// `controls.xsmall` toolbar height.
     fn toolbar_button(
         id: &'static str,
         label: &'static str,
         theme: Theme,
         click: impl Fn(&gpui_pre::ClickEvent, &mut Window, &mut App) + 'static,
     ) -> impl IntoElement {
+        let look = look(&theme);
+        let c = theme.colors;
         div()
             .id(id)
             .debug_selector(move || id.into())
@@ -1321,12 +1398,23 @@ impl NodeEditor {
             .flex()
             .items_center()
             .justify_center()
-            .rounded(px(theme.radii.small))
-            .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .bg(theme.colors.elevated_surface)
-            .text_color(theme.colors.text)
-            .focus_visible(|element| element.border_color(theme.colors.focus))
+            .rounded(px(theme.radii.medium))
+            .border(px(theme.borders.regular))
+            .border_color(look.control_border)
+            .bg(c.background)
+            .shadow(vec![box_shadow(theme.shadows.small)])
+            .text_color(c.text)
+            .text_size(px(theme.typography.body))
+            .font_weight(FontWeight::MEDIUM)
+            .whitespace_nowrap()
+            .hover(
+                move |s| {
+                    if look.high_contrast { s.border_color(c.accent) } else { s.bg(look.muted) }
+                },
+            )
+            .focus_visible(move |s| {
+                s.border_color(c.focus).bg(c.background).shadow(vec![focus_ring(look.ring)])
+            })
             .on_click(click)
             .child(label)
     }
@@ -1341,6 +1429,8 @@ impl Focusable for NodeEditor {
 impl Render for NodeEditor {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = *cx.global::<Theme>();
+        let look = look(&theme);
+        let transparent = theme.colors.background.opacity(0.);
         let focus = self.focus.get_or_insert_with(|| cx.focus_handle().tab_index(0)).clone();
         let transform = self.transform;
         let bounds_cell = self.bounds.clone();
@@ -1422,9 +1512,11 @@ impl Render for NodeEditor {
             .overflow_hidden()
             .bg(theme.colors.background)
             .border(px(theme.borders.hairline))
-            .border_color(theme.colors.border)
-            .rounded(px(theme.radii.medium))
-            .focus_visible(|element| element.border_color(theme.colors.focus))
+            .border_color(look.divider)
+            .rounded(px(theme.radii.large))
+            .focus_visible(move |element| {
+                element.border_color(theme.colors.focus).shadow(vec![focus_ring(look.ring)])
+            })
             .on_action(cx.listener(Self::on_next))
             .on_action(cx.listener(Self::on_previous))
             .on_action(cx.listener(Self::on_select))
@@ -1468,9 +1560,9 @@ impl Render for NodeEditor {
                 .gap(px(theme.spacing.xsmall))
                 .h(px(theme.controls.small))
                 .px(px(theme.spacing.small))
-                .bg(theme.colors.surface)
+                .bg(theme.colors.background)
                 .border_b(px(theme.borders.hairline))
-                .border_color(theme.colors.border)
+                .border_color(look.divider)
                 .text_color(theme.colors.text_muted)
                 .text_size(px(theme.typography.caption))
                 .child(zoom_label)
@@ -1546,6 +1638,7 @@ impl Render for NodeEditor {
             let selected = self.selected.contains(&node.id);
             let focused = self.focused_node.as_deref() == Some(node.id.as_str())
                 && self.focused_port.is_none();
+            let card_radius = theme.radii.large * scale;
             let mut card = div()
                 .id(format!("node-{}", node.id))
                 .debug_selector({
@@ -1560,20 +1653,22 @@ impl Render for NodeEditor {
                 .role(gpui_pre::accesskit::Role::Group)
                 .aria_label(format!("{} node", node.title))
                 .aria_selected(selected)
-                .border(px(if selected {
+                // Keyboard focus: a `focus` border at the strong width. Selection: the focus
+                // ring outside the card plus a filled title band. Hover: a darker border.
+                .border(px(if focused {
                     theme.borders.strong * scale
                 } else {
                     theme.borders.hairline * scale
                 }))
-                .border_color(if focused {
-                    theme.colors.focus
-                } else if selected {
-                    theme.colors.accent
-                } else {
-                    theme.colors.border
-                })
-                .rounded(px(theme.radii.small * scale))
+                .border_color(if focused { theme.colors.focus } else { look.divider })
+                .when(!focused, |card| card.hover(move |s| s.border_color(look.hover_border)))
+                .rounded(px(card_radius))
                 .bg(theme.colors.surface)
+                .shadow(if selected {
+                    vec![focus_ring(look.ring)]
+                } else {
+                    vec![box_shadow(theme.shadows.small)]
+                })
                 .text_color(theme.colors.text)
                 .flex()
                 .flex_col()
@@ -1584,9 +1679,18 @@ impl Render for NodeEditor {
                     .px(px(theme.spacing.small * scale))
                     .flex()
                     .items_center()
+                    .overflow_hidden()
+                    .whitespace_nowrap()
                     .border_b(px(theme.borders.hairline * scale))
-                    .border_color(theme.colors.border)
+                    .border_color(look.divider)
                     .text_size(px(theme.typography.body * scale))
+                    .font_weight(FontWeight::MEDIUM)
+                    .when(selected, |header| {
+                        header
+                            .bg(look.selected_bg)
+                            .text_color(look.selected_text)
+                            .rounded_t(px(card_radius))
+                    })
                     .child(node.title.clone()),
             );
             let port_rows = node.inputs.len().max(node.outputs.len()).max(1);
@@ -1611,17 +1715,7 @@ impl Render for NodeEditor {
                             .gap(px(theme.spacing.xsmall * scale))
                             .role(gpui_pre::accesskit::Role::Label)
                             .aria_label(format!("Input {}, type {}", port.label, port.data_type))
-                            .child(
-                                div()
-                                    .w(px(PORT_RADIUS * scale))
-                                    .h(px(PORT_RADIUS * scale))
-                                    .rounded(px(theme.radii.pill))
-                                    .bg(if port_focused {
-                                        theme.colors.focus
-                                    } else {
-                                        theme.colors.accent
-                                    }),
-                            )
+                            .child(port_handle(theme, look, scale, port_focused))
                             .child(port.label.clone()),
                     );
                 } else {
@@ -1638,17 +1732,7 @@ impl Render for NodeEditor {
                             .role(gpui_pre::accesskit::Role::Label)
                             .aria_label(format!("Output {}, type {}", port.label, port.data_type))
                             .child(port.label.clone())
-                            .child(
-                                div()
-                                    .w(px(PORT_RADIUS * scale))
-                                    .h(px(PORT_RADIUS * scale))
-                                    .rounded(px(theme.radii.pill))
-                                    .bg(if port_focused {
-                                        theme.colors.focus
-                                    } else {
-                                        theme.colors.accent
-                                    }),
-                            ),
+                            .child(port_handle(theme, look, scale, port_focused)),
                     );
                 }
                 card = card.child(row);
@@ -1684,11 +1768,16 @@ impl Render for NodeEditor {
                     .tab_index(0)
                     .aria_label("Graph minimap. Click to center the viewport on a graph region. Use Alt+Arrow keys to pan.")
                     .aria_description(format!("Current viewport: x {:.0} to {:.0}, y {:.0} to {:.0}.", top_left.x, top_left.x + view_world_w, top_left.y, top_left.y + view_world_h))
-                    .border(px(theme.borders.strong))
-                    .border_color(theme.colors.border)
-                    .rounded(px(theme.radii.small))
-                    .bg(theme.colors.elevated_surface)
-                    .focus_visible(|element| element.border_color(theme.colors.focus))
+                    .border(px(theme.borders.hairline))
+                    .border_color(look.divider)
+                    .rounded(px(theme.radii.large))
+                    .bg(theme.colors.surface)
+                    .shadow(vec![box_shadow(theme.shadows.small)])
+                    .focus_visible(move |element| {
+                        element
+                            .border_color(theme.colors.focus)
+                            .shadow(vec![focus_ring(look.ring)])
+                    })
                     .on_mouse_down(MouseButton::Left, cx.listener(Self::on_minimap_down));
             for node in &self.graph.nodes {
                 if !node.position.x.is_finite() || !node.position.y.is_finite() {
@@ -1701,6 +1790,7 @@ impl Render for NodeEditor {
                         .top(px(map_y + (node.position.y - graph_bounds.min_y) * map_scale))
                         .w(px((NODE_WIDTH * map_scale).max(2.0)))
                         .h(px((node.height() * map_scale).max(2.0)))
+                        .rounded(px(theme.radii.small * map_scale))
                         .bg(theme.colors.text_muted),
                 );
             }
@@ -1712,6 +1802,7 @@ impl Render for NodeEditor {
                     .top(px(map_y + (top_left.y - graph_bounds.min_y) * map_scale))
                     .w(px((view_world_w * map_scale).max(2.0)))
                     .h(px((view_world_h * map_scale).max(2.0)))
+                    .rounded(px(theme.radii.small))
                     .border(px(theme.borders.strong))
                     .border_color(theme.colors.accent),
             );
@@ -1728,9 +1819,10 @@ impl Render for NodeEditor {
                     .top(px(a.y.min(b.y)))
                     .w(px((a.x - b.x).abs().max(1.0)))
                     .h(px((a.y - b.y).abs().max(1.0)))
-                    .border(px(theme.borders.strong))
+                    .rounded(px(theme.radii.small))
+                    .border(px(theme.borders.hairline))
                     .border_color(theme.colors.accent)
-                    .bg(theme.colors.accent.opacity(0.18))
+                    .bg(theme.colors.accent.opacity(0.1))
                     .role(gpui_pre::accesskit::Role::Status)
                     .aria_label("Box selection preview"),
             );
@@ -1761,6 +1853,8 @@ impl Render for NodeEditor {
             .px(px(theme.spacing.small))
             .py(px(theme.spacing.xsmall))
             .bg(theme.colors.surface)
+            .border_t(px(theme.borders.hairline))
+            .border_color(look.divider)
             .text_color(theme.colors.text_muted)
             .text_size(px(theme.typography.caption));
         for (index, summary) in summaries.enumerate() {
@@ -1773,12 +1867,23 @@ impl Render for NodeEditor {
                     .tab_index(0)
                     .aria_selected(selected)
                     .aria_label(format!("{}{}", summary, if selected { ", selected" } else { "" }))
-                    .border(px(if selected {
-                        theme.borders.strong
-                    } else {
-                        theme.borders.hairline
-                    }))
-                    .border_color(if selected { theme.colors.accent } else { theme.colors.border })
+                    // The restyled Tree row: radius-small, a reserved hairline border, accent
+                    // fill with a `focus` outline for the focused connection, muted hover.
+                    .px(px(theme.spacing.small))
+                    .rounded(px(theme.radii.small))
+                    .border(px(theme.borders.hairline))
+                    .border_color(if selected { theme.colors.focus } else { transparent })
+                    .when(selected, |row| row.bg(look.selected_bg).text_color(look.selected_text))
+                    .when(!selected, |row| {
+                        row.hover(move |s| {
+                            if look.high_contrast {
+                                s.border_color(theme.colors.border)
+                            } else {
+                                s.bg(look.muted)
+                            }
+                        })
+                    })
+                    .focus_visible(move |row| row.border_color(theme.colors.focus))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.selected_connection = Some(connection_id.clone());
                         cx.notify();
@@ -1810,6 +1915,41 @@ impl NodeEditor {
             ),
         }
     }
+}
+
+/// A port drawn in the restyled Slider thumb look at the graph's port size: an opaque
+/// `background` fill, a hairline `accent` border, and the small shadow. The keyboard-focused port
+/// fills with `accent` and gains a `focus` border and the focus ring in place of the shadow.
+fn port_handle(theme: Theme, look: Look, scale: f32, focused: bool) -> impl IntoElement {
+    let size = PORT_RADIUS * scale;
+    // GPUI draws a box-shadow ring with the element's clamped corner radius, which squares off a
+    // ring around so small a circle, so the focus ring is a round layer painted behind the port.
+    // Both layers are absolutely positioned, so the port's layout footprint is unchanged.
+    div()
+        .flex_none()
+        .relative()
+        .size(px(size))
+        .when(focused, |port| {
+            port.child(
+                div()
+                    .absolute()
+                    .top(px(-FOCUS_RING_WIDTH))
+                    .left(px(-FOCUS_RING_WIDTH))
+                    .size(px(size + FOCUS_RING_WIDTH * 2.0))
+                    .rounded(px(size / 2.0 + FOCUS_RING_WIDTH))
+                    .bg(look.ring),
+            )
+        })
+        .child(
+            div()
+                .absolute()
+                .inset_0()
+                .rounded(px(size / 2.0))
+                .border(px(theme.borders.hairline * scale))
+                .border_color(if focused { theme.colors.focus } else { theme.colors.accent })
+                .bg(if focused { theme.colors.accent } else { theme.colors.background })
+                .when(!focused, |port| port.shadow(vec![box_shadow(theme.shadows.small)])),
+        )
 }
 
 fn reading_order(nodes: &[GraphNode]) -> Vec<&GraphNode> {

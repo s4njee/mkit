@@ -3,9 +3,97 @@ extern crate gpui_pre as gpui;
 
 use gpui_pre::{
     Context, EventEmitter, FocusHandle, Focusable, IntoElement, KeyBinding, KeyDownEvent, Render,
-    Window, actions, div, prelude::*, px,
+    Rgba, Window, actions, div, point, prelude::*, px,
 };
-use mkit_core::theme::Theme;
+use mkit_core::{
+    contrast::{composite, relative_luminance},
+    theme::Theme,
+};
+
+/// Resolved segment colours; see the spec's "Theme tokens used" table.
+#[derive(Clone, Copy)]
+struct Look {
+    fill: Rgba,
+    border: Rgba,
+    text: Rgba,
+    separator: Rgba,
+    /// Pointer-hover fill; `None` in high contrast.
+    hover_bg: Option<Rgba>,
+    /// Pointer-hover border in high contrast.
+    hover_border: Option<Rgba>,
+    focus_fill: Rgba,
+    focus_border: Rgba,
+    focus_ring: Rgba,
+    invalid_border: Rgba,
+    /// Ring on the focused segment while invalid; `None` in high contrast, where focus keeps its ring.
+    invalid_ring: Option<Rgba>,
+}
+/// Mix `foreground` into `base` by `weight`, like CSS `color-mix(in srgb, ...)`.
+fn mix(foreground: Rgba, base: Rgba, weight: f32) -> Rgba {
+    composite(Rgba { a: weight * foreground.a, ..foreground }, Rgba { a: 1.0, ..base })
+}
+/// The web convention's `opacity: .5` applied as one layer: composite over `base`, then mix 50%.
+fn dim(color: Rgba, base: Rgba) -> Rgba {
+    mix(composite(color, base), base, 0.5)
+}
+fn look(t: &Theme, disabled: bool) -> Look {
+    let c = t.colors;
+    if t.name == "high-contrast" {
+        let (text, border) = if disabled { (c.disabled, c.disabled) } else { (c.text, c.border) };
+        return Look {
+            fill: c.background,
+            border,
+            text,
+            separator: if disabled { c.disabled } else { c.text_muted },
+            hover_bg: None,
+            hover_border: Some(c.accent),
+            focus_fill: c.background,
+            focus_border: c.focus,
+            focus_ring: c.focus,
+            invalid_border: c.danger,
+            invalid_ring: None,
+        };
+    }
+    let dark = relative_luminance(c.background) < 0.5;
+    let muted = mix(c.text, c.background, if dark { 0.12 } else { 0.04 });
+    let fill = c.background;
+    let look = Look {
+        fill,
+        border: if dark { mix(c.text, fill, 0.1) } else { c.border },
+        text: c.text,
+        separator: c.text_muted,
+        hover_bg: Some(muted),
+        hover_border: None,
+        focus_fill: muted,
+        focus_border: c.focus,
+        focus_ring: c.focus.opacity(0.5),
+        invalid_border: c.danger,
+        invalid_ring: Some(c.danger.opacity(if dark { 0.4 } else { 0.2 })),
+    };
+    if !disabled {
+        return look;
+    }
+    let bg = c.background;
+    Look {
+        fill: dim(look.fill, bg),
+        border: dim(look.border, bg),
+        text: dim(look.text, bg),
+        separator: dim(look.separator, bg),
+        hover_bg: None,
+        ..look
+    }
+}
+/// shadcn/ui focus ring width, drawn outside the focused segment.
+const FOCUS_RING_WIDTH: f32 = 3.0;
+fn focus_ring(color: Rgba) -> gpui_pre::BoxShadow {
+    gpui_pre::BoxShadow {
+        color: color.into(),
+        offset: point(px(0.), px(0.)),
+        blur_radius: px(0.),
+        spread_radius: px(FOCUS_RING_WIDTH),
+        inset: false,
+    }
+}
 
 pub const KEY_CONTEXT: &str = "TimeField";
 actions!(
@@ -502,7 +590,18 @@ impl TimeField {
             Segment::Minute | Segment::Second => (0.0, 59.0),
             Segment::Period => (0.0, 1.0),
         };
-        let focused = focus.is_focused(window);
+        let focused = focus.is_focused(window) && !self.disabled;
+        let look = look(&theme, self.disabled);
+        let invalid = self.validation.is_some();
+        let border = match (invalid, focused) {
+            (true, _) => look.invalid_border,
+            (false, true) => look.focus_border,
+            (false, false) => look.border,
+        };
+        let ring = match look.invalid_ring {
+            Some(ring) if invalid => ring,
+            _ => look.focus_ring,
+        };
         div()
             .id(match segment {
                 Segment::Hour => "time-hour",
@@ -535,14 +634,31 @@ impl TimeField {
                 ))
             })
             .when(self.disabled, |element| element.tab_stop(false))
+            .flex()
+            .flex_none()
+            .items_center()
+            .justify_center()
+            .h(px(theme.controls.small))
+            .min_w(px(theme.controls.small))
             .px(px(theme.spacing.xsmall))
-            .py(px(theme.spacing.xsmall))
             .rounded(px(theme.radii.small))
-            .border(px(theme.borders.hairline))
-            .border_color(if focused { theme.colors.focus } else { theme.colors.border })
-            .focus_visible(|element| element.border_color(theme.colors.focus))
-            .bg(if focused { theme.colors.elevated_surface } else { theme.colors.surface })
-            .text_color(if self.disabled { theme.colors.disabled } else { theme.colors.text })
+            .border(px(theme.borders.regular))
+            .border_color(border)
+            .bg(if focused { look.focus_fill } else { look.fill })
+            .when(focused, |element| element.shadow(vec![focus_ring(ring)]))
+            .when(!focused && !self.disabled, |element| {
+                element.hover(move |style| {
+                    let style = match look.hover_bg {
+                        Some(color) => style.bg(color),
+                        None => style,
+                    };
+                    match look.hover_border {
+                        Some(color) if !invalid => style.border_color(color),
+                        _ => style,
+                    }
+                })
+            })
+            .text_color(look.text)
             .text_size(px(theme.typography.body))
             .child(if self.value.is_none() && self.draft.is_none() {
                 "--".to_owned()
@@ -586,10 +702,14 @@ impl Render for TimeField {
             .items_center()
             .gap(px(theme.spacing.xsmall));
 
+        let separator = look(&theme, self.disabled).separator;
         for (index, segment) in segments.into_iter().enumerate() {
             if index > 0 && segment != Segment::Period {
                 row = row.child(
-                    div().text_color(theme.colors.text_muted).child(self.labels.separator.clone()),
+                    div()
+                        .text_color(separator)
+                        .text_size(px(theme.typography.body))
+                        .child(self.labels.separator.clone()),
                 );
             }
             row = row.child(self.segment_element(
@@ -604,8 +724,9 @@ impl Render for TimeField {
         if let Some(message) = self.validation.clone() {
             row = row.child(
                 div()
+                    .ml(px(theme.spacing.xsmall))
                     .text_color(theme.colors.danger)
-                    .text_size(px(theme.typography.caption))
+                    .text_size(px(theme.typography.body))
                     .child(message),
             );
         }
