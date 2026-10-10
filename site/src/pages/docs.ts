@@ -59,6 +59,7 @@ export function docsSidebar(activeSlug: string) {
         <div class="docs-nav-group-block">
           <span class="docs-nav-heading">Guides</span>
           ${pageLink(`${base}theming`, 'Design language', activeSlug === 'theming')}
+          ${pageLink(`${base}theming/subcompact`, 'Subcompact', activeSlug === 'subcompact')}
           ${pageLink(`${base}health`, 'Book health', activeSlug === 'health')}
         </div>
         <div class="docs-nav-group-block">

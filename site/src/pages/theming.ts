@@ -246,6 +246,7 @@ export function renderTheming() {
           <p class="docs-lede">${theming.lede}</p>
           <div class="docs-callout">${icon('book', 15)}<span>A redistributable icon set and theme authoring tools are not shipped yet. Token values below are generated from the library source.</span></div>
           <a class="doc-source" href="${bookBlobUrl}/${theming.sourcePath}" target="_blank" rel="noreferrer">Read the book chapter<span class="sr-only"> (opens in a new tab)</span> ${icon('external', 13)}</a>
+          <a class="doc-source" href="${base}theming/subcompact">Subcompact: the high-density design system →</a>
         </header>
         <article class="docs-article">
           ${theming.intro ? `<div class="doc-intro">${theming.intro}</div>` : ''}

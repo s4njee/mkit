@@ -4,6 +4,7 @@ import { cardBySlug } from './catalog'
 import { mountDocs, renderDocs, renderNotFound } from './pages/docs'
 import { mountHealth, renderHealth } from './pages/health'
 import { mountHome, renderHome } from './pages/home'
+import { mountSubcompact, renderSubcompact } from './pages/subcompact'
 import { mountTheming, renderTheming } from './pages/theming'
 import { installLinkInterceptor, navigate, onPopState, resolveRoute } from './router'
 import { installSearch } from './search'
@@ -20,6 +21,9 @@ function page(): { html: string; title: string; mount: () => (() => void) | void
   const route = resolveRoute(location.pathname)
   if (route.name === 'theming') {
     return { html: renderTheming(), title: 'The mkit design language · mkit', mount: mountTheming }
+  }
+  if (route.name === 'subcompact') {
+    return { html: renderSubcompact(), title: 'Subcompact design system · mkit', mount: mountSubcompact }
   }
   if (route.name === 'health') {
     return { html: renderHealth(), title: 'Book health · mkit', mount: mountHealth }

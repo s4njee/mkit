@@ -1,6 +1,7 @@
 export type Route =
   | { name: 'home' }
   | { name: 'theming' }
+  | { name: 'subcompact' }
   | { name: 'health' }
   | { name: 'component'; slug: string }
   | { name: 'not-found' }
@@ -21,6 +22,7 @@ export function resolveRoute(pathname: string): Route {
   if (path === '/') return { name: 'home' }
   if (path === '/components') return { name: 'home' }
   if (path === '/theming') return { name: 'theming' }
+  if (path === '/theming/subcompact') return { name: 'subcompact' }
   if (path === '/health') return { name: 'health' }
   const match = path.match(/^\/components\/([A-Za-z0-9-]+)$/)
   if (match) return { name: 'component', slug: match[1] }

@@ -372,7 +372,7 @@ function extractDoc(relSource, card) {
 }
 
 // Render a standalone book chapter for the site (images stay inline).
-function extractChapter(relSource, fallbackTitle) {
+function extractChapter(relSource, fallbackTitle, slug = 'theming') {
   const abs = join(bookSrc, relSource)
   const raw = readFileSync(abs, 'utf8').replace(/\r\n/g, '\n')
   const sourceDir = dirname(abs)
@@ -409,7 +409,7 @@ function extractChapter(relSource, fallbackTitle) {
     const sectionBody = chunk.slice(heading[0].length).trim()
     if (!sectionBody) continue
     sections.push({
-      id: `theming--${slugify(sectionTitle)}`,
+      id: `${slug}--${slugify(sectionTitle)}`,
       title: sectionTitle,
       html: renderBlocks(sectionBody),
     })
@@ -420,7 +420,7 @@ function extractChapter(relSource, fallbackTitle) {
     .filter(Boolean)
   const first = paragraphs.shift() ?? ''
   return {
-    slug: 'theming',
+    slug,
     title,
     lede: first ? renderInline(first) : '',
     intro: paragraphs.length ? renderBlocks(paragraphs.join('\n\n')) : '',
@@ -467,6 +467,11 @@ for (const kind of Object.keys(catalog)) {
 }
 
 const theming = extractChapter('theming/design-language.md', 'The mkit design language')
+const subcompact = extractChapter(
+  'theming/subcompact.md',
+  'Subcompact: a high-density design system',
+  'subcompact',
+)
 
 // Clean out stale screenshots and copy every image the generated HTML needs.
 rmSync(publicBook, { recursive: true, force: true })
@@ -478,8 +483,10 @@ for (const card of generatedCards) {
     for (const section of component.sections) htmlParts.push(section.html)
   }
 }
-htmlParts.push(theming.lede, theming.intro, ...theming.notes)
-for (const section of theming.sections) htmlParts.push(section.html)
+for (const chapter of [theming, subcompact]) {
+  htmlParts.push(chapter.lede, chapter.intro, ...chapter.notes)
+  for (const section of chapter.sections) htmlParts.push(section.html)
+}
 
 const imageRefs = new Set()
 for (const html of htmlParts) {
@@ -495,12 +502,13 @@ for (const rel of imageRefs) {
 }
 
 mkdirSync(dirname(outFile), { recursive: true })
-const banner = `// AUTO-GENERATED — do not edit.\n// Source: book/src/components/**/*.md and book/src/theming/design-language.md\n// via scripts/generate-content.mjs. Run \`npm run content\` after changing the book.\n\nimport type { CatalogCard, ChapterDoc } from '../types'\n\n`
+const banner = `// AUTO-GENERATED — do not edit.\n// Source: book/src/components/**/*.md and book/src/theming/{design-language,subcompact}.md\n// via scripts/generate-content.mjs. Run \`npm run content\` after changing the book.\n\nimport type { CatalogCard, ChapterDoc } from '../types'\n\n`
 const data = JSON.stringify(generatedCards, null, 2)
-const chapter = JSON.stringify(theming, null, 2)
 writeFileSync(
   outFile,
-  `${banner}export const catalog: CatalogCard[] = ${data}\n\nexport const theming: ChapterDoc = ${chapter}\n`,
+  `${banner}export const catalog: CatalogCard[] = ${data}\n\n` +
+    `export const theming: ChapterDoc = ${JSON.stringify(theming, null, 2)}\n\n` +
+    `export const subcompact: ChapterDoc = ${JSON.stringify(subcompact, null, 2)}\n`,
 )
 
 const chapterCount = generatedCards.reduce((total, card) => total + card.components.length, 0)
@@ -512,5 +520,5 @@ if (undocumented.length) {
   console.warn(`content: registry components without a site page: ${undocumented.join(', ')}`)
 }
 console.log(
-  `content: wrote ${generatedCards.length} cards from ${chapterCount} book chapters (${documented.size}/${registryNames.size} registry components), plus the theming chapter`,
+  `content: wrote ${generatedCards.length} cards from ${chapterCount} book chapters (${documented.size}/${registryNames.size} registry components), plus the theming and subcompact chapters`,
 )
