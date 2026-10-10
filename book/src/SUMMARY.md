@@ -156,6 +156,7 @@
 # Part XI: Theming and design language
 
 - [The mkit design language](theming/design-language.md)
+- [Subcompact: a high-density design system](theming/subcompact.md)
 
 # Part XII: Coming from another UI framework
 

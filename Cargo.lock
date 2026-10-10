@@ -4273,6 +4273,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mkit-example-subcompact-console"
+version = "0.1.0"
+dependencies = [
+ "gpui-pre",
+ "gpui-pre-platform",
+ "mkit",
+]
+
+[[package]]
 name = "mkit-example-text-input"
 version = "0.1.0"
 dependencies = [

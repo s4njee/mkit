@@ -1,0 +1,17 @@
+[package]
+name = "mkit-example-subcompact-console"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# A dense, terminal-style console composed from registry components under the subcompact
+# design system. It backs the subcompact chapter of the book.
+
+[dependencies]
+mkit.workspace = true
+gpui_pre.workspace = true
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.5" }
+
+[dev-dependencies]
+gpui_pre = { workspace = true, features = ["test-support"] }

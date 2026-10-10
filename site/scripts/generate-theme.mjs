@@ -1,5 +1,6 @@
 // Generate the token board data for the E9 theming page directly from
-// crates/mkit-core/src/theme.rs, so the site cannot drift from the library.
+// crates/mkit-core/src/theme.rs and subcompact.rs, so the site cannot drift
+// from the library.
 //
 // Run with `npm run content` (also runs before dev and build).
 
@@ -10,10 +11,8 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const siteRoot = resolve(here, '..')
 const repoRoot = resolve(siteRoot, '..')
-const themeRs = join(repoRoot, 'crates', 'mkit-core', 'src', 'theme.rs')
+const coreSrc = join(repoRoot, 'crates', 'mkit-core', 'src')
 const outFile = join(siteRoot, 'src', 'generated', 'theme.ts')
-
-const source = readFileSync(themeRs, 'utf8')
 
 function extractConsts(text) {
   const consts = {}
@@ -56,15 +55,28 @@ function splitTopLevel(body) {
   return parts.map((part) => part.trim()).filter(Boolean)
 }
 
-const consts = extractConsts(source)
-const cache = {}
+// Each source file gets its own constant table, because both files define
+// scale constants such as `TYPE` and `SPACE`.
+const sources = {
+  theme: extractConsts(readFileSync(join(coreSrc, 'theme.rs'), 'utf8')),
+  subcompact: extractConsts(readFileSync(join(coreSrc, 'subcompact.rs'), 'utf8')),
+}
+const caches = { theme: {}, subcompact: {} }
+let currentSource = 'theme'
 
-function parseConst(name) {
+function parseConst(name, source = currentSource) {
+  const cache = caches[source]
   if (name in cache) return cache[name]
-  if (!(name in consts)) throw new Error(`unknown const ${name}`)
-  const value = parseValue(consts[name])
-  cache[name] = value
-  return value
+  const consts = sources[source]
+  if (!(name in consts)) throw new Error(`unknown const ${name} in ${source}.rs`)
+  const previous = currentSource
+  currentSource = source
+  try {
+    cache[name] = parseValue(consts[name])
+  } finally {
+    currentSource = previous
+  }
+  return cache[name]
 }
 
 function hexToCss(hex) {
@@ -106,24 +118,32 @@ function parseValue(text) {
   throw new Error(`cannot parse value: ${value}`)
 }
 
-const themeConsts = {
-  LIGHT: 'light',
-  DARK: 'dark',
-  HIGH_CONTRAST: 'high-contrast',
-  SHADCN_LIGHT: 'shadcn-light',
-  SHADCN_DARK: 'shadcn-dark',
-}
+// [source file, const name, key]
+const themeConsts = [
+  ['theme', 'LIGHT', 'light'],
+  ['theme', 'DARK', 'dark'],
+  ['theme', 'HIGH_CONTRAST', 'high-contrast'],
+  ['theme', 'SHADCN_LIGHT', 'shadcn-light'],
+  ['theme', 'SHADCN_DARK', 'shadcn-dark'],
+  ['subcompact', 'PHOSPHOR', 'subcompact-phosphor'],
+  ['subcompact', 'AMBER', 'subcompact-amber'],
+  ['subcompact', 'PAPER', 'subcompact-paper'],
+]
 const labels = {
   light: 'Light',
   dark: 'Dark',
   'high-contrast': 'High contrast',
   'shadcn-light': 'shadcn light',
   'shadcn-dark': 'shadcn dark',
+  'subcompact-phosphor': 'Subcompact phosphor',
+  'subcompact-amber': 'Subcompact amber',
+  'subcompact-paper': 'Subcompact paper',
 }
 
 const themes = {}
-for (const [constName, key] of Object.entries(themeConsts)) {
-  const theme = parseConst(constName)
+for (const [source, constName, key] of themeConsts) {
+  const theme = parseConst(constName, source)
+  if (theme.name !== key) throw new Error(`${source}.rs ${constName} is named ${theme.name}, expected ${key}`)
   themes[key] = {
     key,
     label: labels[key],
@@ -139,8 +159,8 @@ for (const [constName, key] of Object.entries(themeConsts)) {
   }
 }
 
-const order = Object.values(themeConsts)
-const banner = `// AUTO-GENERATED from crates/mkit-core/src/theme.rs — do not edit.\n// Run \`npm run content\` after changing the theme tokens.\n\n`
+const order = themeConsts.map(([, , key]) => key)
+const banner = `// AUTO-GENERATED from crates/mkit-core/src/theme.rs and subcompact.rs — do not edit.\n// Run \`npm run content\` after changing the theme tokens.\n\n`
 const body = `export type ShadowToken = { y: number; blur: number; color: string }
 
 export type ThemeTokens = {
@@ -163,4 +183,4 @@ export const themes: Record<string, ThemeTokens> = ${JSON.stringify(themes, null
 `
 mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, banner + body)
-console.log(`theme: wrote ${order.length} built-in themes from theme.rs`)
+console.log(`theme: wrote ${order.length} built-in themes from theme.rs and subcompact.rs`)

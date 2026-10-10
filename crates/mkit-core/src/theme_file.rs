@@ -20,6 +20,7 @@
 //! channel, so a [`Theme`] built from arbitrary floats is quantized on export.
 //! Use [`Theme::to_json`] on a built-in theme to get a complete starting file.
 
+use crate::subcompact;
 use crate::theme::{
     BorderTokens, ColorTokens, ControlTokens, DARK, HIGH_CONTRAST, LIGHT, MotionTokens,
     RadiusTokens, SHADCN_DARK, SHADCN_LIGHT, ShadowToken, ShadowTokens, SpacingTokens, Theme,
@@ -184,7 +185,8 @@ fn color_hex(color: Rgba) -> String {
 /// once and reused on later loads, so reloading a file does not grow memory.
 fn intern_name(name: &str) -> &'static str {
     static NAMES: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
-    for builtin in [LIGHT, DARK, HIGH_CONTRAST, SHADCN_LIGHT, SHADCN_DARK] {
+    let builtins = [LIGHT, DARK, HIGH_CONTRAST, SHADCN_LIGHT, SHADCN_DARK];
+    for builtin in builtins.into_iter().chain(subcompact::PALETTES) {
         if builtin.name == name {
             return builtin.name;
         }
@@ -499,7 +501,16 @@ impl Theme {
 mod tests {
     use super::*;
 
-    const BUILTINS: [Theme; 5] = [LIGHT, DARK, HIGH_CONTRAST, SHADCN_LIGHT, SHADCN_DARK];
+    const BUILTINS: [Theme; 8] = [
+        LIGHT,
+        DARK,
+        HIGH_CONTRAST,
+        SHADCN_LIGHT,
+        SHADCN_DARK,
+        subcompact::PHOSPHOR,
+        subcompact::AMBER,
+        subcompact::PAPER,
+    ];
 
     fn edit(theme: &Theme, f: impl FnOnce(&mut Value)) -> String {
         let mut value: Value = serde_json::from_str(&theme.to_json()).unwrap();

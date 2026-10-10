@@ -6,7 +6,7 @@
 
 use gpui_pre::{App, Global, Rgba};
 
-const fn color(hex: u32) -> Rgba {
+pub(crate) const fn color(hex: u32) -> Rgba {
     Rgba {
         r: ((hex >> 16) & 0xff) as f32 / 255.0,
         g: ((hex >> 8) & 0xff) as f32 / 255.0,
@@ -15,7 +15,7 @@ const fn color(hex: u32) -> Rgba {
     }
 }
 
-const fn rgba(hex: u32) -> Rgba {
+pub(crate) const fn rgba(hex: u32) -> Rgba {
     Rgba {
         r: ((hex >> 24) & 0xff) as f32 / 255.0,
         g: ((hex >> 16) & 0xff) as f32 / 255.0,
@@ -160,7 +160,7 @@ const CONTROLS: ControlTokens =
 const MOTION: MotionTokens =
     MotionTokens { instant_ms: 0, fast_ms: 100, normal_ms: 180, slow_ms: 280 };
 
-const fn shadow(y: f32, blur: f32, shadow_color: Rgba) -> ShadowToken {
+pub(crate) const fn shadow(y: f32, blur: f32, shadow_color: Rgba) -> ShadowToken {
     ShadowToken { x: 0.0, y, blur, spread: 0.0, color: shadow_color }
 }
 

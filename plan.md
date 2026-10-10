@@ -820,6 +820,19 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
 #### E9.3 — Theme authoring   `P2` `M`   deps: E4.1
 - [ ] Load themes from a file; a theme editor in the gallery app; export tokens
 
+#### E9.4 — Subcompact design system   `P2` `M`   deps: E4.1, E9.1
+> As a developer of a terminal-style, high-density tool, I want a denser design system on the
+> same tokens, so that consoles, log viewers, and dashboards fit more on screen without forking
+> components.
+- [x] Subcompact density scales and three palettes (phosphor, amber, paper) in `mkit_core::subcompact`;
+      every audited contrast pair passes ([chapter](book/src/theming/subcompact.md))
+- [x] Root text style (platform monospace, 1.3 line height) and a dense console example
+- [ ] macOS harness screenshots of the console in each palette at 1× and 2×, after design review
+- [x] TextArea wraps, hit-tests, and places IME candidates with its themed padding, including
+      after scrolling
+- [ ] Component fixes found by the density audit: focus-ring width token, DataTable resize grip,
+      fixed node-editor and drag-preview geometry
+
 ---
 
 ### E10 — Reference Apps
