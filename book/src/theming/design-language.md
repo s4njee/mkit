@@ -87,6 +87,8 @@ An icon is decoration when a visible label already names the action, and meaning
 | `SHADCN_LIGHT` | `shadcn-light` | A compact, neutral palette inspired by shadcn/ui. |
 | `SHADCN_DARK` | `shadcn-dark` | The dark companion to `SHADCN_LIGHT`. |
 
+For terminal-style, high-density tools, the separate [Subcompact design system](subcompact.md) adds three more palettes (`subcompact::PHOSPHOR`, `AMBER`, and `PAPER`) with smaller controls, type, and spacing. It reuses the same tokens, so every component works with it unchanged.
+
 `SHADCN_LIGHT` and `SHADCN_DARK` use slightly tighter radii (`radii.medium` is 6 instead of 8). `HIGH_CONTRAST` uses a black background, white text and borders, a yellow accent, a cyan focus color, `borders` of 2/2/3, and zero-duration motion. All five themes share the typography, spacing, control-size, and (except high contrast) shadow and motion scales above.
 
 ![A component-state demo in the light theme](../images/component-state-demo.png)

@@ -56,6 +56,7 @@ pub fn contrast_ratio(foreground: Rgba, background: Rgba) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::subcompact::{AMBER, PAPER, PHOSPHOR};
     use crate::theme::{ColorTokens, DARK, HIGH_CONTRAST, LIGHT, SHADCN_DARK, SHADCN_LIGHT, Theme};
 
     fn hex(value: u32) -> Rgba {
@@ -125,6 +126,9 @@ mod tests {
         ("border", |c| c.border, "elevated_surface", |c| c.elevated_surface, Kind::NonText),
     ];
 
+    const THEMES: [Theme; 8] =
+        [LIGHT, DARK, HIGH_CONTRAST, SHADCN_LIGHT, SHADCN_DARK, PHOSPHOR, AMBER, PAPER];
+
     /// Known failures awaiting maintainer review, with the measured ratio
     /// (two decimals). See `docs/E9_CONTRAST.md` for proposed fixes. A pair
     /// listed here must still measure exactly this value, so a regression or a
@@ -164,7 +168,7 @@ mod tests {
         let mut problems = Vec::new();
         let mut used = vec![false; KNOWN_FAILURES.len()];
         let mut passes = 0;
-        for theme in [LIGHT, DARK, HIGH_CONTRAST, SHADCN_LIGHT, SHADCN_DARK] {
+        for theme in THEMES {
             for &(fg_name, fg, bg_name, bg, kind) in PAIRS {
                 let ratio = contrast_ratio(fg(&theme.colors), bg(&theme.colors));
                 let rounded = (ratio * 100.0).round() / 100.0;
@@ -205,6 +209,25 @@ mod tests {
             }
         }
         assert!(problems.is_empty(), "contrast audit problems:\n{}", problems.join("\n"));
-        assert_eq!(passes + KNOWN_FAILURES.len(), 5 * PAIRS.len());
+        assert_eq!(passes + KNOWN_FAILURES.len(), THEMES.len() * PAIRS.len());
+    }
+
+    #[test]
+    fn subcompact_palettes_pass_every_audited_pair() {
+        for theme in [PHOSPHOR, AMBER, PAPER] {
+            assert!(
+                KNOWN_FAILURES.iter().all(|&(name, ..)| name != theme.name),
+                "{} must not need a KNOWN_FAILURES entry",
+                theme.name
+            );
+            for &(fg_name, fg, bg_name, bg, kind) in PAIRS {
+                let ratio = contrast_ratio(fg(&theme.colors), bg(&theme.colors));
+                assert!(
+                    ratio >= target(&theme, kind),
+                    "{}: {fg_name} on {bg_name} is {ratio:.2}:1",
+                    theme.name
+                );
+            }
+        }
     }
 }

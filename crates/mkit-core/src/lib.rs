@@ -11,6 +11,7 @@ pub mod motion;
 pub mod overlay;
 pub mod reduced_motion;
 pub mod state;
+pub mod subcompact;
 pub mod theme;
 pub mod theme_file;
 

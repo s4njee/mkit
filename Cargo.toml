@@ -89,6 +89,7 @@ members = [
     "examples/pilot_components",
     "examples/e8_components",
     "examples/e7_compositions",
+    "examples/subcompact_console",
 ]
 
 [workspace.package]

@@ -2,7 +2,7 @@
 
 Status: measured, awaiting maintainer review. No colours were changed.
 
-The audit lives in `crates/mkit-core/src/contrast.rs` (`builtin_theme_token_pairs_meet_wcag_targets_or_are_known_failures`). It computes WCAG 2.x contrast ratios with the public `mkit_core::contrast::contrast_ratio` helper for 23 token pairs in each of the five built-in themes.
+The audit lives in `crates/mkit-core/src/contrast.rs` (`builtin_theme_token_pairs_meet_wcag_targets_or_are_known_failures`). It computes WCAG 2.x contrast ratios with the public `mkit_core::contrast::contrast_ratio` helper for 23 token pairs in each of the eight built-in themes: the five default-density themes and the three [subcompact](../book/src/theming/subcompact.md) palettes.
 
 Targets:
 
@@ -22,8 +22,11 @@ Text pairs: `text` and `text_muted` on `background`, `surface`, and `elevated_su
 | `HIGH_CONTRAST` | 19 | 4 | `success` on `background`, 15.50 | `focus` on `background`, 16.75 |
 | `SHADCN_LIGHT` | 20 | 3 | `text_muted` on `elevated_surface`, 4.54 | `focus` on `accent`, 3.78 |
 | `SHADCN_DARK` | 19 | 4 | `text_muted` on `elevated_surface`, 6.00 | `focus` on `elevated_surface`, 6.00 |
+| `subcompact::PHOSPHOR` | 23 | 0 | `accent_text` on `danger`, 6.34 | `border` on `elevated_surface`, 3.08 |
+| `subcompact::AMBER` | 23 | 0 | `text_muted` on `elevated_surface`, 6.39 | `focus` on `accent`, 3.13 |
+| `subcompact::PAPER` | 23 | 0 | `warning` on `background`, 5.55 | `border` on `background`, 3.15 |
 
-Totals: 96 pass and 19 are known failures out of 115 pairs. Every theme passes `text` and `text_muted` on all three surfaces.
+Totals: 165 pass and 19 are known failures out of 184 pairs. Every theme passes `text` and `text_muted` on all three surfaces. The subcompact palettes were tuned against this audit and pass every pair, including `border` and `focus` on `accent`; `subcompact_palettes_pass_every_audited_pair` keeps them off the known-failure list.
 
 ## Known failures
 
