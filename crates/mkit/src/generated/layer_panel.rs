@@ -191,7 +191,8 @@ const LOCK_OPEN: &[Step] = &[
     Arc(5., false, true, 16.9, 6.),
 ];
 /// Lucide `arrow-up`.
-const ARROW_UP: &[Step] = &[Move(5., 12.), Line(12., 5.), Line(19., 12.), Move(12., 19.), Line(12., 5.)];
+const ARROW_UP: &[Step] =
+    &[Move(5., 12.), Line(12., 5.), Line(19., 12.), Move(12., 19.), Line(12., 5.)];
 /// Lucide `arrow-down`.
 const ARROW_DOWN: &[Step] =
     &[Move(12., 5.), Line(12., 19.), Move(19., 12.), Line(12., 19.), Line(5., 12.)];
@@ -596,9 +597,11 @@ impl Render for LayerPanel {
             let on_row =
                 |color: Rgba| if active && look.high_contrast { look.active_text } else { color };
             let (hover_bg, hover_border) = (look.hover_bg, look.hover_border);
-            let drop_border = if active && look.high_contrast { look.active_text } else { look.drop };
+            let drop_border =
+                if active && look.high_contrast { look.active_text } else { look.drop };
             let drop_fill = look.hover_bg;
-            let chevron_color = on_row(if look.high_contrast { look.icon } else { look.quiet_icon });
+            let chevron_color =
+                on_row(if look.high_contrast { look.icon } else { look.quiet_icon });
             let mut row = div()
                 .id(row_id.clone())
                 .debug_selector({
@@ -645,18 +648,13 @@ impl Render for LayerPanel {
                     }
                 })
                 // The disclosure slot keeps labels aligned; only groups draw a chevron.
-                .child(
-                    div()
-                        .flex_none()
-                        .size(px(theme.spacing.large))
-                        .when(group, |slot| {
-                            slot.child(icon(
-                                theme.spacing.large,
-                                if expanded { CHEVRON_DOWN } else { CHEVRON_RIGHT },
-                                chevron_color,
-                            ))
-                        }),
-                );
+                .child(div().flex_none().size(px(theme.spacing.large)).when(group, |slot| {
+                    slot.child(icon(
+                        theme.spacing.large,
+                        if expanded { CHEVRON_DOWN } else { CHEVRON_RIGHT },
+                        chevron_color,
+                    ))
+                }));
             if let LayerKind::Layer { visible, locked, thumbnail, swatch } = node.kind {
                 let tile = div()
                     .flex_none()
@@ -738,9 +736,9 @@ impl Render for LayerPanel {
                         None,
                     )
                     .aria_label(format!("Move {label} up"))
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.reorder_id(up_id.clone(), -1, cx)
-                    })),
+                    .on_click(
+                        cx.listener(move |this, _, _, cx| this.reorder_id(up_id.clone(), -1, cx)),
+                    ),
                 )
                 .child(
                     ghost_button(
@@ -753,9 +751,9 @@ impl Render for LayerPanel {
                         None,
                     )
                     .aria_label(format!("Move {label} down"))
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.reorder_id(down_id.clone(), 1, cx)
-                    })),
+                    .on_click(
+                        cx.listener(move |this, _, _, cx| this.reorder_id(down_id.clone(), 1, cx)),
+                    ),
                 );
             let click_id = id.clone();
             row = row

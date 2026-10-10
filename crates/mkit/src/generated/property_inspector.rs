@@ -6,9 +6,9 @@ use crate::disclosure::{
     DisclosurePanel, DisclosureTrigger, default_key_bindings as disclosure_key_bindings,
 };
 use gpui_pre::{
-    Context, Div, EventEmitter, FocusHandle, Focusable, FontWeight, InteractiveElement, IntoElement,
-    KeyBinding, KeyDownEvent, PathBuilder, Render, Rgba, Stateful, Window, actions, canvas, div,
-    point, prelude::*, px,
+    Context, Div, EventEmitter, FocusHandle, Focusable, FontWeight, InteractiveElement,
+    IntoElement, KeyBinding, KeyDownEvent, PathBuilder, Render, Rgba, Stateful, Window, actions,
+    canvas, div, point, prelude::*, px,
 };
 use mkit_core::{
     contrast::{composite, relative_luminance},
@@ -213,7 +213,10 @@ impl Look {
             reset_idle: d(self.reset_idle),
             badge_text: d(self.badge_text),
             hover_bg: None,
-            shadow: ShadowToken { color: self.shadow.color.opacity(self.shadow.color.a * 0.5), ..self.shadow },
+            shadow: ShadowToken {
+                color: self.shadow.color.opacity(self.shadow.color.a * 0.5),
+                ..self.shadow
+            },
             ..self
         }
     }
@@ -639,7 +642,8 @@ impl PropertyInspector {
         // Parts drawn straight on the row take the active row's text colour (high contrast only
         // changes it, as Tree does).
         let row_fill = if active { look.active_bg } else { look.card };
-        let on_row = |color: Rgba| if active && look.high_contrast { look.active_text } else { color };
+        let on_row =
+            |color: Rgba| if active && look.high_contrast { look.active_text } else { color };
         let transparent = look.card.opacity(0.);
         let selector_id = id.clone();
         let reset_id = id.clone();
@@ -653,8 +657,10 @@ impl PropertyInspector {
         } else {
             dim(theme.colors.text_muted, row_fill)
         };
-        let reset_color = if disabled && !look.high_contrast { look.reset_idle } else { reset_color };
-        let ghost_hover_bg = look.muted_weight.map(|weight| mix(theme.colors.text, row_fill, weight));
+        let reset_color =
+            if disabled && !look.high_contrast { look.reset_idle } else { reset_color };
+        let ghost_hover_bg =
+            look.muted_weight.map(|weight| mix(theme.colors.text, row_fill, weight));
         let ghost_hover_border = on_row(theme.colors.accent);
         let (focus, ring) = (look.focus, look.ring);
         let reset = div()
@@ -1202,7 +1208,8 @@ impl PropertyInspector {
                     look.badge_text,
                 ),
             };
-            let badge_bg = if disabled && !look.high_contrast { dim(badge_bg, look.card) } else { badge_bg };
+            let badge_bg =
+                if disabled && !look.high_contrast { dim(badge_bg, look.card) } else { badge_bg };
             row = row.child(
                 div()
                     .id(format!("mixed-{id}"))
@@ -1267,7 +1274,8 @@ impl Render for PropertyInspector {
             let toggle_entity = entity.clone();
             let toggle_group_id = group_id.clone();
             if group_index > 0 {
-                root = root.child(div().w_full().h(px(theme.borders.hairline)).bg(look.card_border));
+                root =
+                    root.child(div().w_full().h(px(theme.borders.hairline)).bg(look.card_border));
             }
             root = root.child(
                 DisclosureTrigger::new(format!("group-{group_id}"), label.clone())

@@ -543,10 +543,7 @@ fn layer_panel_matrix_data(state: LayerPanelVisualState) -> (Vec<LayerNode>, Str
     {
         *expanded = false;
     }
-    (
-        vec![group, background],
-        active.into(),
-    )
+    (vec![group, background], active.into())
 }
 
 impl Render for LayerPanelMatrixPreview {

@@ -312,6 +312,43 @@
       "capture": "mkit_harness::AccessibilitySnapshot::capture",
       "requires_active_platform_a11y": true,
       "headless_inactive_result": "unsupported_pending"
+    },
+    {
+      "id": "a11y-focused",
+      "state": "focused",
+      "load_fixture": "focused_fixture",
+      "expected_semantics": {
+        "role": "tree",
+        "properties": [
+          {
+            "name": "name",
+            "value": "caller-provided panel label"
+          },
+          {
+            "name": "treeitem",
+            "value": "Each visible group and layer is a treeitem named by its label and exposes one-based level."
+          },
+          {
+            "name": "expanded",
+            "value": "Groups expose expanded state."
+          },
+          {
+            "name": "selected",
+            "value": "Active row exposes selected state."
+          },
+          {
+            "name": "visible",
+            "value": "A labeled toggle button within each layer row exposes visibility state."
+          },
+          {
+            "name": "locked",
+            "value": "A labeled toggle button within each layer row exposes lock state."
+          }
+        ]
+      },
+      "capture": "mkit_harness::AccessibilitySnapshot::capture",
+      "requires_active_platform_a11y": true,
+      "headless_inactive_result": "unsupported_pending"
     }
   ],
   "screenshot_cases": [
@@ -614,6 +651,66 @@
       "platform": "macos",
       "status": "pending_until_supported_platform_run",
       "baseline": "layer-panel/dragging/high-contrast-2x.png"
+    },
+    {
+      "id": "screen-focused-light-1x",
+      "state": "focused",
+      "theme": "light",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/light-1x.png"
+    },
+    {
+      "id": "screen-focused-light-2x",
+      "state": "focused",
+      "theme": "light",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/light-2x.png"
+    },
+    {
+      "id": "screen-focused-dark-1x",
+      "state": "focused",
+      "theme": "dark",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/dark-1x.png"
+    },
+    {
+      "id": "screen-focused-dark-2x",
+      "state": "focused",
+      "theme": "dark",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/dark-2x.png"
+    },
+    {
+      "id": "screen-focused-high-contrast-1x",
+      "state": "focused",
+      "theme": "high-contrast",
+      "scale": 1,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/high-contrast-1x.png"
+    },
+    {
+      "id": "screen-focused-high-contrast-2x",
+      "state": "focused",
+      "theme": "high-contrast",
+      "scale": 2,
+      "load_fixture": "focused_fixture",
+      "platform": "macos",
+      "status": "pending_until_supported_platform_run",
+      "baseline": "layer-panel/focused/high-contrast-2x.png"
     }
   ]
 }
