@@ -14,8 +14,6 @@ use mkit_core::{
 };
 use std::ops::Range;
 
-const FIELD_TEXT_INSET: f32 = 12.;
-
 /// Resolved editor colours; see the spec's "Theme tokens used" table.
 #[derive(Clone, Copy)]
 struct Look {
@@ -177,6 +175,9 @@ pub struct TextArea {
     scroll: ScrollHandle,
     /// Font size set from `typography.body` during render and reused by the input handler.
     text_size: Option<Pixels>,
+    /// Offset from the input canvas (the editor's padding box) to the first glyph. Render sets
+    /// it from the same tokens it pads the editor with, so hit testing cannot drift from layout.
+    text_inset: gpui_pre::Point<Pixels>,
     drag_anchor: Option<usize>,
 }
 
@@ -200,6 +201,7 @@ impl TextArea {
             last_bounds: None,
             scroll: ScrollHandle::new(),
             text_size: None,
+            text_inset: point(px(0.), px(0.)),
             drag_anchor: None,
         }
     }
@@ -224,6 +226,7 @@ impl TextArea {
             last_bounds: None,
             scroll: ScrollHandle::new(),
             text_size: None,
+            text_inset: point(px(0.), px(0.)),
             drag_anchor: None,
         }
     }
@@ -342,6 +345,11 @@ impl TextArea {
         self.text_style(window).line_height_in_pixels(window.rem_size())
     }
 
+    /// Width available for wrapping inside an input canvas of `canvas_width`.
+    fn wrap_width(&self, canvas_width: Pixels) -> Pixels {
+        (canvas_width - self.text_inset.x * 2.).max(px(1.))
+    }
+
     fn shaped_lines(&self, window: &Window, width: Pixels) -> Vec<(usize, gpui_pre::WrappedLine)> {
         let style = self.text_style(window);
         let font_size = style.font_size.to_pixels(window.rem_size());
@@ -389,18 +397,16 @@ impl TextArea {
         position
     }
 
-    fn scroll_caret_into_view(&self, window: &mut Window, cx: &Context<Self>) {
+    fn scroll_caret_into_view(&self, window: &mut Window) {
         let bounds = self.scroll.bounds();
         if bounds.size.width == px(0.) || bounds.size.height == px(0.) {
             return;
         }
-        let theme = cx.global::<mkit_core::theme::Theme>();
-        let inset = px(theme.spacing.small);
         let line_height = self.line_height(window);
-        let lines =
-            self.shaped_lines(window, (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)));
+        let canvas_width = self.last_bounds.map_or(bounds.size.width, |canvas| canvas.size.width);
+        let lines = self.shaped_lines(window, self.wrap_width(canvas_width));
         let cursor = if self.reversed { self.selection.start } else { self.selection.end };
-        let caret_top = Self::position_for_byte(&lines, cursor, line_height).y + inset;
+        let caret_top = Self::position_for_byte(&lines, cursor, line_height).y + self.text_inset.y;
         let caret_bottom = caret_top + line_height;
         let offset = self.scroll.offset();
         let visible_top = -f32::from(offset.y);
@@ -484,7 +490,7 @@ impl EntityInputHandler for TextArea {
             self.replace_bytes(bytes, text);
         }
         cx.emit(InputChanged(self.text.clone()));
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
     fn replace_and_mark_text_in_range(
@@ -514,7 +520,7 @@ impl EntityInputHandler for TextArea {
             })
             .unwrap_or_else(|| start + text.len()..start + text.len());
         self.coalesce_typing = false;
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.emit(InputChanged(self.text.clone()));
         cx.notify();
     }
@@ -527,16 +533,12 @@ impl EntityInputHandler for TextArea {
     ) -> Option<Bounds<Pixels>> {
         let bytes = self.utf16_range_to_bytes(&range);
         let line_height = self.line_height(window);
-        let lines = self.shaped_lines(
-            window,
-            (element_bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
-        );
+        let lines = self.shaped_lines(window, self.wrap_width(element_bounds.size.width));
         let start = Self::position_for_byte(&lines, bytes.start, line_height);
         let end = Self::position_for_byte(&lines, bytes.end, line_height);
-        let origin = point(
-            element_bounds.left() + px(FIELD_TEXT_INSET) + start.x.min(end.x),
-            element_bounds.top() + start.y.min(end.y),
-        );
+        // The canvas scrolls with the content, so its origin already includes the scroll offset.
+        let origin =
+            element_bounds.origin + self.text_inset + point(start.x.min(end.x), start.y.min(end.y));
         Some(Bounds::new(
             origin,
             size((end.x - start.x).abs().max(px(1.)), (end.y - start.y).abs() + line_height),
@@ -563,7 +565,7 @@ impl EntityInputHandler for TextArea {
         self.reversed = false;
         self.marked = None;
         self.coalesce_typing = false;
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 
@@ -605,6 +607,9 @@ impl Render for TextArea {
         let input = cx.entity();
         let theme = *cx.global::<Theme>();
         self.text_size = Some(px(theme.typography.body));
+        let text_inset = point(px(theme.spacing.medium), px(theme.spacing.small));
+        self.text_inset = text_inset;
+        let scroll = self.scroll.clone();
         let colors = &theme.colors;
         let look = look(&theme, self.disabled);
         let focused = self.marked.is_some() || focus.is_focused(window);
@@ -626,8 +631,7 @@ impl Render for TextArea {
                 .child(text.to_owned())
         } else {
             let bounds = self.last_bounds.unwrap_or_else(|| window.bounds());
-            let text_width = (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.));
-            let shaped_lines = self.shaped_lines(window, text_width);
+            let shaped_lines = self.shaped_lines(window, self.wrap_width(bounds.size.width));
             let line_height = self.line_height(window);
             let marker = self
                 .marked
@@ -727,8 +731,8 @@ impl Render for TextArea {
                     .debug_selector(|| "text-area".to_owned())
                     .w_full()
                     .h(px(theme.controls.large * 3.))
-                    .px(px(theme.spacing.medium))
-                    .py(px(theme.spacing.small))
+                    .px(text_inset.x)
+                    .py(text_inset.y)
                     .flex()
                     .items_start()
                     .overflow_y_scroll()
@@ -779,12 +783,16 @@ impl Render for TextArea {
                         canvas(
                             |_, _, _| (),
                             move |bounds, (), window, cx| {
+                                // The canvas scrolls with the content; presses are accepted
+                                // over the padding box that is actually on screen.
+                                let viewport =
+                                    Bounds::new(bounds.origin - scroll.offset(), bounds.size);
                                 let down_target = input.clone();
                                 window.on_mouse_event(
                                     move |event: &MouseDownEvent, phase, window, cx| {
                                         if phase == DispatchPhase::Capture
                                             && event.button == MouseButton::Left
-                                            && bounds.contains(&event.position)
+                                            && viewport.contains(&event.position)
                                         {
                                             down_target.update(cx, |area, cx| {
                                                 area.pointer_down(event, window, cx)
@@ -851,7 +859,7 @@ impl TextArea {
         let range = self.selection.clone();
         self.replace_bytes(range, "");
         cx.emit(InputChanged(self.text.clone()));
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 
@@ -863,7 +871,7 @@ impl TextArea {
         let range = self.selection.clone();
         self.replace_bytes(range, &text);
         cx.emit(InputChanged(self.text.clone()));
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 
@@ -874,12 +882,11 @@ impl TextArea {
     ) -> Option<usize> {
         let bounds = self.last_bounds?;
         let line_height = self.line_height(window);
-        let lines =
-            self.shaped_lines(window, (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)));
-        let offset = self.scroll.offset();
+        let lines = self.shaped_lines(window, self.wrap_width(bounds.size.width));
+        // The canvas scrolls with the content, so its origin already includes the scroll offset.
         let relative = point(
-            (position.x - bounds.left() - px(FIELD_TEXT_INSET)).max(px(0.)),
-            (position.y - bounds.top() - px(FIELD_TEXT_INSET) - offset.y).max(px(0.)),
+            (position.x - bounds.left() - self.text_inset.x).max(px(0.)),
+            (position.y - bounds.top() - self.text_inset.y).max(px(0.)),
         );
         let mut byte = self.text.len();
         let mut y = relative.y;
@@ -916,7 +923,7 @@ impl TextArea {
         self.reversed = false;
         self.marked = None;
         self.coalesce_typing = false;
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 
@@ -935,7 +942,7 @@ impl TextArea {
         self.reversed = pointer < anchor;
         self.marked = None;
         self.coalesce_typing = false;
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 
@@ -1030,7 +1037,7 @@ impl TextArea {
             ("right", false, _) => self.move_cursor_by_utf16(1),
             _ => return,
         }
-        self.scroll_caret_into_view(window, cx);
+        self.scroll_caret_into_view(window);
         cx.notify();
     }
 }
@@ -1151,20 +1158,13 @@ mod gpui_tests {
         let (start, end) = visual.update(|window, cx| {
             area.read_with(cx, |area, _| {
                 let bounds = area.last_bounds.expect("input canvas should have laid out");
-                let lines = area.shaped_lines(
-                    window,
-                    (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
-                );
+                let lines = area.shaped_lines(window, area.wrap_width(bounds.size.width));
                 let line_height = area.line_height(window);
                 let first_row = TextArea::position_for_byte(&lines, 1, line_height);
                 let last_row = TextArea::position_for_byte(&lines, end_byte, line_height);
                 assert!(last_row.y > first_row.y, "drag destination crosses visual rows");
-                let origin = |position: gpui_pre::Point<Pixels>| {
-                    point(
-                        bounds.left() + px(FIELD_TEXT_INSET) + position.x,
-                        bounds.top() + px(FIELD_TEXT_INSET) + position.y + area.scroll.offset().y,
-                    )
-                };
+                let origin =
+                    |position: gpui_pre::Point<Pixels>| bounds.origin + area.text_inset + position;
                 (origin(first_row), origin(last_row))
             })
         });
@@ -1314,10 +1314,8 @@ mod gpui_tests {
                 let offset = area.scroll.offset();
                 assert!(f32::from(offset.y) < 0., "expected the viewport to scroll: {offset:?}");
                 let bounds = area.scroll.bounds();
-                let lines = area.shaped_lines(
-                    window,
-                    (bounds.size.width - px(FIELD_TEXT_INSET * 2.)).max(px(1.)),
-                );
+                let canvas = area.last_bounds.expect("input canvas laid out");
+                let lines = area.shaped_lines(window, area.wrap_width(canvas.size.width));
                 let line_height = area.line_height(window);
                 let caret = TextArea::position_for_byte(&lines, area.selection.end, line_height).y
                     + px(mkit_core::theme::SHADCN_LIGHT.spacing.small);
@@ -1327,5 +1325,109 @@ mod gpui_tests {
                 assert!(f32::from(caret) + f32::from(line_height) <= visible_bottom + 1.);
             });
         });
+    }
+    /// Where the first glyph is drawn, from the editor's laid-out bounds and the theme's border
+    /// and padding tokens rather than from the hit-testing code under test.
+    fn drawn_text_frame(
+        visual: &mut gpui::VisualTestContext,
+        theme: Theme,
+    ) -> (gpui_pre::Point<Pixels>, Pixels) {
+        let editor = visual.debug_bounds("text-area").expect("editor laid out");
+        let border = px(theme.borders.regular);
+        let origin = point(
+            editor.left() + border + px(theme.spacing.medium),
+            editor.top() + border + px(theme.spacing.small),
+        );
+        let width = editor.size.width - border * 2. - px(theme.spacing.medium * 2.);
+        (origin, width)
+    }
+
+    fn open_area(
+        cx: &mut TestAppContext,
+        theme: Theme,
+        text: String,
+    ) -> (gpui::Entity<TextArea>, &mut gpui::VisualTestContext) {
+        cx.update(|app| {
+            mkit_core::theme::set_theme(app, theme);
+            app.bind_keys(default_key_bindings());
+        });
+        let (area, visual) = cx.add_window_view(|window, cx| {
+            let mut area = TextArea::new(cx);
+            area.set_value(text, cx);
+            window.focus(area.focus.as_ref().unwrap(), cx);
+            area
+        });
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+        (area, visual)
+    }
+
+    #[gpui::test]
+    fn click_lands_on_the_drawn_character_at_every_density(cx: &mut TestAppContext) {
+        for theme in [mkit_core::theme::SHADCN_LIGHT, mkit_core::subcompact::PHOSPHOR] {
+            let text = "abcdefghij\nklmnopqrst".to_owned();
+            let target = "abcdefghij\nklmn".len();
+            let (area, visual) = open_area(cx, theme, text);
+            let (origin, width) = drawn_text_frame(visual, theme);
+            let glyph = visual.update(|window, cx| {
+                area.read_with(cx, |area, _| {
+                    let lines = area.shaped_lines(window, width);
+                    TextArea::position_for_byte(&lines, target, area.line_height(window))
+                })
+            });
+            // Just inside the top-left of the boundary, where an inset error moves the caret
+            // to the row above or the character before.
+            let click = point(origin.x + glyph.x + px(1.), origin.y + glyph.y + px(1.));
+            visual.simulate_click(click, Default::default());
+            assert_eq!(
+                area.read_with(visual, |area, _| area.selection.clone()),
+                target..target,
+                "{}: click at {click:?}",
+                theme.name
+            );
+        }
+    }
+
+    #[gpui::test]
+    fn click_after_scrolling_lands_on_the_visible_row(cx: &mut TestAppContext) {
+        let theme = mkit_core::subcompact::PHOSPHOR;
+        let lines: Vec<String> = (0..30).map(|line| format!("line {line}")).collect();
+        let (area, visual) = open_area(cx, theme, lines.join("\n"));
+        let navigation = std::iter::repeat_n("right", 220).collect::<Vec<_>>().join(" ");
+        visual.simulate_keystrokes(&navigation);
+        visual.update(|window, cx| window.draw(cx).clear(cx));
+
+        let (origin, _) = drawn_text_frame(visual, theme);
+        let (offset, line_height) = visual.update(|window, cx| {
+            area.read_with(cx, |area, _| (area.scroll.offset().y, area.line_height(window)))
+        });
+        assert!(offset < px(0.), "expected the viewport to scroll");
+        // The second fully visible row, clicked at its left edge.
+        let row = (f32::from(-offset) / f32::from(line_height)).ceil() as usize + 1;
+        let click = point(
+            origin.x + px(1.),
+            origin.y + offset + line_height * row as f32 + line_height / 2.,
+        );
+        visual.simulate_click(click, Default::default());
+        let start = lines[..row].iter().map(|line| line.len() + 1).sum::<usize>();
+        assert_eq!(area.read_with(visual, |area, _| area.selection.clone()), start..start);
+    }
+
+    #[gpui::test]
+    fn ime_candidate_bounds_start_at_the_drawn_glyph(cx: &mut TestAppContext) {
+        let theme = mkit_core::subcompact::PHOSPHOR;
+        let text = "abcdefghij\nklmnopqrst".to_owned();
+        let target = "abcdefghij\nkl".len();
+        let (area, visual) = open_area(cx, theme, text);
+        let (origin, width) = drawn_text_frame(visual, theme);
+        let (glyph, bounds) = visual.update(|window, cx| {
+            area.update(cx, |area, cx| {
+                let lines = area.shaped_lines(window, width);
+                let glyph = TextArea::position_for_byte(&lines, target, area.line_height(window));
+                let canvas = area.last_bounds.expect("input canvas laid out");
+                let bounds = area.bounds_for_range(target..target + 1, canvas, window, cx);
+                (glyph, bounds.expect("candidate bounds"))
+            })
+        });
+        assert_eq!(bounds.origin, point(origin.x + glyph.x, origin.y + glyph.y));
     }
 }

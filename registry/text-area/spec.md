@@ -191,9 +191,12 @@ otherwise light. Derived colours use a crate-local `color-mix` helper built on
   height with vertical scrolling rather than shadcn's growing `min-h-16`, so scroll-to-caret
   behaviour and embedding layouts are unchanged; 120px exceeds both shadcn's 64px minimum and the
   web preview's 80px minimum. The root and editor use `w_full()`, and the validation message sits
-  `spacing.small` (8px, the web preview's `.ui-field` gap) below the editor. `FIELD_TEXT_INSET = 12`
-  (equal to `spacing.medium` in every built-in theme) is used for wrapping width, hit testing, and
-  candidate bounds; it should become the spacing token and be checked against the render inset.
+  `spacing.small` (8px, the web preview's `.ui-field` gap) below the editor. Wrapping width, pointer
+  hit testing, and IME candidate bounds use the same `spacing.medium` × `spacing.small` inset as
+  the padding, measured from the input canvas (the editor's padding box). The canvas scrolls with
+  the content, so its origin already includes the scroll offset; presses are accepted over the
+  on-screen padding box. Tests click drawn glyphs in the shadcn and subcompact densities, click a
+  row after scrolling, and compare candidate bounds with the drawn glyph.
 - **Text.** The value, placeholder, and validation message use `typography.body` (14px, shadcn
   `text-sm`); the web preview's 13px error text has no token. The size is applied explicitly and the
   same size and line height are used to shape and wrap text for visual rows, pointer hit testing,
@@ -210,4 +213,4 @@ Follow textbox role guidance. The multiline role, line-aware rendering, and care
 GPUI handler ranges use UTF-16; internal offsets are UTF-8 byte boundaries. Marked text has a stored range. Candidate bounds, pointer hit testing, visible content, and vertical caret scrolling use multiline/wrapped layout. GPUI's input handler does not expose a portable horizontal scroll-to-caret API here; long unwrapped lines may extend horizontally. Native IME candidate placement still requires active-platform verification. Pointer drag selection starts from the hit-tested UTF-16 boundary and updates the selection anchor-to-pointer range across explicit newlines and soft-wrapped visual rows; reversed selection direction is preserved. Dragging outside the editor clamps to the nearest text boundary. Disabled editors do not start a drag. The full keyboard, pointer, IME, accessibility, and screenshot matrices remain pending harness or platform verification.
 
 ## Open questions
-Maintainer review is required for public builder/event names, controlled-mode buffer contract, fixed hit-test inset, and multiline AccessKit semantics. Native IME candidate placement, active-platform drag selection, and broader accessibility and visual behavior remain unverified.
+Maintainer review is required for public builder/event names, controlled-mode buffer contract, and multiline AccessKit semantics. Native IME candidate placement, active-platform drag selection, and broader accessibility and visual behavior remain unverified.
