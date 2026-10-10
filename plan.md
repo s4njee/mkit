@@ -828,8 +828,10 @@ Angle #2: what creative, data and developer tools need, and what nobody else pro
       every audited contrast pair passes ([chapter](book/src/theming/subcompact.md))
 - [x] Root text style (platform monospace, 1.3 line height) and a dense console example
 - [ ] macOS harness screenshots of the console in each palette at 1× and 2×, after design review
+- [x] TextArea wraps, hit-tests, and places IME candidates with its themed padding, including
+      after scrolling
 - [ ] Component fixes found by the density audit: focus-ring width token, DataTable resize grip,
-      TextArea text inset, fixed node-editor and drag-preview geometry
+      fixed node-editor and drag-preview geometry
 
 ---
 

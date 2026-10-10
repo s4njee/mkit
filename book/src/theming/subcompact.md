@@ -94,7 +94,6 @@ An audit of the registry under subcompact tokens found these issues, which need 
 - The DataTable column-resize grip is `spacing.xsmall` wide, which is a 2 px pointer target under subcompact.
 - The SplitPane grip dots and the timeline keyframe diamond become very small (about 1 px dots and an 8 px diamond whose focus ring is twice its size).
 - Some layouts use fixed pixel sizes that do not scale with tokens: node-editor geometry, the 180 px drag previews in LayerPanel and ReorderableList, and the VirtualList default row height of 32 px. Set `row_height` explicitly in dense lists.
-- TextArea positions its wrap width, hit-testing, and IME bounds with a fixed 12 px inset, while it draws text at `spacing.medium` and `spacing.small`. Under subcompact, wrapping and hit-testing are off by a few pixels.
 - Menu minimum widths (`spacing.xxlarge * 4`) shrink from 128 to 96 px. They are still wide enough for short labels.
 
 Open questions for maintainers: whether the focus ring width and a font family should become theme tokens; whether subcompact should get its own high-contrast palette, or rely on `with_subcompact_density(HIGH_CONTRAST)`; and whether icons should get their own size token instead of reusing `spacing.large`.
