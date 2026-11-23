@@ -74,8 +74,9 @@ Pointer context menu for commands including nested and checkable items.
 
 The host supplies the invocation gesture, point anchor, and optional focus return target. The
 component renders its panes in a GPUI deferred window-anchored surface and one adjacent pane for
-each active nested level. Rows contain a leading check-mark slot (checkable items only), the label, an optional right-aligned
-shortcut label, and a trailing chevron for submenu parents.
+each active nested level. Rows contain a leading check-mark slot (checkable items only), an
+optional leading icon, the label, an optional right-aligned shortcut label, and a trailing chevron
+for submenu parents. Separator entries draw a full-bleed rule between groups of rows.
 
 ## States
 
@@ -96,7 +97,7 @@ The menu overlay is intentionally kept well inside the window in the `open` and 
 
 ## Props and events
 
-Entity<ContextMenu>; uncontrolled `new(items)` and controlled `controlled(items, open)` both expose `set_open`. `OpenChanged(bool)` requests open state changes; in controlled mode the owner must call `set_open` to apply them. `ItemSelected(id)` is emitted for enabled command items, and dismisses the menu. `CheckedChanged(id, checked)` is emitted for enabled checkable items; toggling a checkable item keeps the menu open. Items support shortcuts, disabled, checked and children.
+Entity<ContextMenu>; uncontrolled `new(items)` and controlled `controlled(items, open)` both expose `set_open`. `OpenChanged(bool)` requests open state changes; in controlled mode the owner must call `set_open` to apply them. `ItemSelected(id)` is emitted for enabled command items, and dismisses the menu. `CheckedChanged(id, checked)` is emitted for enabled checkable items; toggling a checkable item keeps the menu open. Items support shortcuts, disabled, checked, children, a leading icon (`MenuItem::icon`, an SVG asset path the host's `AssetSource` serves), and a destructive style (`MenuItem::destructive`). `MenuItem::separator()` creates a separator entry: it is never active, focusable or activatable, keyboard and pointer navigation skip it, and it emits no events. `ContextMenu::min_width(px)` raises the pane's minimum width for hosts whose design fixes it (the default stays 4 × `spacing.xxlarge`).
 
 Shortcut labels are display-only strings (`MenuItem::shortcut` keeps its `String` API). The menu passes each label to KeyHint's shared `KeyChord::parse` and renders a parsed chord with `KeyHint::inline()`, so platform modifier names and order match CommandPalette and ShortcutEditor: GPUI keystroke text such as `cmd-shift-s` and glyph text such as `⌘⇧S` both display as `⇧⌘S` on macOS and `Shift+Super+S` elsewhere (`secondary-s` displays as `⌘S` on macOS and `Ctrl+S` elsewhere). Labels that KeyHint cannot parse, such as spaced or multi-keystroke text, are shown verbatim. The inline presentation keeps the existing muted-text shortcut column; keycap boxes were not adopted because they would enlarge fixed-height menu rows and change the established menu look. Menu item accessible names remain the item label only.
 
@@ -133,7 +134,7 @@ surface; nested overlay routing remains the host's responsibility.
 
 ## Accessibility role and properties
 
-menu; host trigger retains its role; entries use menuitem/menuitemcheckbox, expose their label as the accessible name, and set the AccessKit disabled state on unavailable entries. Checkable entries expose their checked state.
+menu; host trigger retains its role; separators use separator (AccessKit `Splitter`, its ARIA separator role); entries use menuitem/menuitemcheckbox, expose their label as the accessible name, and set the AccessKit disabled state on unavailable entries. Checkable entries expose their checked state.
 
 ## WAI-ARIA pattern reference
 
@@ -167,6 +168,9 @@ Sidebar use.
 | Active row fill | accent | accent | `accent` |
 | Active row text, shortcut, check, chevron | `text`, `text_muted` | `text`, `text_muted` | `accent_text` for every part |
 | Disabled row | `text` and `text_muted` at 50% over the pane fill | same | solid `disabled` |
+| Leading icon | `text_muted` | `text_muted` | `text_muted` (`accent_text` when active) |
+| Destructive row label and icon (shadcn `destructive`) | `danger` | `danger` | `danger` (`accent_text` when active) |
+| Separator (shadcn `separator`) | `border` | `border` | `border` |
 
 - **Active row.** The pointer-hovered or keyboard-active row (shadcn `focus:bg-accent`, the web
   preview's `.is-active`) uses the accent fill with `radii.small` corners. A submenu parent keeps
@@ -196,9 +200,15 @@ Sidebar use.
 - **Shortcut.** Right-aligned (`margin-left: auto`) in `typography.caption` (12px) and
   `text_muted`. The web preview adds `letter-spacing: .08em`; GPUI text has no letter-spacing
   control, so the shortcut is drawn with normal spacing.
-- **Not rendered.** The web preview also shows a group label, separators, leading item icons and a
-  destructive row. `MenuItem` has no label, separator, icon or destructive variant, so these parts
-  are not drawn; adding them needs a public API change (see open questions).
+- **Leading icon.** A `spacing.large` (16px) square before the label, drawn with GPUI `svg()` from
+  the host's assets and tinted like the web's `.ui-menu__item svg` (`text_muted`; destructive rows
+  use the row's colour). Icons are decorative and add no accessibility node.
+- **Destructive row.** Label and icon use `danger` (the web's `.ui-menu__item--destructive`); the
+  shortcut stays `text_muted`. Disabled destructive rows use the disabled colours.
+- **Separator.** A `borders.regular` rule in `border`, with `spacing.xsmall` above and below and
+  negative `spacing.xsmall` horizontal margins so it meets the pane border, as the web's
+  `.ui-menu__sep` (`margin: 4px -4px`).
+- **Not rendered.** The web preview also shows a group label; `MenuItem` has no label variant.
 
 Do not hard-code colors.
 
@@ -210,4 +220,4 @@ should dismiss only the topmost menu remain unverified.
 
 The `mkit-registry-key-hint` dependency, the `⌘⇧S` to `⇧⌘S` modifier reordering, and whether menu items should expose the chord through `aria_keyshortcuts` need maintainer review.
 
-`MenuItem` has no group label, separator, leading icon or destructive variant, so the web preview's `.ui-menu__label`, `.ui-menu__sep`, item icons and destructive (`danger`) rows are not rendered. Adding them is a public API change that needs maintainer review.
+Separators, leading icons, destructive rows and `min_width` are new public API (requested by xxplorer's item menu, `design/ContextMenu.dc.html` there) and need maintainer review of names and shape: `MenuItem` grows public `icon`, `destructive` and `separator` fields, which breaks callers that build it with a struct literal instead of the builder. A group label (`.ui-menu__label`) is still not rendered.

@@ -6,8 +6,8 @@ use crate::key_hint::shortcut_label;
 use crate::key_hint::{KeyChord, KeyHint};
 use gpui_pre::{
     Anchor, AnchoredPositionMode, Context, EventEmitter, FocusHandle, Focusable, IntoElement,
-    KeyBinding, MouseDownEvent, PathBuilder, Render, Rgba, WeakFocusHandle, Window, actions,
-    anchored, canvas, deferred, div, point, prelude::*, px,
+    KeyBinding, MouseDownEvent, PathBuilder, Render, Rgba, SharedString, WeakFocusHandle, Window,
+    actions, anchored, canvas, deferred, div, point, prelude::*, px, svg,
 };
 use mkit_core::{
     contrast::{composite, relative_luminance},
@@ -30,6 +30,10 @@ struct Look {
     active_muted: Rgba,
     disabled_text: Rgba,
     disabled_muted: Rgba,
+    /// Destructive rows' label and icon.
+    danger: Rgba,
+    /// Separator rules.
+    separator: Rgba,
     /// Stroke width of the check and chevron icons, as a fraction of the icon size or in pixels.
     icon_stroke: IconStroke,
 }
@@ -56,6 +60,8 @@ fn look(t: &Theme) -> Look {
             active_muted: c.accent_text,
             disabled_text: c.disabled,
             disabled_muted: c.disabled,
+            danger: c.danger,
+            separator: c.border,
             icon_stroke: IconStroke::Pixels(t.borders.regular),
         };
     }
@@ -75,6 +81,8 @@ fn look(t: &Theme) -> Look {
         // The web preview's `opacity: .5`, flattened over the opaque pane.
         disabled_text: mix(c.text, pane, 0.5),
         disabled_muted: mix(c.text_muted, pane, 0.5),
+        danger: c.danger,
+        separator: c.border,
         icon_stroke: IconStroke::Relative,
     }
 }
@@ -148,6 +156,12 @@ pub struct MenuItem {
     pub disabled: bool,
     pub checked: Option<bool>,
     pub children: Vec<MenuItem>,
+    /// Leading icon: an SVG asset path served by the host's `AssetSource`.
+    pub icon: Option<SharedString>,
+    /// Draw the label and icon in the theme's `danger` colour (e.g. "Move to trash").
+    pub destructive: bool,
+    /// A rule between groups; never active, activatable or announced as a menu item.
+    pub separator: bool,
 }
 impl MenuItem {
     pub fn new(id: impl Into<String>, label: impl Into<String>) -> Self {
@@ -158,7 +172,22 @@ impl MenuItem {
             disabled: false,
             checked: None,
             children: vec![],
+            icon: None,
+            destructive: false,
+            separator: false,
         }
+    }
+    /// A separator between groups of items.
+    pub fn separator() -> Self {
+        Self { separator: true, disabled: true, ..Self::new("", "") }
+    }
+    pub fn icon(mut self, path: impl Into<SharedString>) -> Self {
+        self.icon = Some(path.into());
+        self
+    }
+    pub fn destructive(mut self, v: bool) -> Self {
+        self.destructive = v;
+        self
     }
     pub fn shortcut(mut self, s: impl Into<String>) -> Self {
         self.shortcut = Some(s.into());
@@ -198,6 +227,7 @@ pub struct ContextMenu {
     return_focus_to: Option<WeakFocusHandle>,
     last_open: bool,
     captured_focus: Option<WeakFocusHandle>,
+    min_width: Option<f32>,
 }
 impl ContextMenu {
     pub fn new(items: Vec<MenuItem>) -> Self {
@@ -212,6 +242,7 @@ impl ContextMenu {
             return_focus_to: None,
             last_open: false,
             captured_focus: None,
+            min_width: None,
         }
     }
     pub fn controlled(items: Vec<MenuItem>, open: bool) -> Self {
@@ -226,6 +257,7 @@ impl ContextMenu {
             return_focus_to: None,
             last_open: false,
             captured_focus: None,
+            min_width: None,
         }
     }
     pub fn set_open(&mut self, v: bool, cx: &mut Context<Self>) {
@@ -251,6 +283,11 @@ impl ContextMenu {
     ) {
         self.anchor = Some(position);
         cx.notify();
+    }
+    /// Raise each pane's minimum width (logical pixels) above the default 4 × `spacing.xxlarge`.
+    pub fn min_width(mut self, width: f32) -> Self {
+        self.min_width = Some(width);
+        self
     }
     /// Return focus to this host trigger or invoking element after the menu closes.
     pub fn return_focus_to(mut self, handle: &FocusHandle) -> Self {
@@ -320,7 +357,7 @@ impl ContextMenu {
                     (start + items.len() - step % items.len()) % items.len()
                 }
             })
-            .find(|i| !items[*i].disabled)
+            .find(|i| !items[*i].disabled && !items[*i].separator)
     }
     fn move_active(&mut self, forward: bool, cx: &mut Context<Self>) {
         let depth = self.path.len();
@@ -497,7 +534,10 @@ impl Render for ContextMenu {
                     .role(gpui_pre::accesskit::Role::Menu)
                     .flex()
                     .flex_col()
-                    .min_w(px(t.spacing.xxlarge * 4.0))
+                    .min_w(px(self
+                        .min_width
+                        .unwrap_or(0.0)
+                        .max(t.spacing.xxlarge * 4.0)))
                     .p(px(t.spacing.xsmall))
                     .rounded(px(t.radii.medium))
                     .border(px(t.borders.regular))
@@ -505,6 +545,19 @@ impl Render for ContextMenu {
                     .bg(look.pane)
                     .shadow(vec![box_shadow(t.shadows.medium)]);
                 for (index, item) in items.iter().enumerate() {
+                    if item.separator {
+                        pane = pane.child(
+                            div()
+                                .id(format!("menu-separator-{depth}-{index}"))
+                                .role(gpui_pre::accesskit::Role::Splitter)
+                                .h(px(t.borders.regular))
+                                .flex_none()
+                                .my(px(t.spacing.xsmall))
+                                .mx(px(-t.spacing.xsmall))
+                                .bg(look.separator),
+                        );
+                        continue;
+                    }
                     let active = index == active_index;
                     let (fg, muted) = if item.disabled {
                         (look.disabled_text, look.disabled_muted)
@@ -512,6 +565,16 @@ impl Render for ContextMenu {
                         (look.active_text, look.active_muted)
                     } else {
                         (look.text, look.muted)
+                    };
+                    // High contrast keeps `accent_text` on the active row for legibility.
+                    let high_contrast_active = active && t.name == "high-contrast";
+                    let (fg, icon_color) = if item.destructive
+                        && !item.disabled
+                        && !high_contrast_active
+                    {
+                        (look.danger, look.danger)
+                    } else {
+                        (fg, muted)
                     };
                     let mut row = div()
                         .id(format!("menu-item-{depth}-{index}"))
@@ -553,6 +616,15 @@ impl Render for ContextMenu {
                                 slot.child(icon(Icon::Check, icon_size, look.icon_stroke, muted))
                             },
                         ));
+                    }
+                    if let Some(path) = &item.icon {
+                        row = row.child(
+                            svg()
+                                .path(path.clone())
+                                .size(px(icon_size))
+                                .flex_none()
+                                .text_color(icon_color),
+                        );
                     }
                     row = row
                         .child(div().flex_grow(1.0).whitespace_nowrap().child(item.label.clone()));
@@ -675,6 +747,44 @@ mod tests {
         menu.path.pop();
         menu.active.pop();
         assert_eq!(menu.path.len(), 1);
+    }
+    #[test]
+    fn separators_are_skipped_and_new_builders_set_fields() {
+        let items = [
+            MenuItem::new("open", "Open").icon("icons/file.svg"),
+            MenuItem::separator(),
+            MenuItem::new("trash", "Move to trash").destructive(true),
+        ];
+        assert_eq!(items[0].icon.as_deref(), Some("icons/file.svg"));
+        assert!(items[1].separator && !items[0].separator);
+        assert!(items[2].destructive);
+        assert_eq!(ContextMenu::enabled_index(&items, 1, true), Some(2));
+        assert_eq!(ContextMenu::enabled_index(&items, 1, false), Some(0));
+        // A separator alone is never navigable even if marked enabled by a struct literal.
+        let lone = [MenuItem { disabled: false, ..MenuItem::separator() }];
+        assert_eq!(ContextMenu::enabled_index(&lone, 0, true), None);
+    }
+    #[gpui_pre::test]
+    fn separators_render_without_rows_and_min_width_applies(cx: &mut gpui_pre::TestAppContext) {
+        cx.update(mkit_core::theme::set_light_theme);
+        let (_, visual) = cx.add_window_view(|_, _| {
+            ContextMenu::controlled(
+                vec![
+                    MenuItem::new("a", "A"),
+                    MenuItem::separator(),
+                    MenuItem::new("b", "B").destructive(true),
+                ],
+                true,
+            )
+            .min_width(260.0)
+        });
+        visual.run_until_parked();
+        assert!(visual.debug_bounds("menu-item-0-1").is_none(), "separator is not a row");
+        let a = visual.debug_bounds("menu-item-0-0").expect("first row");
+        let b = visual.debug_bounds("menu-item-0-2").expect("row after separator");
+        assert!(a.size.width >= px(244.0), "260 px pane minus padding");
+        // Row, then the separator's margins and rule, then the next row.
+        assert!(b.origin.y - (a.origin.y + a.size.height) >= px(8.0));
     }
     #[test]
     fn next_enabled_item_skips_disabled_items() {
